@@ -6,6 +6,8 @@ import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/models/ingredient.dart';
 import '../../../../shared/widgets/app_card.dart';
+import '../../domain/services/pantry_search_engine.dart';
+import 'search_highlight_text.dart';
 
 class IngredientCard extends StatelessWidget {
   const IngredientCard({
@@ -15,6 +17,7 @@ class IngredientCard extends StatelessWidget {
     required this.onFavoriteToggle,
     super.key,
     this.onTap,
+    this.searchQuery = '',
   });
 
   final Ingredient ingredient;
@@ -22,10 +25,18 @@ class IngredientCard extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback onFavoriteToggle;
   final VoidCallback? onTap;
+  final String searchQuery;
 
   @override
   Widget build(BuildContext context) {
     final expiryStatus = _ExpiryStatus.fromIngredient(ingredient);
+    final searchMatch = PantrySearchEngine.matchIngredient(
+      ingredient,
+      searchQuery,
+    );
+    final matchedAlias = searchMatch.matchedThroughAlias
+        ? searchMatch.matchedAlias
+        : null;
 
     return AppCard(
       onTap: onTap,
@@ -43,8 +54,9 @@ class IngredientCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      child: Text(
-                        ingredient.name,
+                      child: SearchHighlightText(
+                        text: ingredient.name,
+                        query: searchQuery,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: AppTextStyles.titleMedium,
@@ -57,12 +69,37 @@ class IngredientCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: AppSpacing.xxs),
-                Text(
-                  ingredient.category,
+                SearchHighlightText(
+                  text: ingredient.category,
+                  query: searchQuery,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.bodySmall,
                 ),
+                if (matchedAlias != null) ...[
+                  const SizedBox(height: AppSpacing.xxs),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.auto_awesome_rounded,
+                        size: 15,
+                        color: AppColors.primaryDark,
+                      ),
+                      const SizedBox(width: AppSpacing.xxs),
+                      Expanded(
+                        child: Text(
+                          'ตรงกับคำค้น “$matchedAlias”',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.primaryDark,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: AppSpacing.sm),
                 Wrap(
                   spacing: AppSpacing.md,
