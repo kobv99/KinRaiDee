@@ -8,6 +8,7 @@ import '../../../../core/providers/pantry_provider.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/section_header.dart';
 import '../../domain/models/food_category.dart';
+import '../../domain/services/pantry_search_engine.dart';
 import '../providers/pantry_filter_provider.dart';
 import '../widgets/add_ingredient_dialog.dart';
 import '../widgets/ingredient_card.dart';
@@ -158,18 +159,10 @@ class _PantryContent extends StatelessWidget {
   final ValueChanged<Ingredient> onFavoriteToggle;
 
   List<FoodCatalogItem> get _catalogSuggestions {
-    final query = filter.searchQuery.trim();
-    if (query.isEmpty) {
-      return const <FoodCatalogItem>[];
-    }
-
-    return allFoodCatalogItems
-        .where((entry) {
-          return entry.item.matches(query) ||
-              entry.category.toLowerCase().contains(query.toLowerCase());
-        })
-        .take(8)
-        .toList(growable: false);
+    return PantrySearchEngine.rankCatalogItems(
+      allFoodCatalogItems,
+      filter.searchQuery,
+    ).take(8).toList(growable: false);
   }
 
   List<Ingredient> get _recentIngredients {
@@ -217,7 +210,8 @@ class _PantryContent extends StatelessWidget {
                   sliver: const SliverToBoxAdapter(
                     child: SectionHeader(
                       title: 'วัตถุดิบของคุณ',
-                      subtitle: 'จัดการของที่มี ใช้ของให้ทัน และหยิบของโปรดได้เร็วขึ้น',
+                      subtitle:
+                          'จัดการของที่มี ใช้ของให้ทัน และหยิบของโปรดได้เร็วขึ้น',
                       icon: Icons.kitchen_outlined,
                     ),
                   ),
@@ -274,6 +268,7 @@ class _PantryContent extends StatelessWidget {
                           const SizedBox(height: AppSpacing.xs),
                           PantryCatalogPanel(
                             suggestions: suggestions,
+                            searchQuery: searchQuery,
                             onSelected: (entry) {
                               FocusScope.of(context).unfocus();
                               onAddIngredientFromSearch(entry.item.name);
@@ -306,7 +301,7 @@ class _PantryContent extends StatelessWidget {
                   ),
                   sliver: SliverToBoxAdapter(
                     child: Text(
-                      _buildResultLabel(),
+                      _buildResultLabel(searchQuery),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: AppColors.textSecondary,
                       ),
@@ -320,7 +315,7 @@ class _PantryContent extends StatelessWidget {
                       icon: Icons.add_circle_outline_rounded,
                       title: 'ยังไม่มี "$searchQuery" ในคลัง',
                       description: suggestions.isEmpty
-                          ? 'ไม่พบคำนี้ในรายการวัตถุดิบ ลองใช้คำค้นหาอื่น'
+                          ? 'ไม่พบคำนี้หรือคำใกล้เคียงในรายการวัตถุดิบ ลองใช้คำค้นหาอื่น'
                           : 'เลือกรายการแนะนำด้านบนเพื่อเพิ่มวัตถุดิบเข้าคลัง',
                       actionLabel: 'เปิดหน้ารวมวัตถุดิบ',
                       onActionPressed: () {
@@ -348,6 +343,8 @@ class _PantryContent extends StatelessWidget {
                       title: 'ไม่พบวัตถุดิบในคลัง',
                       description: searchQuery.isEmpty
                           ? 'ลองเปลี่ยนหมวดอาหารหรือตัวกรองที่เลือก'
+                          : suggestions.isEmpty
+                          ? 'ไม่พบคำนี้หรือคำใกล้เคียง ลองใช้คำค้นหาอื่น'
                           : 'เลือกรายการแนะนำด้านบนเพื่อเพิ่มเข้าคลัง',
                       actionLabel: searchQuery.isEmpty
                           ? 'ล้างตัวกรอง'
@@ -373,6 +370,7 @@ class _PantryContent extends StatelessWidget {
                         final ingredient = visibleIngredients[index];
                         return IngredientCard(
                           ingredient: ingredient,
+                          searchQuery: searchQuery,
                           onEdit: () => onEdit(ingredient),
                           onFavoriteToggle: () =>
                               onFavoriteToggle(ingredient),
@@ -395,7 +393,11 @@ class _PantryContent extends StatelessWidget {
     );
   }
 
-  String _buildResultLabel() {
+  String _buildResultLabel(String searchQuery) {
+    if (searchQuery.isNotEmpty) {
+      return 'พบ ${visibleIngredients.length} จาก ${allIngredients.length} รายการ • เรียงตามความใกล้เคียง';
+    }
+
     if (!filter.hasActiveFilters) {
       return 'แสดงทั้งหมด ${visibleIngredients.length} รายการ • รายการโปรดอยู่ด้านบน';
     }
