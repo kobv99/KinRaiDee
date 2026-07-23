@@ -7,6 +7,7 @@ class StorageService {
 
   static const String pantryBoxName = 'pantry_box';
   static const String ingredientsKey = 'ingredients';
+  static const String favoriteIngredientNamesKey = 'favorite_ingredient_names';
 
   static Future<void> init() async {
     await Hive.initFlutter();
@@ -50,6 +51,36 @@ class StorageService {
     }
 
     return List<Ingredient>.unmodifiable(ingredients);
+  }
+
+  static Set<String> loadFavoriteIngredientNames() {
+    final rawData = _pantryBox.get(
+      favoriteIngredientNamesKey,
+      defaultValue: <dynamic>[],
+    );
+
+    if (rawData is! List) {
+      return <String>{};
+    }
+
+    return rawData
+        .map((item) => normalizeIngredientName(item.toString()))
+        .where((name) => name.isNotEmpty)
+        .toSet();
+  }
+
+  static Future<void> saveFavoriteIngredientNames(Set<String> names) async {
+    final normalizedNames = names
+        .map(normalizeIngredientName)
+        .where((name) => name.isNotEmpty)
+        .toList(growable: false)
+      ..sort();
+
+    await _pantryBox.put(favoriteIngredientNamesKey, normalizedNames);
+  }
+
+  static String normalizeIngredientName(String value) {
+    return value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
   }
 
   static Future<void> clearIngredients() async {
