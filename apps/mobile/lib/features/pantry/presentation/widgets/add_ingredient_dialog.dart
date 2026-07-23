@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/models/ingredient.dart';
+import '../../domain/models/food_category.dart';
 import '../widgets/emoji_selector.dart';
 
 class AddIngredientDialog extends StatefulWidget {
@@ -9,10 +10,12 @@ class AddIngredientDialog extends StatefulWidget {
     super.key,
     this.ingredient,
     this.initialSearchQuery,
+    this.initialCatalogItem,
   });
 
   final Ingredient? ingredient;
   final String? initialSearchQuery;
+  final FoodCatalogItem? initialCatalogItem;
 
   @override
   State<AddIngredientDialog> createState() => _AddIngredientDialogState();
@@ -35,6 +38,7 @@ class _AddIngredientDialogState extends State<AddIngredientDialog> {
     super.initState();
 
     final ingredient = widget.ingredient;
+    final initialCatalogItem = widget.initialCatalogItem;
 
     if (ingredient != null) {
       quantityController.text = ingredient.quantity.toString();
@@ -43,6 +47,10 @@ class _AddIngredientDialogState extends State<AddIngredientDialog> {
       name = ingredient.name;
       emoji = ingredient.emoji;
       expiryDate = ingredient.expiryDate;
+    } else if (initialCatalogItem != null) {
+      category = initialCatalogItem.category;
+      name = initialCatalogItem.item.name;
+      emoji = initialCatalogItem.item.emoji;
     }
   }
 
@@ -135,8 +143,10 @@ class _AddIngredientDialogState extends State<AddIngredientDialog> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 EmojiSelector(
-                  initialName: widget.ingredient?.name,
-                  initialSearchQuery: widget.ingredient == null
+                  initialName:
+                      widget.ingredient?.name ?? widget.initialCatalogItem?.item.name,
+                  initialSearchQuery:
+                      widget.ingredient == null && widget.initialCatalogItem == null
                       ? widget.initialSearchQuery
                       : null,
                   onSelected: (selectedCategory, selectedName, selectedEmoji) {
