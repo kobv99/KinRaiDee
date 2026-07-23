@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/models/ingredient.dart';
 import '../../../../core/providers/pantry_provider.dart';
+import '../../domain/services/pantry_search_engine.dart';
 
 enum PantrySortOption { newest, oldest, nameAscending, expirySoonest }
 
@@ -111,15 +112,20 @@ final pantryCategoriesProvider = Provider<List<String>>((ref) {
 final filteredPantryProvider = Provider<List<Ingredient>>((ref) {
   final ingredients = ref.watch(pantryProvider);
   final filter = ref.watch(pantryFilterProvider);
-
-  final normalizedQuery = filter.searchQuery.trim().toLowerCase();
+  final searchQuery = filter.searchQuery.trim();
+  final searchScores = <String, int>{};
 
   final filteredIngredients = ingredients
       .where((ingredient) {
-        final matchesSearch =
-            normalizedQuery.isEmpty ||
-            ingredient.name.toLowerCase().contains(normalizedQuery) ||
-            ingredient.category.toLowerCase().contains(normalizedQuery);
+        final searchMatch = PantrySearchEngine.matchIngredient(
+          ingredient,
+          searchQuery,
+        );
+        final matchesSearch = searchQuery.isEmpty || searchMatch.isMatch;
+
+        if (matchesSearch && searchQuery.isNotEmpty) {
+          searchScores[ingredient.id] = searchMatch.score;
+        }
 
         final matchesCategory =
             filter.selectedCategory == null ||
@@ -135,6 +141,15 @@ final filteredPantryProvider = Provider<List<Ingredient>>((ref) {
   final sortedIngredients = List<Ingredient>.of(filteredIngredients);
 
   sortedIngredients.sort((first, second) {
+    if (searchQuery.isNotEmpty) {
+      final searchComparison = (searchScores[second.id] ?? 0).compareTo(
+        searchScores[first.id] ?? 0,
+      );
+      if (searchComparison != 0) {
+        return searchComparison;
+      }
+    }
+
     final favoriteComparison = _compareFavorite(first, second);
     if (favoriteComparison != 0) {
       return favoriteComparison;
