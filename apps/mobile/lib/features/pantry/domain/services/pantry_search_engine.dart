@@ -247,7 +247,7 @@ abstract final class PantrySearchEngine {
 
   static int _lengthPenalty(String candidate, String query) {
     final difference = candidate.runes.length - query.runes.length;
-    return difference.clamp(0, 25);
+    return difference.clamp(0, 25).toInt();
   }
 
   static int? _fuzzyDistance({
