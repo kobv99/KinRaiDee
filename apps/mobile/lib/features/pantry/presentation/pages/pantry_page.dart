@@ -7,6 +7,7 @@ import '../../../../core/models/ingredient.dart';
 import '../../../../core/providers/pantry_provider.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/section_header.dart';
+import '../../domain/models/food_category.dart';
 import '../providers/pantry_filter_provider.dart';
 import '../widgets/add_ingredient_dialog.dart';
 import '../widgets/ingredient_card.dart';
@@ -15,9 +16,7 @@ class PantryPage extends ConsumerStatefulWidget {
   const PantryPage({super.key});
 
   @override
-  ConsumerState<PantryPage> createState() {
-    return _PantryPageState();
-  }
+  ConsumerState<PantryPage> createState() => _PantryPageState();
 }
 
 class _PantryPageState extends ConsumerState<PantryPage> {
@@ -93,8 +92,8 @@ class _PantryPageState extends ConsumerState<PantryPage> {
           onExpiringChanged: () {
             ref.read(pantryFilterProvider.notifier).toggleExpiringSoon();
           },
-          onSortChanged: (sortOption) {
-            ref.read(pantryFilterProvider.notifier).setSortOption(sortOption);
+          onSortChanged: (option) {
+            ref.read(pantryFilterProvider.notifier).setSortOption(option);
           },
           onClearFilters: _clearFilters,
           onDelete: (ingredient) async {
@@ -148,6 +147,21 @@ class _PantryContent extends StatelessWidget {
   final ValueChanged<Ingredient> onDelete;
   final ValueChanged<Ingredient> onEdit;
 
+  List<FoodCatalogItem> get _catalogSuggestions {
+    final query = filter.searchQuery.trim();
+    if (query.isEmpty) {
+      return const <FoodCatalogItem>[];
+    }
+
+    return allFoodCatalogItems
+        .where((entry) {
+          return entry.item.matches(query) ||
+              entry.category.toLowerCase().contains(query.toLowerCase());
+        })
+        .take(8)
+        .toList(growable: false);
+  }
+
   @override
   Widget build(BuildContext context) {
     final expiringCount = allIngredients.where((ingredient) {
@@ -155,6 +169,7 @@ class _PantryContent extends StatelessWidget {
       return days != null && days <= 7;
     }).length;
     final searchQuery = filter.searchQuery.trim();
+    final suggestions = _catalogSuggestions;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -198,13 +213,27 @@ class _PantryContent extends StatelessWidget {
                     AppSpacing.sm,
                   ),
                   sliver: SliverToBoxAdapter(
-                    child: _PantrySearchField(
-                      controller: searchController,
-                      onChanged: onSearchChanged,
-                      onClear: () {
-                        searchController.clear();
-                        onSearchChanged('');
-                      },
+                    child: Column(
+                      children: [
+                        _PantrySearchField(
+                          controller: searchController,
+                          onChanged: onSearchChanged,
+                          onClear: () {
+                            searchController.clear();
+                            onSearchChanged('');
+                          },
+                        ),
+                        if (searchQuery.isNotEmpty && suggestions.isNotEmpty) ...[
+                          const SizedBox(height: AppSpacing.xs),
+                          _CatalogSuggestionPanel(
+                            suggestions: suggestions,
+                            onSelected: (entry) {
+                              FocusScope.of(context).unfocus();
+                              onAddIngredientFromSearch(entry.item.name);
+                            },
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                 ),
@@ -243,9 +272,10 @@ class _PantryContent extends StatelessWidget {
                     child: EmptyState(
                       icon: Icons.add_circle_outline_rounded,
                       title: 'ยังไม่มี "$searchQuery" ในคลัง',
-                      description:
-                          'ค้นหาและเลือกวัตถุดิบที่ต้องการ แล้วเพิ่มเข้าคลังได้ทันที',
-                      actionLabel: 'ค้นหาและเพิ่ม "$searchQuery"',
+                      description: suggestions.isEmpty
+                          ? 'ไม่พบคำนี้ในรายการวัตถุดิบ ลองใช้คำค้นหาอื่น'
+                          : 'เลือกรายการแนะนำด้านบนเพื่อเพิ่มวัตถุดิบเข้าคลัง',
+                      actionLabel: 'เปิดหน้ารวมวัตถุดิบ',
                       onActionPressed: () {
                         onAddIngredientFromSearch(searchQuery);
                       },
@@ -271,15 +301,13 @@ class _PantryContent extends StatelessWidget {
                       title: 'ไม่พบวัตถุดิบในคลัง',
                       description: searchQuery.isEmpty
                           ? 'ลองเปลี่ยนหมวดอาหารหรือตัวกรองที่เลือก'
-                          : 'ยังไม่มี "$searchQuery" ในคลัง คุณสามารถเพิ่มรายการนี้ได้',
+                          : 'เลือกรายการแนะนำด้านบนเพื่อเพิ่มเข้าคลัง',
                       actionLabel: searchQuery.isEmpty
                           ? 'ล้างตัวกรอง'
-                          : 'ค้นหาและเพิ่ม "$searchQuery"',
+                          : 'เปิดหน้ารวมวัตถุดิบ',
                       onActionPressed: searchQuery.isEmpty
                           ? onClearFilters
-                          : () {
-                              onAddIngredientFromSearch(searchQuery);
-                            },
+                          : () => onAddIngredientFromSearch(searchQuery),
                     ),
                   )
                 else
@@ -292,23 +320,18 @@ class _PantryContent extends StatelessWidget {
                     ),
                     sliver: SliverList.separated(
                       itemCount: visibleIngredients.length,
-                      separatorBuilder: (context, index) {
-                        return const SizedBox(height: AppSpacing.sm);
-                      },
+                      separatorBuilder: (_, __) =>
+                          const SizedBox(height: AppSpacing.sm),
                       itemBuilder: (context, index) {
                         final ingredient = visibleIngredients[index];
                         return IngredientCard(
                           ingredient: ingredient,
-                          onEdit: () {
-                            onEdit(ingredient);
-                          },
+                          onEdit: () => onEdit(ingredient),
                           onDelete: () {
                             _confirmDelete(
                               context: context,
                               ingredient: ingredient,
-                              onConfirmed: () {
-                                onDelete(ingredient);
-                              },
+                              onConfirmed: () => onDelete(ingredient),
                             );
                           },
                         );
@@ -350,15 +373,11 @@ class _PantryContent extends StatelessWidget {
           content: Text('ต้องการลบ "${ingredient.name}" ออกจากคลังหรือไม่?'),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(false);
-              },
+              onPressed: () => Navigator.of(context).pop(false),
               child: const Text('ยกเลิก'),
             ),
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(true);
-              },
+              onPressed: () => Navigator.of(context).pop(true),
               style: TextButton.styleFrom(foregroundColor: AppColors.error),
               child: const Text('ลบ'),
             ),
@@ -370,6 +389,47 @@ class _PantryContent extends StatelessWidget {
     if (confirmed == true) {
       onConfirmed();
     }
+  }
+}
+
+class _CatalogSuggestionPanel extends StatelessWidget {
+  const _CatalogSuggestionPanel({
+    required this.suggestions,
+    required this.onSelected,
+  });
+
+  final List<FoodCatalogItem> suggestions;
+  final ValueChanged<FoodCatalogItem> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      elevation: 3,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxHeight: 300),
+        child: ListView.separated(
+          shrinkWrap: true,
+          itemCount: suggestions.length,
+          separatorBuilder: (_, __) => const Divider(height: 1),
+          itemBuilder: (context, index) {
+            final entry = suggestions[index];
+            return ListTile(
+              dense: true,
+              leading: Text(
+                entry.item.emoji,
+                style: const TextStyle(fontSize: 24),
+              ),
+              title: Text(entry.item.name),
+              subtitle: Text(entry.category),
+              trailing: const Icon(Icons.add_circle_outline_rounded),
+              onTap: () => onSelected(entry),
+            );
+          },
+        ),
+      ),
+    );
   }
 }
 
@@ -434,18 +494,14 @@ class _PantryFilterBar extends StatelessWidget {
                 ChoiceChip(
                   label: const Text('ทั้งหมด'),
                   selected: filter.selectedCategory == null,
-                  onSelected: (_) {
-                    onCategoryChanged(null);
-                  },
+                  onSelected: (_) => onCategoryChanged(null),
                 ),
                 const SizedBox(width: AppSpacing.xs),
                 for (final category in categories) ...[
                   ChoiceChip(
                     label: Text(category),
                     selected: filter.selectedCategory == category,
-                    onSelected: (_) {
-                      onCategoryChanged(category);
-                    },
+                    onSelected: (_) => onCategoryChanged(category),
                   ),
                   const SizedBox(width: AppSpacing.xs),
                 ],
@@ -453,9 +509,7 @@ class _PantryFilterBar extends StatelessWidget {
                   avatar: const Icon(Icons.schedule_rounded, size: 18),
                   label: const Text('ใกล้หมดอายุ'),
                   selected: filter.onlyExpiringSoon,
-                  onSelected: (_) {
-                    onExpiringChanged();
-                  },
+                  onSelected: (_) => onExpiringChanged(),
                 ),
               ],
             ),
@@ -467,23 +521,21 @@ class _PantryFilterBar extends StatelessWidget {
           initialValue: filter.sortOption,
           onSelected: onSortChanged,
           itemBuilder: (context) {
-            return PantrySortOption.values
-                .map((option) {
-                  return PopupMenuItem<PantrySortOption>(
-                    value: option,
-                    child: Row(
-                      children: [
-                        if (option == filter.sortOption)
-                          const Icon(Icons.check_rounded, size: 19)
-                        else
-                          const SizedBox(width: 19),
-                        const SizedBox(width: AppSpacing.xs),
-                        Text(option.label),
-                      ],
-                    ),
-                  );
-                })
-                .toList(growable: false);
+            return PantrySortOption.values.map((option) {
+              return PopupMenuItem<PantrySortOption>(
+                value: option,
+                child: Row(
+                  children: [
+                    if (option == filter.sortOption)
+                      const Icon(Icons.check_rounded, size: 19)
+                    else
+                      const SizedBox(width: 19),
+                    const SizedBox(width: AppSpacing.xs),
+                    Text(option.label),
+                  ],
+                ),
+              );
+            }).toList(growable: false);
           },
           icon: const Icon(Icons.sort_rounded),
         ),
