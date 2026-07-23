@@ -7,17 +7,19 @@ class EmojiSelector extends StatefulWidget {
     super.key,
     required this.onSelected,
     this.initialName,
+    this.initialSearchQuery,
   });
 
   final void Function(String category, String name, String emoji) onSelected;
   final String? initialName;
+  final String? initialSearchQuery;
 
   @override
   State<EmojiSelector> createState() => _EmojiSelectorState();
 }
 
 class _EmojiSelectorState extends State<EmojiSelector> {
-  final TextEditingController _searchController = TextEditingController();
+  late final TextEditingController _searchController;
 
   FoodCategory? selectedCategory;
   FoodItem? selectedItem;
@@ -26,6 +28,9 @@ class _EmojiSelectorState extends State<EmojiSelector> {
   @override
   void initState() {
     super.initState();
+
+    query = widget.initialSearchQuery?.trim() ?? '';
+    _searchController = TextEditingController(text: query);
 
     final initialName = widget.initialName?.trim();
 
