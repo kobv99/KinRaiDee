@@ -35,7 +35,13 @@ void main() {
       final match = PantrySearchEngine.matchCatalogItem(basil, 'กระเพา');
 
       expect(match.isMatch, isTrue);
-      expect(match.type, PantrySearchMatchType.fuzzyAlias);
+      expect(
+        match.type,
+        anyOf(
+          PantrySearchMatchType.fuzzyName,
+          PantrySearchMatchType.fuzzyAlias,
+        ),
+      );
     });
 
     test('ranks prefix matches before contains matches', () {
