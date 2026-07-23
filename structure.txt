@@ -1,0 +1,1317 @@
+Folder PATH listing for volume PTT Digital
+Volume serial number is D861-0A58
+D:.
+³   README.md
+³   structure.txt
+³   
+?ÄÄÄapps
+³   ÀÄÄÄmobile
+³       ³   .flutter-plugins-dependencies
+³       ³   .gitignore
+³       ³   .metadata
+³       ³   analysis_options.yaml
+³       ³   mobile.iml
+³       ³   pubspec.lock
+³       ³   pubspec.yaml
+³       ³   README.md
+³       ³   
+³       ?ÄÄÄ.dart_tool
+³       ³   ³   package_config.json
+³       ³   ³   package_graph.json
+³       ³   ³   version
+³       ³   ³   
+³       ³   ?ÄÄÄdartpad
+³       ³   ³       web_plugin_registrant.dart
+³       ³   ³       
+³       ³   ÀÄÄÄhooks_runner
+³       ³       ?ÄÄÄobjective_c
+³       ³       ³   ÀÄÄÄ337ce265dc
+³       ³       ³       ³   .lock
+³       ³       ³       ³   dependencies.dependencies_hash_file.json
+³       ³       ³       ³   hook.dependencies_hash_file.json
+³       ³       ³       ³   hook.dill
+³       ³       ³       ³   hook.dill.d
+³       ³       ³       ³   input.json
+³       ³       ³       ³   output.json
+³       ³       ³       ³   stderr.txt
+³       ³       ³       ³   stdout.txt
+³       ³       ³       ³   
+³       ³       ³       ÀÄÄÄout
+³       ³       ÀÄÄÄshared
+³       ³           ÀÄÄÄobjective_c
+³       ³               ³   .lock
+³       ³               ³   
+³       ³               ÀÄÄÄbuild
+³       ³                   ÀÄÄÄ337ce265dc
+³       ?ÄÄÄ.idea
+³       ³   ³   modules.xml
+³       ³   ³   workspace.xml
+³       ³   ³   
+³       ³   ?ÄÄÄlibraries
+³       ³   ³       Dart_SDK.xml
+³       ³   ³       KotlinJavaRuntime.xml
+³       ³   ³       
+³       ³   ÀÄÄÄrunConfigurations
+³       ³           main_dart.xml
+³       ³           
+³       ?ÄÄÄandroid
+³       ³   ³   .gitignore
+³       ³   ³   build.gradle.kts
+³       ³   ³   gradle.properties
+³       ³   ³   gradlew
+³       ³   ³   gradlew.bat
+³       ³   ³   local.properties
+³       ³   ³   mobile_android.iml
+³       ³   ³   settings.gradle.kts
+³       ³   ³   
+³       ³   ?ÄÄÄ.gradle
+³       ³   ³   ³   file-system.probe
+³       ³   ³   ³   
+³       ³   ³   ?ÄÄÄ9.1.0
+³       ³   ³   ³   ³   gc.properties
+³       ³   ³   ³   ³   
+³       ³   ³   ³   ?ÄÄÄchecksums
+³       ³   ³   ³   ³       checksums.lock
+³       ³   ³   ³   ³       md5-checksums.bin
+³       ³   ³   ³   ³       sha1-checksums.bin
+³       ³   ³   ³   ³       
+³       ³   ³   ³   ?ÄÄÄexecutionHistory
+³       ³   ³   ³   ³       executionHistory.bin
+³       ³   ³   ³   ³       executionHistory.lock
+³       ³   ³   ³   ³       
+³       ³   ³   ³   ?ÄÄÄexpanded
+³       ³   ³   ³   ?ÄÄÄfileChanges
+³       ³   ³   ³   ³       last-build.bin
+³       ³   ³   ³   ³       
+³       ³   ³   ³   ?ÄÄÄfileHashes
+³       ³   ³   ³   ³       fileHashes.bin
+³       ³   ³   ³   ³       fileHashes.lock
+³       ³   ³   ³   ³       resourceHashesCache.bin
+³       ³   ³   ³   ³       
+³       ³   ³   ³   ÀÄÄÄvcsMetadata
+³       ³   ³   ?ÄÄÄbuildOutputCleanup
+³       ³   ³   ³       buildOutputCleanup.lock
+³       ³   ³   ³       cache.properties
+³       ³   ³   ³       outputFiles.bin
+³       ³   ³   ³       
+³       ³   ³   ?ÄÄÄnoVersion
+³       ³   ³   ³       buildLogic.lock
+³       ³   ³   ³       
+³       ³   ³   ÀÄÄÄvcs-1
+³       ³   ³           gc.properties
+³       ³   ³           
+³       ³   ?ÄÄÄ.kotlin
+³       ³   ³   ÀÄÄÄsessions
+³       ³   ?ÄÄÄapp
+³       ³   ³   ³   build.gradle.kts
+³       ³   ³   ³   
+³       ³   ³   ÀÄÄÄsrc
+³       ³   ³       ?ÄÄÄdebug
+³       ³   ³       ³       AndroidManifest.xml
+³       ³   ³       ³       
+³       ³   ³       ?ÄÄÄmain
+³       ³   ³       ³   ³   AndroidManifest.xml
+³       ³   ³       ³   ³   
+³       ³   ³       ³   ?ÄÄÄjava
+³       ³   ³       ³   ³   ÀÄÄÄio
+³       ³   ³       ³   ³       ÀÄÄÄflutter
+³       ³   ³       ³   ³           ÀÄÄÄplugins
+³       ³   ³       ³   ³                   GeneratedPluginRegistrant.java
+³       ³   ³       ³   ³                   
+³       ³   ³       ³   ?ÄÄÄkotlin
+³       ³   ³       ³   ³   ÀÄÄÄcom
+³       ³   ³       ³   ³       ÀÄÄÄexample
+³       ³   ³       ³   ³           ÀÄÄÄmobile
+³       ³   ³       ³   ³                   MainActivity.kt
+³       ³   ³       ³   ³                   
+³       ³   ³       ³   ÀÄÄÄres
+³       ³   ³       ³       ?ÄÄÄdrawable
+³       ³   ³       ³       ³       launch_background.xml
+³       ³   ³       ³       ³       
+³       ³   ³       ³       ?ÄÄÄdrawable-v21
+³       ³   ³       ³       ³       launch_background.xml
+³       ³   ³       ³       ³       
+³       ³   ³       ³       ?ÄÄÄmipmap-hdpi
+³       ³   ³       ³       ³       ic_launcher.png
+³       ³   ³       ³       ³       
+³       ³   ³       ³       ?ÄÄÄmipmap-mdpi
+³       ³   ³       ³       ³       ic_launcher.png
+³       ³   ³       ³       ³       
+³       ³   ³       ³       ?ÄÄÄmipmap-xhdpi
+³       ³   ³       ³       ³       ic_launcher.png
+³       ³   ³       ³       ³       
+³       ³   ³       ³       ?ÄÄÄmipmap-xxhdpi
+³       ³   ³       ³       ³       ic_launcher.png
+³       ³   ³       ³       ³       
+³       ³   ³       ³       ?ÄÄÄmipmap-xxxhdpi
+³       ³   ³       ³       ³       ic_launcher.png
+³       ³   ³       ³       ³       
+³       ³   ³       ³       ?ÄÄÄvalues
+³       ³   ³       ³       ³       styles.xml
+³       ³   ³       ³       ³       
+³       ³   ³       ³       ÀÄÄÄvalues-night
+³       ³   ³       ³               styles.xml
+³       ³   ³       ³               
+³       ³   ³       ÀÄÄÄprofile
+³       ³   ³               AndroidManifest.xml
+³       ³   ³               
+³       ³   ÀÄÄÄgradle
+³       ³       ÀÄÄÄwrapper
+³       ³               gradle-wrapper.jar
+³       ³               gradle-wrapper.properties
+³       ³               
+³       ?ÄÄÄbuild
+³       ³   ³   ac6bb03c0ccdeb006582a024c456901a.cache.dill.track.dill
+³       ³   ³   
+³       ³   ?ÄÄÄb075327b6dce0c8fa3051e6b92dbe634
+³       ³   ³       gen_dart_plugin_registrant.stamp
+³       ³   ³       gen_localizations.stamp
+³       ³   ³       _composite.stamp
+³       ³   ³       
+³       ³   ÀÄÄÄflutter_assets
+³       ³       ³   AssetManifest.bin
+³       ³       ³   AssetManifest.bin.json
+³       ³       ³   FontManifest.json
+³       ³       ³   NOTICES
+³       ³       ³   
+³       ³       ?ÄÄÄfonts
+³       ³       ³       MaterialIcons-Regular.otf
+³       ³       ³       
+³       ³       ?ÄÄÄpackages
+³       ³       ³   ÀÄÄÄcupertino_icons
+³       ³       ³       ÀÄÄÄassets
+³       ³       ³               CupertinoIcons.ttf
+³       ³       ³               
+³       ³       ÀÄÄÄshaders
+³       ³               ink_sparkle.frag
+³       ³               stretch_effect.frag
+³       ³               
+³       ?ÄÄÄios
+³       ³   ³   .gitignore
+³       ³   ³   
+³       ³   ?ÄÄÄFlutter
+³       ³   ³   ³   AppFrameworkInfo.plist
+³       ³   ³   ³   Debug.xcconfig
+³       ³   ³   ³   flutter_export_environment.sh
+³       ³   ³   ³   Generated.xcconfig
+³       ³   ³   ³   Release.xcconfig
+³       ³   ³   ³   
+³       ³   ³   ÀÄÄÄephemeral
+³       ³   ³       ³   flutter_lldbinit
+³       ³   ³       ³   flutter_lldb_helper.py
+³       ³   ³       ³   flutter_native_integration.env
+³       ³   ³       ³   
+³       ³   ³       ÀÄÄÄPackages
+³       ³   ³           ?ÄÄÄ.packages
+³       ³   ³           ÀÄÄÄFlutterGeneratedPluginSwiftPackage
+³       ³   ³               ³   Package.swift
+³       ³   ³               ³   
+³       ³   ³               ÀÄÄÄSources
+³       ³   ³                   ÀÄÄÄFlutterGeneratedPluginSwiftPackage
+³       ³   ³                           FlutterGeneratedPluginSwiftPackage.swift
+³       ³   ³                           
+³       ³   ?ÄÄÄRunner
+³       ³   ³   ³   AppDelegate.swift
+³       ³   ³   ³   GeneratedPluginRegistrant.h
+³       ³   ³   ³   GeneratedPluginRegistrant.m
+³       ³   ³   ³   Info.plist
+³       ³   ³   ³   Runner-Bridging-Header.h
+³       ³   ³   ³   SceneDelegate.swift
+³       ³   ³   ³   
+³       ³   ³   ?ÄÄÄAssets.xcassets
+³       ³   ³   ³   ?ÄÄÄAppIcon.appiconset
+³       ³   ³   ³   ³       Contents.json
+³       ³   ³   ³   ³       Icon-App-1024x1024@1x.png
+³       ³   ³   ³   ³       Icon-App-20x20@1x.png
+³       ³   ³   ³   ³       Icon-App-20x20@2x.png
+³       ³   ³   ³   ³       Icon-App-20x20@3x.png
+³       ³   ³   ³   ³       Icon-App-29x29@1x.png
+³       ³   ³   ³   ³       Icon-App-29x29@2x.png
+³       ³   ³   ³   ³       Icon-App-29x29@3x.png
+³       ³   ³   ³   ³       Icon-App-40x40@1x.png
+³       ³   ³   ³   ³       Icon-App-40x40@2x.png
+³       ³   ³   ³   ³       Icon-App-40x40@3x.png
+³       ³   ³   ³   ³       Icon-App-60x60@2x.png
+³       ³   ³   ³   ³       Icon-App-60x60@3x.png
+³       ³   ³   ³   ³       Icon-App-76x76@1x.png
+³       ³   ³   ³   ³       Icon-App-76x76@2x.png
+³       ³   ³   ³   ³       Icon-App-83.5x83.5@2x.png
+³       ³   ³   ³   ³       
+³       ³   ³   ³   ÀÄÄÄLaunchImage.imageset
+³       ³   ³   ³           Contents.json
+³       ³   ³   ³           LaunchImage.png
+³       ³   ³   ³           LaunchImage@2x.png
+³       ³   ³   ³           LaunchImage@3x.png
+³       ³   ³   ³           README.md
+³       ³   ³   ³           
+³       ³   ³   ÀÄÄÄBase.lproj
+³       ³   ³           LaunchScreen.storyboard
+³       ³   ³           Main.storyboard
+³       ³   ³           
+³       ³   ?ÄÄÄRunner.xcodeproj
+³       ³   ³   ³   project.pbxproj
+³       ³   ³   ³   
+³       ³   ³   ?ÄÄÄproject.xcworkspace
+³       ³   ³   ³   ³   contents.xcworkspacedata
+³       ³   ³   ³   ³   
+³       ³   ³   ³   ÀÄÄÄxcshareddata
+³       ³   ³   ³           IDEWorkspaceChecks.plist
+³       ³   ³   ³           WorkspaceSettings.xcsettings
+³       ³   ³   ³           
+³       ³   ³   ÀÄÄÄxcshareddata
+³       ³   ³       ÀÄÄÄxcschemes
+³       ³   ³               Runner.xcscheme
+³       ³   ³               
+³       ³   ?ÄÄÄRunner.xcworkspace
+³       ³   ³   ³   contents.xcworkspacedata
+³       ³   ³   ³   
+³       ³   ³   ÀÄÄÄxcshareddata
+³       ³   ³           IDEWorkspaceChecks.plist
+³       ³   ³           WorkspaceSettings.xcsettings
+³       ³   ³           
+³       ³   ÀÄÄÄRunnerTests
+³       ³           RunnerTests.swift
+³       ³           
+³       ?ÄÄÄlib
+³       ³   ³   main.dart
+³       ³   ³   
+³       ³   ?ÄÄÄapp
+³       ³   ³   ³   app.dart
+³       ³   ³   ³   
+³       ³   ³   ?ÄÄÄconfig
+³       ³   ³   ?ÄÄÄnavigation
+³       ³   ³   ³       main_shell.dart
+³       ³   ³   ³       
+³       ³   ³   ?ÄÄÄrouter
+³       ³   ³   ³       app_router.dart
+³       ³   ³   ³       
+³       ³   ³   ÀÄÄÄtheme
+³       ³   ³           app_colors.dart
+³       ³   ³           app_theme.dart
+³       ³   ³           
+³       ³   ?ÄÄÄcore
+³       ³   ³   ?ÄÄÄai
+³       ³   ³   ?ÄÄÄconstants
+³       ³   ³   ?ÄÄÄdatabase
+³       ³   ³   ?ÄÄÄerror
+³       ³   ³   ?ÄÄÄmodels
+³       ³   ³   ³       ingredient.dart
+³       ³   ³   ³       
+³       ³   ³   ?ÄÄÄnetwork
+³       ³   ³   ?ÄÄÄproviders
+³       ³   ³   ³       pantry_provider.dart
+³       ³   ³   ³       
+³       ³   ³   ?ÄÄÄservices
+³       ³   ³   ³       storage_service.dart
+³       ³   ³   ³       
+³       ³   ³   ?ÄÄÄutils
+³       ³   ³   ÀÄÄÄwidgets
+³       ³   ?ÄÄÄfeatures
+³       ³   ³   ?ÄÄÄhome
+³       ³   ³   ³   ?ÄÄÄdata
+³       ³   ³   ³   ?ÄÄÄdomain
+³       ³   ³   ³   ÀÄÄÄpresentation
+³       ³   ³   ³       ÀÄÄÄpages
+³       ³   ³   ³               home_page.dart
+³       ³   ³   ³               
+³       ³   ³   ?ÄÄÄpantry
+³       ³   ³   ³   ?ÄÄÄdata
+³       ³   ³   ³   ?ÄÄÄdomain
+³       ³   ³   ³   ³   ÀÄÄÄmodels
+³       ³   ³   ³   ³           food_category.dart
+³       ³   ³   ³   ³           
+³       ³   ³   ³   ÀÄÄÄpresentation
+³       ³   ³   ³       ?ÄÄÄpages
+³       ³   ³   ³       ³       pantry_page.dart
+³       ³   ³   ³       ³       
+³       ³   ³   ³       ÀÄÄÄwidgets
+³       ³   ³   ³               add_ingredient_dialog.dart
+³       ³   ³   ³               emoji_selector.dart
+³       ³   ³   ³               
+³       ³   ³   ?ÄÄÄprofile
+³       ³   ³   ³   ?ÄÄÄdata
+³       ³   ³   ³   ?ÄÄÄdomain
+³       ³   ³   ³   ÀÄÄÄpresentation
+³       ³   ³   ³       ÀÄÄÄpages
+³       ³   ³   ³               profile_page.dart
+³       ³   ³   ³               
+³       ³   ³   ?ÄÄÄrecipe
+³       ³   ³   ³   ?ÄÄÄdata
+³       ³   ³   ³   ?ÄÄÄdomain
+³       ³   ³   ³   ÀÄÄÄpresentation
+³       ³   ³   ³       ÀÄÄÄpages
+³       ³   ³   ³               recipe_page.dart
+³       ³   ³   ³               
+³       ³   ³   ÀÄÄÄshopping
+³       ³   ³       ?ÄÄÄdata
+³       ³   ³       ?ÄÄÄdomain
+³       ³   ³       ÀÄÄÄpresentation
+³       ³   ³           ÀÄÄÄpages
+³       ³   ³                   shopping_page.dart
+³       ³   ³                   
+³       ³   ÀÄÄÄshared
+³       ?ÄÄÄlinux
+³       ³   ³   .gitignore
+³       ³   ³   CMakeLists.txt
+³       ³   ³   
+³       ³   ?ÄÄÄflutter
+³       ³   ³   ³   CMakeLists.txt
+³       ³   ³   ³   generated_plugins.cmake
+³       ³   ³   ³   generated_plugin_registrant.cc
+³       ³   ³   ³   generated_plugin_registrant.h
+³       ³   ³   ³   
+³       ³   ³   ÀÄÄÄephemeral
+³       ³   ³       ÀÄÄÄ.plugin_symlinks
+³       ³   ³           ?ÄÄÄjni
+³       ³   ³           ³   ³   analysis_options.yaml
+³       ³   ³           ³   ³   CHANGELOG.md
+³       ³   ³           ³   ³   dart_test.yaml
+³       ³   ³           ³   ³   ffigen.yaml
+³       ³   ³           ³   ³   ffigen_exts.yaml
+³       ³   ³           ³   ³   LICENSE
+³       ³   ³           ³   ³   pubspec.yaml
+³       ³   ³           ³   ³   README.md
+³       ³   ³           ³   ³   
+³       ³   ³           ³   ?ÄÄÄandroid
+³       ³   ³           ³   ³   ³   build.gradle
+³       ³   ³           ³   ³   ³   consumer-rules.pro
+³       ³   ³           ³   ³   ³   README.md
+³       ³   ³           ³   ³   ³   settings.gradle
+³       ³   ³           ³   ³   ³   
+³       ³   ³           ³   ³   ÀÄÄÄsrc
+³       ³   ³           ³   ³       ÀÄÄÄmain
+³       ³   ³           ³   ³           ³   AndroidManifest.xml
+³       ³   ³           ³   ³           ³   
+³       ³   ³           ³   ³           ÀÄÄÄjava
+³       ³   ³           ³   ³               ÀÄÄÄcom
+³       ³   ³           ³   ³                   ÀÄÄÄgithub
+³       ³   ³           ³   ³                       ÀÄÄÄdart_lang
+³       ³   ³           ³   ³                           ÀÄÄÄjni
+³       ³   ³           ³   ³                                   JniPlugin.java
+³       ³   ³           ³   ³                                   
+³       ³   ³           ³   ?ÄÄÄbin
+³       ³   ³           ³   ³       setup.dart
+³       ³   ³           ³   ³       
+³       ³   ³           ³   ?ÄÄÄexample
+³       ³   ³           ³   ³   ³   analysis_options.yaml
+³       ³   ³           ³   ³   ³   pubspec.yaml
+³       ³   ³           ³   ³   ³   README.md
+³       ³   ³           ³   ³   ³   
+³       ³   ³           ³   ³   ?ÄÄÄandroid
+³       ³   ³           ³   ³   ³   ³   build.gradle
+³       ³   ³           ³   ³   ³   ³   gradle.properties
+³       ³   ³           ³   ³   ³   ³   settings.gradle
+³       ³   ³           ³   ³   ³   ³   
+³       ³   ³           ³   ³   ³   ?ÄÄÄapp
+³       ³   ³           ³   ³   ³   ³   ³   build.gradle
+³       ³   ³           ³   ³   ³   ³   ³   
+³       ³   ³           ³   ³   ³   ³   ÀÄÄÄsrc
+³       ³   ³           ³   ³   ³   ³       ?ÄÄÄdebug
+³       ³   ³           ³   ³   ³   ³       ³       AndroidManifest.xml
+³       ³   ³           ³   ³   ³   ³       ³       
+³       ³   ³           ³   ³   ³   ³       ?ÄÄÄmain
+³       ³   ³           ³   ³   ³   ³       ³   ³   AndroidManifest.xml
+³       ³   ³           ³   ³   ³   ³       ³   ³   
+³       ³   ³           ³   ³   ³   ³       ³   ?ÄÄÄjava
+³       ³   ³           ³   ³   ³   ³       ³   ³   ?ÄÄÄcom
+³       ³   ³           ³   ³   ³   ³       ³   ³   ³   ÀÄÄÄgithub
+³       ³   ³           ³   ³   ³   ³       ³   ³   ³       ÀÄÄÄdart_lang
+³       ³   ³           ³   ³   ³   ³       ³   ³   ³           ÀÄÄÄjni_example
+³       ³   ³           ³   ³   ³   ³       ³   ³   ³                   Toaster.java
+³       ³   ³           ³   ³   ³   ³       ³   ³   ³                   
+³       ³   ³           ³   ³   ³   ³       ³   ³   ÀÄÄÄio
+³       ³   ³           ³   ³   ³   ³       ³   ³       ÀÄÄÄflutter
+³       ³   ³           ³   ³   ³   ³       ³   ³           ÀÄÄÄplugins
+³       ³   ³           ³   ³   ³   ³       ³   ?ÄÄÄkotlin
+³       ³   ³           ³   ³   ³   ³       ³   ³   ÀÄÄÄdev
+³       ³   ³           ³   ³   ³   ³       ³   ³       ÀÄÄÄdart
+³       ³   ³           ³   ³   ³   ³       ³   ³           ÀÄÄÄjni_example
+³       ³   ³           ³   ³   ³   ³       ³   ³                   MainActivity.kt
+³       ³   ³           ³   ³   ³   ³       ³   ³                   
+³       ³   ³           ³   ³   ³   ³       ³   ÀÄÄÄres
+³       ³   ³           ³   ³   ³   ³       ³       ?ÄÄÄdrawable
+³       ³   ³           ³   ³   ³   ³       ³       ³       launch_background.xml
+³       ³   ³           ³   ³   ³   ³       ³       ³       
+³       ³   ³           ³   ³   ³   ³       ³       ?ÄÄÄdrawable-v21
+³       ³   ³           ³   ³   ³   ³       ³       ³       launch_background.xml
+³       ³   ³           ³   ³   ³   ³       ³       ³       
+³       ³   ³           ³   ³   ³   ³       ³       ?ÄÄÄmipmap-hdpi
+³       ³   ³           ³   ³   ³   ³       ³       ³       ic_launcher.png
+³       ³   ³           ³   ³   ³   ³       ³       ³       
+³       ³   ³           ³   ³   ³   ³       ³       ?ÄÄÄmipmap-mdpi
+³       ³   ³           ³   ³   ³   ³       ³       ³       ic_launcher.png
+³       ³   ³           ³   ³   ³   ³       ³       ³       
+³       ³   ³           ³   ³   ³   ³       ³       ?ÄÄÄmipmap-xhdpi
+³       ³   ³           ³   ³   ³   ³       ³       ³       ic_launcher.png
+³       ³   ³           ³   ³   ³   ³       ³       ³       
+³       ³   ³           ³   ³   ³   ³       ³       ?ÄÄÄmipmap-xxhdpi
+³       ³   ³           ³   ³   ³   ³       ³       ³       ic_launcher.png
+³       ³   ³           ³   ³   ³   ³       ³       ³       
+³       ³   ³           ³   ³   ³   ³       ³       ?ÄÄÄmipmap-xxxhdpi
+³       ³   ³           ³   ³   ³   ³       ³       ³       ic_launcher.png
+³       ³   ³           ³   ³   ³   ³       ³       ³       
+³       ³   ³           ³   ³   ³   ³       ³       ?ÄÄÄvalues
+³       ³   ³           ³   ³   ³   ³       ³       ³       styles.xml
+³       ³   ³           ³   ³   ³   ³       ³       ³       
+³       ³   ³           ³   ³   ³   ³       ³       ÀÄÄÄvalues-night
+³       ³   ³           ³   ³   ³   ³       ³               styles.xml
+³       ³   ³           ³   ³   ³   ³       ³               
+³       ³   ³           ³   ³   ³   ³       ÀÄÄÄprofile
+³       ³   ³           ³   ³   ³   ³               AndroidManifest.xml
+³       ³   ³           ³   ³   ³   ³               
+³       ³   ³           ³   ³   ³   ÀÄÄÄgradle
+³       ³   ³           ³   ³   ³       ÀÄÄÄwrapper
+³       ³   ³           ³   ³   ³               gradle-wrapper.properties
+³       ³   ³           ³   ³   ³               
+³       ³   ³           ³   ³   ?ÄÄÄintegration_test
+³       ³   ³           ³   ³   ³       on_device_jni_test.dart
+³       ³   ³           ³   ³   ³       
+³       ³   ³           ³   ³   ?ÄÄÄlib
+³       ³   ³           ³   ³   ³       main.dart
+³       ³   ³           ³   ³   ³       
+³       ³   ³           ³   ³   ?ÄÄÄlinux
+³       ³   ³           ³   ³   ³   ³   CMakeLists.txt
+³       ³   ³           ³   ³   ³   ³   main.cc
+³       ³   ³           ³   ³   ³   ³   my_application.cc
+³       ³   ³           ³   ³   ³   ³   my_application.h
+³       ³   ³           ³   ³   ³   ³   
+³       ³   ³           ³   ³   ³   ÀÄÄÄflutter
+³       ³   ³           ³   ³   ³           CMakeLists.txt
+³       ³   ³           ³   ³   ³           
+³       ³   ³           ³   ³   ?ÄÄÄmacos
+³       ³   ³           ³   ³   ³   ³   Podfile
+³       ³   ³           ³   ³   ³   ³   
+³       ³   ³           ³   ³   ³   ?ÄÄÄFlutter
+³       ³   ³           ³   ³   ³   ³       Flutter-Debug.xcconfig
+³       ³   ³           ³   ³   ³   ³       Flutter-Release.xcconfig
+³       ³   ³           ³   ³   ³   ³       
+³       ³   ³           ³   ³   ³   ?ÄÄÄRunner
+³       ³   ³           ³   ³   ³   ³   ³   AppDelegate.swift
+³       ³   ³           ³   ³   ³   ³   ³   DebugProfile.entitlements
+³       ³   ³           ³   ³   ³   ³   ³   Info.plist
+³       ³   ³           ³   ³   ³   ³   ³   MainFlutterWindow.swift
+³       ³   ³           ³   ³   ³   ³   ³   Release.entitlements
+³       ³   ³           ³   ³   ³   ³   ³   
+³       ³   ³           ³   ³   ³   ³   ?ÄÄÄAssets.xcassets
+³       ³   ³           ³   ³   ³   ³   ³   ÀÄÄÄAppIcon.appiconset
+³       ³   ³           ³   ³   ³   ³   ³           app_icon_1024.png
+³       ³   ³           ³   ³   ³   ³   ³           app_icon_128.png
+³       ³   ³           ³   ³   ³   ³   ³           app_icon_16.png
+³       ³   ³           ³   ³   ³   ³   ³           app_icon_256.png
+³       ³   ³           ³   ³   ³   ³   ³           app_icon_32.png
+³       ³   ³           ³   ³   ³   ³   ³           app_icon_512.png
+³       ³   ³           ³   ³   ³   ³   ³           app_icon_64.png
+³       ³   ³           ³   ³   ³   ³   ³           Contents.json
+³       ³   ³           ³   ³   ³   ³   ³           
+³       ³   ³           ³   ³   ³   ³   ?ÄÄÄBase.lproj
+³       ³   ³           ³   ³   ³   ³   ³       MainMenu.xib
+³       ³   ³           ³   ³   ³   ³   ³       
+³       ³   ³           ³   ³   ³   ³   ÀÄÄÄConfigs
+³       ³   ³           ³   ³   ³   ³           AppInfo.xcconfig
+³       ³   ³           ³   ³   ³   ³           Debug.xcconfig
+³       ³   ³           ³   ³   ³   ³           Release.xcconfig
+³       ³   ³           ³   ³   ³   ³           Warnings.xcconfig
+³       ³   ³           ³   ³   ³   ³           
+³       ³   ³           ³   ³   ³   ?ÄÄÄRunner.xcodeproj
+³       ³   ³           ³   ³   ³   ³   ³   project.pbxproj
+³       ³   ³           ³   ³   ³   ³   ³   
+³       ³   ³           ³   ³   ³   ³   ?ÄÄÄproject.xcworkspace
+³       ³   ³           ³   ³   ³   ³   ³   ÀÄÄÄxcshareddata
+³       ³   ³           ³   ³   ³   ³   ³           IDEWorkspaceChecks.plist
+³       ³   ³           ³   ³   ³   ³   ³           
+³       ³   ³           ³   ³   ³   ³   ÀÄÄÄxcshareddata
+³       ³   ³           ³   ³   ³   ³       ÀÄÄÄxcschemes
+³       ³   ³           ³   ³   ³   ³               Runner.xcscheme
+³       ³   ³           ³   ³   ³   ³               
+³       ³   ³           ³   ³   ³   ÀÄÄÄRunner.xcworkspace
+³       ³   ³           ³   ³   ³       ³   contents.xcworkspacedata
+³       ³   ³           ³   ³   ³       ³   
+³       ³   ³           ³   ³   ³       ÀÄÄÄxcshareddata
+³       ³   ³           ³   ³   ³               IDEWorkspaceChecks.plist
+³       ³   ³           ³   ³   ³               
+³       ³   ³           ³   ³   ÀÄÄÄwindows
+³       ³   ³           ³   ³       ³   CMakeLists.txt
+³       ³   ³           ³   ³       ³   
+³       ³   ³           ³   ³       ?ÄÄÄflutter
+³       ³   ³           ³   ³       ³       CMakeLists.txt
+³       ³   ³           ³   ³       ³       
+³       ³   ³           ³   ³       ÀÄÄÄrunner
+³       ³   ³           ³   ³           ³   CMakeLists.txt
+³       ³   ³           ³   ³           ³   flutter_window.cpp
+³       ³   ³           ³   ³           ³   flutter_window.h
+³       ³   ³           ³   ³           ³   main.cpp
+³       ³   ³           ³   ³           ³   resource.h
+³       ³   ³           ³   ³           ³   runner.exe.manifest
+³       ³   ³           ³   ³           ³   Runner.rc
+³       ³   ³           ³   ³           ³   utils.cpp
+³       ³   ³           ³   ³           ³   utils.h
+³       ³   ³           ³   ³           ³   win32_window.cpp
+³       ³   ³           ³   ³           ³   win32_window.h
+³       ³   ³           ³   ³           ³   
+³       ³   ³           ³   ³           ÀÄÄÄresources
+³       ³   ³           ³   ³                   app_icon.ico
+³       ³   ³           ³   ³                   
+³       ³   ³           ³   ?ÄÄÄjava
+³       ³   ³           ³   ³   ³   build.gradle.kts
+³       ³   ³           ³   ³   ³   gradlew
+³       ³   ³           ³   ³   ³   gradlew.bat
+³       ³   ³           ³   ³   ³   README.md
+³       ³   ³           ³   ³   ³   settings.gradle.kts
+³       ³   ³           ³   ³   ³   
+³       ³   ³           ³   ³   ?ÄÄÄgradle
+³       ³   ³           ³   ³   ³   ³   libs.versions.toml
+³       ³   ³           ³   ³   ³   ³   
+³       ³   ³           ³   ³   ³   ÀÄÄÄwrapper
+³       ³   ³           ³   ³   ³           gradle-wrapper.jar
+³       ³   ³           ³   ³   ³           gradle-wrapper.properties
+³       ³   ³           ³   ³   ³           
+³       ³   ³           ³   ³   ?ÄÄÄsrc
+³       ³   ³           ³   ³   ³   ÀÄÄÄmain
+³       ³   ³           ³   ³   ³       ÀÄÄÄjava
+³       ³   ³           ³   ³   ³           ÀÄÄÄcom
+³       ³   ³           ³   ³   ³               ÀÄÄÄgithub
+³       ³   ³           ³   ³   ³                   ÀÄÄÄdart_lang
+³       ³   ³           ³   ³   ³                       ÀÄÄÄjni
+³       ³   ³           ³   ³   ³                               JniUtils.java
+³       ³   ³           ³   ³   ³                               PortCleaner.java
+³       ³   ³           ³   ³   ³                               PortContinuation.java
+³       ³   ³           ³   ³   ³                               PortProxyBuilder.java
+³       ³   ³           ³   ³   ³                               
+³       ³   ³           ³   ³   ÀÄÄÄ~
+³       ³   ³           ³   ³       ÀÄÄÄdev
+³       ³   ³           ³   ³           ?ÄÄÄnative
+³       ³   ³           ³   ³           ³   ÀÄÄÄnative
+³       ³   ³           ³   ³           ³       ÀÄÄÄpkgs
+³       ³   ³           ³   ³           ³           ÀÄÄÄjnigen
+³       ³   ³           ³   ³           ³               ÀÄÄÄexample
+³       ³   ³           ³   ³           ³                   ÀÄÄÄpdfbox_plugin
+³       ³   ³           ³   ³           ³                       ÀÄÄÄdart_example
+³       ³   ³           ³   ³           ÀÄÄÄnative2
+³       ³   ³           ³   ³               ÀÄÄÄpkgs
+³       ³   ³           ³   ³                   ÀÄÄÄjnigen
+³       ³   ³           ³   ³                       ÀÄÄÄexample
+³       ³   ³           ³   ³                           ÀÄÄÄpdfbox_plugin
+³       ³   ³           ³   ³                               ÀÄÄÄdart_example
+³       ³   ³           ³   ?ÄÄÄlib
+³       ³   ³           ³   ³   ³   jni.dart
+³       ³   ³           ³   ³   ³   jni_symbols.yaml
+³       ³   ³           ³   ³   ³   _internal.dart
+³       ³   ³           ³   ³   ³   
+³       ³   ³           ³   ³   ÀÄÄÄsrc
+³       ³   ³           ³   ³       ³   accessors.dart
+³       ³   ³           ³   ³       ³   core_bindings.dart
+³       ³   ³           ³   ³       ³   errors.dart
+³       ³   ³           ³   ³       ³   jarray.dart
+³       ³   ³           ³   ³       ³   jclass.dart
+³       ³   ³           ³   ³       ³   jimplementer.dart
+³       ³   ³           ³   ³       ³   jni.dart
+³       ³   ³           ³   ³       ³   jobject.dart
+³       ³   ³           ³   ³       ³   jprimitives.dart
+³       ³   ³           ³   ³       ³   jreference.dart
+³       ³   ³           ³   ³       ³   jvalues.dart
+³       ³   ³           ³   ³       ³   kotlin.dart
+³       ³   ³           ³   ³       ³   method_invocation.dart
+³       ³   ³           ³   ³       ³   primitive_jarrays.dart
+³       ³   ³           ³   ³       ³   types.dart
+³       ³   ³           ³   ³       ³   version_check.dart
+³       ³   ³           ³   ³       ³   
+³       ³   ³           ³   ³       ?ÄÄÄbuild_util
+³       ³   ³           ³   ³       ³       build_util.dart
+³       ³   ³           ³   ³       ³       
+³       ³   ³           ³   ³       ?ÄÄÄlang
+³       ³   ³           ³   ³       ³       jboolean.dart
+³       ³   ³           ³   ³       ³       jbyte.dart
+³       ³   ³           ³   ³       ³       jcharacter.dart
+³       ³   ³           ³   ³       ³       jdouble.dart
+³       ³   ³           ³   ³       ³       jfloat.dart
+³       ³   ³           ³   ³       ³       jinteger.dart
+³       ³   ³           ³   ³       ³       jlong.dart
+³       ³   ³           ³   ³       ³       jnumber.dart
+³       ³   ³           ³   ³       ³       jshort.dart
+³       ³   ³           ³   ³       ³       jstring.dart
+³       ³   ³           ³   ³       ³       lang.dart
+³       ³   ³           ³   ³       ³       
+³       ³   ³           ³   ³       ?ÄÄÄnio
+³       ³   ³           ³   ³       ³       jbuffer.dart
+³       ³   ³           ³   ³       ³       jbyte_buffer.dart
+³       ³   ³           ³   ³       ³       nio.dart
+³       ³   ³           ³   ³       ³       
+³       ³   ³           ³   ³       ?ÄÄÄthird_party
+³       ³   ³           ³   ³       ³       generated_bindings.dart
+³       ³   ³           ³   ³       ³       global_env_extensions.dart
+³       ³   ³           ³   ³       ³       jni_bindings_generated.dart
+³       ³   ³           ³   ³       ³       
+³       ³   ³           ³   ³       ÀÄÄÄutil
+³       ³   ³           ³   ³               jiterator.dart
+³       ³   ³           ³   ³               jlist.dart
+³       ³   ³           ³   ³               jmap.dart
+³       ³   ³           ³   ³               jset.dart
+³       ³   ³           ³   ³               util.dart
+³       ³   ³           ³   ³               
+³       ³   ³           ³   ?ÄÄÄlinux
+³       ³   ³           ³   ³       CMakeLists.txt
+³       ³   ³           ³   ³       
+³       ³   ³           ³   ?ÄÄÄsrc
+³       ³   ³           ³   ³   ³   CMakeLists.txt
+³       ³   ³           ³   ³   ³   dartjni.c
+³       ³   ³           ³   ³   ³   dartjni.h
+³       ³   ³           ³   ³   ³   jni_constants.h
+³       ³   ³           ³   ³   ³   README.md
+³       ³   ³           ³   ³   ³   
+³       ³   ³           ³   ³   ?ÄÄÄinclude
+³       ³   ³           ³   ³   ³   ³   analyze_snapshot_api.h
+³       ³   ³           ³   ³   ³   ³   BUILD.gn
+³       ³   ³           ³   ³   ³   ³   dart_api.h
+³       ³   ³           ³   ³   ³   ³   dart_api_dl.c
+³       ³   ³           ³   ³   ³   ³   dart_api_dl.h
+³       ³   ³           ³   ³   ³   ³   dart_embedder_api.h
+³       ³   ³           ³   ³   ³   ³   dart_native_api.h
+³       ³   ³           ³   ³   ³   ³   dart_tools_api.h
+³       ³   ³           ³   ³   ³   ³   dart_version.h
+³       ³   ³           ³   ³   ³   ³   
+³       ³   ³           ³   ³   ³   ?ÄÄÄbin
+³       ³   ³           ³   ³   ³   ³       dart_io_api.h
+³       ³   ³           ³   ³   ³   ³       native_assets_api.h
+³       ³   ³           ³   ³   ³   ³       
+³       ³   ³           ³   ³   ³   ÀÄÄÄinternal
+³       ³   ³           ³   ³   ³           dart_api_dl_impl.h
+³       ³   ³           ³   ³   ³           
+³       ³   ³           ³   ³   ÀÄÄÄthird_party
+³       ³   ³           ³   ³           global_jni_env.c
+³       ³   ³           ³   ³           global_jni_env.h
+³       ³   ³           ³   ³           
+³       ³   ³           ³   ?ÄÄÄtest
+³       ³   ³           ³   ³   ³   boxed_test.dart
+³       ³   ³           ³   ³   ³   debug_release_test.dart
+³       ³   ³           ³   ³   ³   exception_test.dart
+³       ³   ³           ³   ³   ³   global_env_test.dart
+³       ³   ³           ³   ³   ³   isolate_test.dart
+³       ³   ³           ³   ³   ³   jarray_test.dart
+³       ³   ³           ³   ³   ³   jbyte_buffer_test.dart
+³       ³   ³           ³   ³   ³   jlist_test.dart
+³       ³   ³           ³   ³   ³   jmap_test.dart
+³       ³   ³           ³   ³   ³   jobject_test.dart
+³       ³   ³           ³   ³   ³   jset_test.dart
+³       ³   ³           ³   ³   ³   jstring_test.dart
+³       ³   ³           ³   ³   ³   load_test.dart
+³       ³   ³           ³   ³   ³   version_check_test.dart
+³       ³   ³           ³   ³   ³   
+³       ³   ³           ³   ³   ?ÄÄÄtest_util
+³       ³   ³           ³   ³   ³       test_util.dart
+³       ³   ³           ³   ³   ³       
+³       ³   ³           ³   ³   ÀÄÄÄversion_check
+³       ³   ³           ³   ³           fail_major.dart
+³       ³   ³           ³   ³           fail_minor.dart
+³       ³   ³           ³   ³           pass.dart
+³       ³   ³           ³   ³           
+³       ³   ³           ³   ?ÄÄÄthird_party
+³       ³   ³           ³   ³       jni.h
+³       ³   ³           ³   ³       
+³       ³   ³           ³   ?ÄÄÄtool
+³       ³   ³           ³   ³   ³   generate_ffi_bindings.dart
+³       ³   ³           ³   ³   ³   generate_ide_files.dart
+³       ³   ³           ³   ³   ³   generate_jni_bindings.dart
+³       ³   ³           ³   ³   ³   generate_primitive_arrays.dart
+³       ³   ³           ³   ³   ³   
+³       ³   ³           ³   ³   ÀÄÄÄwrapper_generators
+³       ³   ³           ³   ³           ffigen_util.dart
+³       ³   ³           ³   ³           generate_c_extensions.dart
+³       ³   ³           ³   ³           generate_dart_extensions.dart
+³       ³   ³           ³   ³           generate_helper_functions.dart
+³       ³   ³           ³   ³           logging.dart
+³       ³   ³           ³   ³           
+³       ³   ³           ³   ÀÄÄÄwindows
+³       ³   ³           ³           CMakeLists.txt
+³       ³   ³           ³           
+³       ³   ³           ÀÄÄÄpath_provider_linux
+³       ³   ³               ³   AUTHORS
+³       ³   ³               ³   CHANGELOG.md
+³       ³   ³               ³   LICENSE
+³       ³   ³               ³   pubspec.yaml
+³       ³   ³               ³   README.md
+³       ³   ³               ³   
+³       ³   ³               ?ÄÄÄexample
+³       ³   ³               ³   ³   pubspec.yaml
+³       ³   ³               ³   ³   README.md
+³       ³   ³               ³   ³   
+³       ³   ³               ³   ?ÄÄÄintegration_test
+³       ³   ³               ³   ³       path_provider_test.dart
+³       ³   ³               ³   ³       
+³       ³   ³               ³   ?ÄÄÄlib
+³       ³   ³               ³   ³       main.dart
+³       ³   ³               ³   ³       
+³       ³   ³               ³   ?ÄÄÄlinux
+³       ³   ³               ³   ³   ³   CMakeLists.txt
+³       ³   ³               ³   ³   ³   main.cc
+³       ³   ³               ³   ³   ³   my_application.cc
+³       ³   ³               ³   ³   ³   my_application.h
+³       ³   ³               ³   ³   ³   
+³       ³   ³               ³   ³   ÀÄÄÄflutter
+³       ³   ³               ³   ³           CMakeLists.txt
+³       ³   ³               ³   ³           
+³       ³   ³               ³   ÀÄÄÄtest_driver
+³       ³   ³               ³           integration_test.dart
+³       ³   ³               ³           
+³       ³   ³               ?ÄÄÄlib
+³       ³   ³               ³   ³   path_provider_linux.dart
+³       ³   ³               ³   ³   
+³       ³   ³               ³   ÀÄÄÄsrc
+³       ³   ³               ³           get_application_id.dart
+³       ³   ³               ³           get_application_id_real.dart
+³       ³   ³               ³           get_application_id_stub.dart
+³       ³   ³               ³           path_provider_linux.dart
+³       ³   ³               ³           
+³       ³   ³               ÀÄÄÄtest
+³       ³   ³                       get_application_id_test.dart
+³       ³   ³                       path_provider_linux_test.dart
+³       ³   ³                       
+³       ³   ÀÄÄÄrunner
+³       ³           CMakeLists.txt
+³       ³           main.cc
+³       ³           my_application.cc
+³       ³           my_application.h
+³       ³           
+³       ?ÄÄÄmacos
+³       ³   ³   .gitignore
+³       ³   ³   
+³       ³   ?ÄÄÄFlutter
+³       ³   ³   ³   Flutter-Debug.xcconfig
+³       ³   ³   ³   Flutter-Release.xcconfig
+³       ³   ³   ³   GeneratedPluginRegistrant.swift
+³       ³   ³   ³   
+³       ³   ³   ÀÄÄÄephemeral
+³       ³   ³       ³   Flutter-Generated.xcconfig
+³       ³   ³       ³   flutter_export_environment.sh
+³       ³   ³       ³   flutter_native_integration.env
+³       ³   ³       ³   
+³       ³   ³       ÀÄÄÄPackages
+³       ³   ³           ?ÄÄÄ.packages
+³       ³   ³           ÀÄÄÄFlutterGeneratedPluginSwiftPackage
+³       ³   ³               ³   Package.swift
+³       ³   ³               ³   
+³       ³   ³               ÀÄÄÄSources
+³       ³   ³                   ÀÄÄÄFlutterGeneratedPluginSwiftPackage
+³       ³   ³                           FlutterGeneratedPluginSwiftPackage.swift
+³       ³   ³                           
+³       ³   ?ÄÄÄRunner
+³       ³   ³   ³   AppDelegate.swift
+³       ³   ³   ³   DebugProfile.entitlements
+³       ³   ³   ³   Info.plist
+³       ³   ³   ³   MainFlutterWindow.swift
+³       ³   ³   ³   Release.entitlements
+³       ³   ³   ³   
+³       ³   ³   ?ÄÄÄAssets.xcassets
+³       ³   ³   ³   ÀÄÄÄAppIcon.appiconset
+³       ³   ³   ³           app_icon_1024.png
+³       ³   ³   ³           app_icon_128.png
+³       ³   ³   ³           app_icon_16.png
+³       ³   ³   ³           app_icon_256.png
+³       ³   ³   ³           app_icon_32.png
+³       ³   ³   ³           app_icon_512.png
+³       ³   ³   ³           app_icon_64.png
+³       ³   ³   ³           Contents.json
+³       ³   ³   ³           
+³       ³   ³   ?ÄÄÄBase.lproj
+³       ³   ³   ³       MainMenu.xib
+³       ³   ³   ³       
+³       ³   ³   ÀÄÄÄConfigs
+³       ³   ³           AppInfo.xcconfig
+³       ³   ³           Debug.xcconfig
+³       ³   ³           Release.xcconfig
+³       ³   ³           Warnings.xcconfig
+³       ³   ³           
+³       ³   ?ÄÄÄRunner.xcodeproj
+³       ³   ³   ³   project.pbxproj
+³       ³   ³   ³   
+³       ³   ³   ?ÄÄÄproject.xcworkspace
+³       ³   ³   ³   ÀÄÄÄxcshareddata
+³       ³   ³   ³           IDEWorkspaceChecks.plist
+³       ³   ³   ³           
+³       ³   ³   ÀÄÄÄxcshareddata
+³       ³   ³       ÀÄÄÄxcschemes
+³       ³   ³               Runner.xcscheme
+³       ³   ³               
+³       ³   ?ÄÄÄRunner.xcworkspace
+³       ³   ³   ³   contents.xcworkspacedata
+³       ³   ³   ³   
+³       ³   ³   ÀÄÄÄxcshareddata
+³       ³   ³           IDEWorkspaceChecks.plist
+³       ³   ³           
+³       ³   ÀÄÄÄRunnerTests
+³       ³           RunnerTests.swift
+³       ³           
+³       ?ÄÄÄtest
+³       ³       widget_test.dart
+³       ³       
+³       ?ÄÄÄweb
+³       ³   ³   favicon.png
+³       ³   ³   index.html
+³       ³   ³   manifest.json
+³       ³   ³   
+³       ³   ÀÄÄÄicons
+³       ³           Icon-192.png
+³       ³           Icon-512.png
+³       ³           Icon-maskable-192.png
+³       ³           Icon-maskable-512.png
+³       ³           
+³       ÀÄÄÄwindows
+³           ³   .gitignore
+³           ³   CMakeLists.txt
+³           ³   
+³           ?ÄÄÄflutter
+³           ³   ³   CMakeLists.txt
+³           ³   ³   generated_plugins.cmake
+³           ³   ³   generated_plugin_registrant.cc
+³           ³   ³   generated_plugin_registrant.h
+³           ³   ³   
+³           ³   ÀÄÄÄephemeral
+³           ³       ÀÄÄÄ.plugin_symlinks
+³           ³           ?ÄÄÄjni
+³           ³           ³   ³   analysis_options.yaml
+³           ³           ³   ³   CHANGELOG.md
+³           ³           ³   ³   dart_test.yaml
+³           ³           ³   ³   ffigen.yaml
+³           ³           ³   ³   ffigen_exts.yaml
+³           ³           ³   ³   LICENSE
+³           ³           ³   ³   pubspec.yaml
+³           ³           ³   ³   README.md
+³           ³           ³   ³   
+³           ³           ³   ?ÄÄÄandroid
+³           ³           ³   ³   ³   build.gradle
+³           ³           ³   ³   ³   consumer-rules.pro
+³           ³           ³   ³   ³   README.md
+³           ³           ³   ³   ³   settings.gradle
+³           ³           ³   ³   ³   
+³           ³           ³   ³   ÀÄÄÄsrc
+³           ³           ³   ³       ÀÄÄÄmain
+³           ³           ³   ³           ³   AndroidManifest.xml
+³           ³           ³   ³           ³   
+³           ³           ³   ³           ÀÄÄÄjava
+³           ³           ³   ³               ÀÄÄÄcom
+³           ³           ³   ³                   ÀÄÄÄgithub
+³           ³           ³   ³                       ÀÄÄÄdart_lang
+³           ³           ³   ³                           ÀÄÄÄjni
+³           ³           ³   ³                                   JniPlugin.java
+³           ³           ³   ³                                   
+³           ³           ³   ?ÄÄÄbin
+³           ³           ³   ³       setup.dart
+³           ³           ³   ³       
+³           ³           ³   ?ÄÄÄexample
+³           ³           ³   ³   ³   analysis_options.yaml
+³           ³           ³   ³   ³   pubspec.yaml
+³           ³           ³   ³   ³   README.md
+³           ³           ³   ³   ³   
+³           ³           ³   ³   ?ÄÄÄandroid
+³           ³           ³   ³   ³   ³   build.gradle
+³           ³           ³   ³   ³   ³   gradle.properties
+³           ³           ³   ³   ³   ³   settings.gradle
+³           ³           ³   ³   ³   ³   
+³           ³           ³   ³   ³   ?ÄÄÄapp
+³           ³           ³   ³   ³   ³   ³   build.gradle
+³           ³           ³   ³   ³   ³   ³   
+³           ³           ³   ³   ³   ³   ÀÄÄÄsrc
+³           ³           ³   ³   ³   ³       ?ÄÄÄdebug
+³           ³           ³   ³   ³   ³       ³       AndroidManifest.xml
+³           ³           ³   ³   ³   ³       ³       
+³           ³           ³   ³   ³   ³       ?ÄÄÄmain
+³           ³           ³   ³   ³   ³       ³   ³   AndroidManifest.xml
+³           ³           ³   ³   ³   ³       ³   ³   
+³           ³           ³   ³   ³   ³       ³   ?ÄÄÄjava
+³           ³           ³   ³   ³   ³       ³   ³   ?ÄÄÄcom
+³           ³           ³   ³   ³   ³       ³   ³   ³   ÀÄÄÄgithub
+³           ³           ³   ³   ³   ³       ³   ³   ³       ÀÄÄÄdart_lang
+³           ³           ³   ³   ³   ³       ³   ³   ³           ÀÄÄÄjni_example
+³           ³           ³   ³   ³   ³       ³   ³   ³                   Toaster.java
+³           ³           ³   ³   ³   ³       ³   ³   ³                   
+³           ³           ³   ³   ³   ³       ³   ³   ÀÄÄÄio
+³           ³           ³   ³   ³   ³       ³   ³       ÀÄÄÄflutter
+³           ³           ³   ³   ³   ³       ³   ³           ÀÄÄÄplugins
+³           ³           ³   ³   ³   ³       ³   ?ÄÄÄkotlin
+³           ³           ³   ³   ³   ³       ³   ³   ÀÄÄÄdev
+³           ³           ³   ³   ³   ³       ³   ³       ÀÄÄÄdart
+³           ³           ³   ³   ³   ³       ³   ³           ÀÄÄÄjni_example
+³           ³           ³   ³   ³   ³       ³   ³                   MainActivity.kt
+³           ³           ³   ³   ³   ³       ³   ³                   
+³           ³           ³   ³   ³   ³       ³   ÀÄÄÄres
+³           ³           ³   ³   ³   ³       ³       ?ÄÄÄdrawable
+³           ³           ³   ³   ³   ³       ³       ³       launch_background.xml
+³           ³           ³   ³   ³   ³       ³       ³       
+³           ³           ³   ³   ³   ³       ³       ?ÄÄÄdrawable-v21
+³           ³           ³   ³   ³   ³       ³       ³       launch_background.xml
+³           ³           ³   ³   ³   ³       ³       ³       
+³           ³           ³   ³   ³   ³       ³       ?ÄÄÄmipmap-hdpi
+³           ³           ³   ³   ³   ³       ³       ³       ic_launcher.png
+³           ³           ³   ³   ³   ³       ³       ³       
+³           ³           ³   ³   ³   ³       ³       ?ÄÄÄmipmap-mdpi
+³           ³           ³   ³   ³   ³       ³       ³       ic_launcher.png
+³           ³           ³   ³   ³   ³       ³       ³       
+³           ³           ³   ³   ³   ³       ³       ?ÄÄÄmipmap-xhdpi
+³           ³           ³   ³   ³   ³       ³       ³       ic_launcher.png
+³           ³           ³   ³   ³   ³       ³       ³       
+³           ³           ³   ³   ³   ³       ³       ?ÄÄÄmipmap-xxhdpi
+³           ³           ³   ³   ³   ³       ³       ³       ic_launcher.png
+³           ³           ³   ³   ³   ³       ³       ³       
+³           ³           ³   ³   ³   ³       ³       ?ÄÄÄmipmap-xxxhdpi
+³           ³           ³   ³   ³   ³       ³       ³       ic_launcher.png
+³           ³           ³   ³   ³   ³       ³       ³       
+³           ³           ³   ³   ³   ³       ³       ?ÄÄÄvalues
+³           ³           ³   ³   ³   ³       ³       ³       styles.xml
+³           ³           ³   ³   ³   ³       ³       ³       
+³           ³           ³   ³   ³   ³       ³       ÀÄÄÄvalues-night
+³           ³           ³   ³   ³   ³       ³               styles.xml
+³           ³           ³   ³   ³   ³       ³               
+³           ³           ³   ³   ³   ³       ÀÄÄÄprofile
+³           ³           ³   ³   ³   ³               AndroidManifest.xml
+³           ³           ³   ³   ³   ³               
+³           ³           ³   ³   ³   ÀÄÄÄgradle
+³           ³           ³   ³   ³       ÀÄÄÄwrapper
+³           ³           ³   ³   ³               gradle-wrapper.properties
+³           ³           ³   ³   ³               
+³           ³           ³   ³   ?ÄÄÄintegration_test
+³           ³           ³   ³   ³       on_device_jni_test.dart
+³           ³           ³   ³   ³       
+³           ³           ³   ³   ?ÄÄÄlib
+³           ³           ³   ³   ³       main.dart
+³           ³           ³   ³   ³       
+³           ³           ³   ³   ?ÄÄÄlinux
+³           ³           ³   ³   ³   ³   CMakeLists.txt
+³           ³           ³   ³   ³   ³   main.cc
+³           ³           ³   ³   ³   ³   my_application.cc
+³           ³           ³   ³   ³   ³   my_application.h
+³           ³           ³   ³   ³   ³   
+³           ³           ³   ³   ³   ÀÄÄÄflutter
+³           ³           ³   ³   ³           CMakeLists.txt
+³           ³           ³   ³   ³           
+³           ³           ³   ³   ?ÄÄÄmacos
+³           ³           ³   ³   ³   ³   Podfile
+³           ³           ³   ³   ³   ³   
+³           ³           ³   ³   ³   ?ÄÄÄFlutter
+³           ³           ³   ³   ³   ³       Flutter-Debug.xcconfig
+³           ³           ³   ³   ³   ³       Flutter-Release.xcconfig
+³           ³           ³   ³   ³   ³       
+³           ³           ³   ³   ³   ?ÄÄÄRunner
+³           ³           ³   ³   ³   ³   ³   AppDelegate.swift
+³           ³           ³   ³   ³   ³   ³   DebugProfile.entitlements
+³           ³           ³   ³   ³   ³   ³   Info.plist
+³           ³           ³   ³   ³   ³   ³   MainFlutterWindow.swift
+³           ³           ³   ³   ³   ³   ³   Release.entitlements
+³           ³           ³   ³   ³   ³   ³   
+³           ³           ³   ³   ³   ³   ?ÄÄÄAssets.xcassets
+³           ³           ³   ³   ³   ³   ³   ÀÄÄÄAppIcon.appiconset
+³           ³           ³   ³   ³   ³   ³           app_icon_1024.png
+³           ³           ³   ³   ³   ³   ³           app_icon_128.png
+³           ³           ³   ³   ³   ³   ³           app_icon_16.png
+³           ³           ³   ³   ³   ³   ³           app_icon_256.png
+³           ³           ³   ³   ³   ³   ³           app_icon_32.png
+³           ³           ³   ³   ³   ³   ³           app_icon_512.png
+³           ³           ³   ³   ³   ³   ³           app_icon_64.png
+³           ³           ³   ³   ³   ³   ³           Contents.json
+³           ³           ³   ³   ³   ³   ³           
+³           ³           ³   ³   ³   ³   ?ÄÄÄBase.lproj
+³           ³           ³   ³   ³   ³   ³       MainMenu.xib
+³           ³           ³   ³   ³   ³   ³       
+³           ³           ³   ³   ³   ³   ÀÄÄÄConfigs
+³           ³           ³   ³   ³   ³           AppInfo.xcconfig
+³           ³           ³   ³   ³   ³           Debug.xcconfig
+³           ³           ³   ³   ³   ³           Release.xcconfig
+³           ³           ³   ³   ³   ³           Warnings.xcconfig
+³           ³           ³   ³   ³   ³           
+³           ³           ³   ³   ³   ?ÄÄÄRunner.xcodeproj
+³           ³           ³   ³   ³   ³   ³   project.pbxproj
+³           ³           ³   ³   ³   ³   ³   
+³           ³           ³   ³   ³   ³   ?ÄÄÄproject.xcworkspace
+³           ³           ³   ³   ³   ³   ³   ÀÄÄÄxcshareddata
+³           ³           ³   ³   ³   ³   ³           IDEWorkspaceChecks.plist
+³           ³           ³   ³   ³   ³   ³           
+³           ³           ³   ³   ³   ³   ÀÄÄÄxcshareddata
+³           ³           ³   ³   ³   ³       ÀÄÄÄxcschemes
+³           ³           ³   ³   ³   ³               Runner.xcscheme
+³           ³           ³   ³   ³   ³               
+³           ³           ³   ³   ³   ÀÄÄÄRunner.xcworkspace
+³           ³           ³   ³   ³       ³   contents.xcworkspacedata
+³           ³           ³   ³   ³       ³   
+³           ³           ³   ³   ³       ÀÄÄÄxcshareddata
+³           ³           ³   ³   ³               IDEWorkspaceChecks.plist
+³           ³           ³   ³   ³               
+³           ³           ³   ³   ÀÄÄÄwindows
+³           ³           ³   ³       ³   CMakeLists.txt
+³           ³           ³   ³       ³   
+³           ³           ³   ³       ?ÄÄÄflutter
+³           ³           ³   ³       ³       CMakeLists.txt
+³           ³           ³   ³       ³       
+³           ³           ³   ³       ÀÄÄÄrunner
+³           ³           ³   ³           ³   CMakeLists.txt
+³           ³           ³   ³           ³   flutter_window.cpp
+³           ³           ³   ³           ³   flutter_window.h
+³           ³           ³   ³           ³   main.cpp
+³           ³           ³   ³           ³   resource.h
+³           ³           ³   ³           ³   runner.exe.manifest
+³           ³           ³   ³           ³   Runner.rc
+³           ³           ³   ³           ³   utils.cpp
+³           ³           ³   ³           ³   utils.h
+³           ³           ³   ³           ³   win32_window.cpp
+³           ³           ³   ³           ³   win32_window.h
+³           ³           ³   ³           ³   
+³           ³           ³   ³           ÀÄÄÄresources
+³           ³           ³   ³                   app_icon.ico
+³           ³           ³   ³                   
+³           ³           ³   ?ÄÄÄjava
+³           ³           ³   ³   ³   build.gradle.kts
+³           ³           ³   ³   ³   gradlew
+³           ³           ³   ³   ³   gradlew.bat
+³           ³           ³   ³   ³   README.md
+³           ³           ³   ³   ³   settings.gradle.kts
+³           ³           ³   ³   ³   
+³           ³           ³   ³   ?ÄÄÄgradle
+³           ³           ³   ³   ³   ³   libs.versions.toml
+³           ³           ³   ³   ³   ³   
+³           ³           ³   ³   ³   ÀÄÄÄwrapper
+³           ³           ³   ³   ³           gradle-wrapper.jar
+³           ³           ³   ³   ³           gradle-wrapper.properties
+³           ³           ³   ³   ³           
+³           ³           ³   ³   ?ÄÄÄsrc
+³           ³           ³   ³   ³   ÀÄÄÄmain
+³           ³           ³   ³   ³       ÀÄÄÄjava
+³           ³           ³   ³   ³           ÀÄÄÄcom
+³           ³           ³   ³   ³               ÀÄÄÄgithub
+³           ³           ³   ³   ³                   ÀÄÄÄdart_lang
+³           ³           ³   ³   ³                       ÀÄÄÄjni
+³           ³           ³   ³   ³                               JniUtils.java
+³           ³           ³   ³   ³                               PortCleaner.java
+³           ³           ³   ³   ³                               PortContinuation.java
+³           ³           ³   ³   ³                               PortProxyBuilder.java
+³           ³           ³   ³   ³                               
+³           ³           ³   ³   ÀÄÄÄ~
+³           ³           ³   ³       ÀÄÄÄdev
+³           ³           ³   ³           ?ÄÄÄnative
+³           ³           ³   ³           ³   ÀÄÄÄnative
+³           ³           ³   ³           ³       ÀÄÄÄpkgs
+³           ³           ³   ³           ³           ÀÄÄÄjnigen
+³           ³           ³   ³           ³               ÀÄÄÄexample
+³           ³           ³   ³           ³                   ÀÄÄÄpdfbox_plugin
+³           ³           ³   ³           ³                       ÀÄÄÄdart_example
+³           ³           ³   ³           ÀÄÄÄnative2
+³           ³           ³   ³               ÀÄÄÄpkgs
+³           ³           ³   ³                   ÀÄÄÄjnigen
+³           ³           ³   ³                       ÀÄÄÄexample
+³           ³           ³   ³                           ÀÄÄÄpdfbox_plugin
+³           ³           ³   ³                               ÀÄÄÄdart_example
+³           ³           ³   ?ÄÄÄlib
+³           ³           ³   ³   ³   jni.dart
+³           ³           ³   ³   ³   jni_symbols.yaml
+³           ³           ³   ³   ³   _internal.dart
+³           ³           ³   ³   ³   
+³           ³           ³   ³   ÀÄÄÄsrc
+³           ³           ³   ³       ³   accessors.dart
+³           ³           ³   ³       ³   core_bindings.dart
+³           ³           ³   ³       ³   errors.dart
+³           ³           ³   ³       ³   jarray.dart
+³           ³           ³   ³       ³   jclass.dart
+³           ³           ³   ³       ³   jimplementer.dart
+³           ³           ³   ³       ³   jni.dart
+³           ³           ³   ³       ³   jobject.dart
+³           ³           ³   ³       ³   jprimitives.dart
+³           ³           ³   ³       ³   jreference.dart
+³           ³           ³   ³       ³   jvalues.dart
+³           ³           ³   ³       ³   kotlin.dart
+³           ³           ³   ³       ³   method_invocation.dart
+³           ³           ³   ³       ³   primitive_jarrays.dart
+³           ³           ³   ³       ³   types.dart
+³           ³           ³   ³       ³   version_check.dart
+³           ³           ³   ³       ³   
+³           ³           ³   ³       ?ÄÄÄbuild_util
+³           ³           ³   ³       ³       build_util.dart
+³           ³           ³   ³       ³       
+³           ³           ³   ³       ?ÄÄÄlang
+³           ³           ³   ³       ³       jboolean.dart
+³           ³           ³   ³       ³       jbyte.dart
+³           ³           ³   ³       ³       jcharacter.dart
+³           ³           ³   ³       ³       jdouble.dart
+³           ³           ³   ³       ³       jfloat.dart
+³           ³           ³   ³       ³       jinteger.dart
+³           ³           ³   ³       ³       jlong.dart
+³           ³           ³   ³       ³       jnumber.dart
+³           ³           ³   ³       ³       jshort.dart
+³           ³           ³   ³       ³       jstring.dart
+³           ³           ³   ³       ³       lang.dart
+³           ³           ³   ³       ³       
+³           ³           ³   ³       ?ÄÄÄnio
+³           ³           ³   ³       ³       jbuffer.dart
+³           ³           ³   ³       ³       jbyte_buffer.dart
+³           ³           ³   ³       ³       nio.dart
+³           ³           ³   ³       ³       
+³           ³           ³   ³       ?ÄÄÄthird_party
+³           ³           ³   ³       ³       generated_bindings.dart
+³           ³           ³   ³       ³       global_env_extensions.dart
+³           ³           ³   ³       ³       jni_bindings_generated.dart
+³           ³           ³   ³       ³       
+³           ³           ³   ³       ÀÄÄÄutil
+³           ³           ³   ³               jiterator.dart
+³           ³           ³   ³               jlist.dart
+³           ³           ³   ³               jmap.dart
+³           ³           ³   ³               jset.dart
+³           ³           ³   ³               util.dart
+³           ³           ³   ³               
+³           ³           ³   ?ÄÄÄlinux
+³           ³           ³   ³       CMakeLists.txt
+³           ³           ³   ³       
+³           ³           ³   ?ÄÄÄsrc
+³           ³           ³   ³   ³   CMakeLists.txt
+³           ³           ³   ³   ³   dartjni.c
+³           ³           ³   ³   ³   dartjni.h
+³           ³           ³   ³   ³   jni_constants.h
+³           ³           ³   ³   ³   README.md
+³           ³           ³   ³   ³   
+³           ³           ³   ³   ?ÄÄÄinclude
+³           ³           ³   ³   ³   ³   analyze_snapshot_api.h
+³           ³           ³   ³   ³   ³   BUILD.gn
+³           ³           ³   ³   ³   ³   dart_api.h
+³           ³           ³   ³   ³   ³   dart_api_dl.c
+³           ³           ³   ³   ³   ³   dart_api_dl.h
+³           ³           ³   ³   ³   ³   dart_embedder_api.h
+³           ³           ³   ³   ³   ³   dart_native_api.h
+³           ³           ³   ³   ³   ³   dart_tools_api.h
+³           ³           ³   ³   ³   ³   dart_version.h
+³           ³           ³   ³   ³   ³   
+³           ³           ³   ³   ³   ?ÄÄÄbin
+³           ³           ³   ³   ³   ³       dart_io_api.h
+³           ³           ³   ³   ³   ³       native_assets_api.h
+³           ³           ³   ³   ³   ³       
+³           ³           ³   ³   ³   ÀÄÄÄinternal
+³           ³           ³   ³   ³           dart_api_dl_impl.h
+³           ³           ³   ³   ³           
+³           ³           ³   ³   ÀÄÄÄthird_party
+³           ³           ³   ³           global_jni_env.c
+³           ³           ³   ³           global_jni_env.h
+³           ³           ³   ³           
+³           ³           ³   ?ÄÄÄtest
+³           ³           ³   ³   ³   boxed_test.dart
+³           ³           ³   ³   ³   debug_release_test.dart
+³           ³           ³   ³   ³   exception_test.dart
+³           ³           ³   ³   ³   global_env_test.dart
+³           ³           ³   ³   ³   isolate_test.dart
+³           ³           ³   ³   ³   jarray_test.dart
+³           ³           ³   ³   ³   jbyte_buffer_test.dart
+³           ³           ³   ³   ³   jlist_test.dart
+³           ³           ³   ³   ³   jmap_test.dart
+³           ³           ³   ³   ³   jobject_test.dart
+³           ³           ³   ³   ³   jset_test.dart
+³           ³           ³   ³   ³   jstring_test.dart
+³           ³           ³   ³   ³   load_test.dart
+³           ³           ³   ³   ³   version_check_test.dart
+³           ³           ³   ³   ³   
+³           ³           ³   ³   ?ÄÄÄtest_util
+³           ³           ³   ³   ³       test_util.dart
+³           ³           ³   ³   ³       
+³           ³           ³   ³   ÀÄÄÄversion_check
+³           ³           ³   ³           fail_major.dart
+³           ³           ³   ³           fail_minor.dart
+³           ³           ³   ³           pass.dart
+³           ³           ³   ³           
+³           ³           ³   ?ÄÄÄthird_party
+³           ³           ³   ³       jni.h
+³           ³           ³   ³       
+³           ³           ³   ?ÄÄÄtool
+³           ³           ³   ³   ³   generate_ffi_bindings.dart
+³           ³           ³   ³   ³   generate_ide_files.dart
+³           ³           ³   ³   ³   generate_jni_bindings.dart
+³           ³           ³   ³   ³   generate_primitive_arrays.dart
+³           ³           ³   ³   ³   
+³           ³           ³   ³   ÀÄÄÄwrapper_generators
+³           ³           ³   ³           ffigen_util.dart
+³           ³           ³   ³           generate_c_extensions.dart
+³           ³           ³   ³           generate_dart_extensions.dart
+³           ³           ³   ³           generate_helper_functions.dart
+³           ³           ³   ³           logging.dart
+³           ³           ³   ³           
+³           ³           ³   ÀÄÄÄwindows
+³           ³           ³           CMakeLists.txt
+³           ³           ³           
+³           ³           ÀÄÄÄpath_provider_windows
+³           ³               ³   AUTHORS
+³           ³               ³   CHANGELOG.md
+³           ³               ³   LICENSE
+³           ³               ³   pubspec.yaml
+³           ³               ³   README.md
+³           ³               ³   
+³           ³               ?ÄÄÄexample
+³           ³               ³   ³   pubspec.yaml
+³           ³               ³   ³   README.md
+³           ³               ³   ³   
+³           ³               ³   ?ÄÄÄintegration_test
+³           ³               ³   ³       path_provider_test.dart
+³           ³               ³   ³       
+³           ³               ³   ?ÄÄÄlib
+³           ³               ³   ³       main.dart
+³           ³               ³   ³       
+³           ³               ³   ?ÄÄÄtest_driver
+³           ³               ³   ³       integration_test.dart
+³           ³               ³   ³       
+³           ³               ³   ÀÄÄÄwindows
+³           ³               ³       ³   CMakeLists.txt
+³           ³               ³       ³   
+³           ³               ³       ?ÄÄÄflutter
+³           ³               ³       ³       CMakeLists.txt
+³           ³               ³       ³       generated_plugins.cmake
+³           ³               ³       ³       
+³           ³               ³       ÀÄÄÄrunner
+³           ³               ³           ³   CMakeLists.txt
+³           ³               ³           ³   flutter_window.cpp
+³           ³               ³           ³   flutter_window.h
+³           ³               ³           ³   main.cpp
+³           ³               ³           ³   resource.h
+³           ³               ³           ³   runner.exe.manifest
+³           ³               ³           ³   Runner.rc
+³           ³               ³           ³   run_loop.cpp
+³           ³               ³           ³   run_loop.h
+³           ³               ³           ³   utils.cpp
+³           ³               ³           ³   utils.h
+³           ³               ³           ³   win32_window.cpp
+³           ³               ³           ³   win32_window.h
+³           ³               ³           ³   
+³           ³               ³           ÀÄÄÄresources
+³           ³               ³                   app_icon.ico
+³           ³               ³                   
+³           ³               ?ÄÄÄlib
+³           ³               ³   ³   path_provider_windows.dart
+³           ³               ³   ³   
+³           ³               ³   ÀÄÄÄsrc
+³           ³               ³           folders.dart
+³           ³               ³           folders_stub.dart
+³           ³               ³           guid.dart
+³           ³               ³           path_provider_windows_real.dart
+³           ³               ³           path_provider_windows_stub.dart
+³           ³               ³           win32_wrappers.dart
+³           ³               ³           
+³           ³               ÀÄÄÄtest
+³           ³                       guid_test.dart
+³           ³                       path_provider_windows_test.dart
+³           ³                       
+³           ÀÄÄÄrunner
+³               ³   CMakeLists.txt
+³               ³   flutter_window.cpp
+³               ³   flutter_window.h
+³               ³   main.cpp
+³               ³   resource.h
+³               ³   runner.exe.manifest
+³               ³   Runner.rc
+³               ³   utils.cpp
+³               ³   utils.h
+³               ³   win32_window.cpp
+³               ³   win32_window.h
+³               ³   
+³               ÀÄÄÄresources
+³                       app_icon.ico
+³                       
+ÀÄÄÄdocs
+    ³   00_PROJECT_BRAIN.md
+    ³   01_PRODUCT_VISION.md
+    ³   02_ROADMAP.md
+    ³   03_BACKLOG.md
+    ³   04_ARCHITECTURE.md
+    ³   05_DECISIONS.md
+    ³   06_CODING_STANDARD.md
+    ³   07_CHANGELOG.md
+    ³   08_HANDOVER.md
+    ³   
+    ÀÄÄÄdiagrams
