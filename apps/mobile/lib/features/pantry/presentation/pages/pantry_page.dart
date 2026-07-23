@@ -56,10 +56,7 @@ class _PantryPageState extends ConsumerState<PantryPage> {
       return;
     }
 
-    final notifier = ref.read(pantryProvider.notifier);
-
-    await notifier.removeIngredient(originalIngredient.id);
-    await notifier.addIngredient(updatedIngredient);
+    await ref.read(pantryProvider.notifier).updateIngredient(updatedIngredient);
   }
 
   void _clearFilters() {
