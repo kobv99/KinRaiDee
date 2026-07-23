@@ -9,43 +9,118 @@ final pantryRepositoryProvider = Provider<PantryRepository>((ref) {
   return const HivePantryRepository();
 });
 
-class PantryNotifier extends Notifier<List<Ingredient>> {
-  Set<String> _favoriteNames = <String>{};
+String normalizePantryIngredientName(String value) {
+  return StorageService.normalizeIngredientName(value);
+}
 
+class FavoriteIngredientNamesNotifier extends Notifier<Set<String>> {
   PantryRepository get _repository {
     return ref.read(pantryRepositoryProvider);
   }
 
   @override
-  List<Ingredient> build() {
-    final ingredients = _repository.getIngredients();
-    final storedFavoriteNames = _repository.getFavoriteIngredientNames();
-    final legacyFavoriteNames = ingredients
+  Set<String> build() {
+    final storedNames = _repository.getFavoriteIngredientNames();
+    final legacyNames = _repository
+        .getIngredients()
         .where((ingredient) => ingredient.isFavorite)
-        .map((ingredient) => _normalizeName(ingredient.name))
+        .map((ingredient) => normalizePantryIngredientName(ingredient.name))
         .where((name) => name.isNotEmpty)
         .toSet();
+    final mergedNames = <String>{...storedNames, ...legacyNames};
 
-    _favoriteNames = <String>{
-      ...storedFavoriteNames,
-      ...legacyFavoriteNames,
-    };
-
-    if (_favoriteNames.length != storedFavoriteNames.length) {
-      final namesToPersist = Set<String>.of(_favoriteNames);
+    if (!_sameNames(storedNames, mergedNames)) {
       Future<void>.microtask(
-        () => _repository.saveFavoriteIngredientNames(namesToPersist),
+        () => _repository.saveFavoriteIngredientNames(mergedNames),
       );
     }
 
-    return _applyFavoriteFlags(ingredients);
+    return Set<String>.unmodifiable(mergedNames);
+  }
+
+  Future<void> addName(String name) async {
+    final normalizedName = normalizePantryIngredientName(name);
+    if (normalizedName.isEmpty || state.contains(normalizedName)) {
+      return;
+    }
+
+    final updatedNames = <String>{...state, normalizedName};
+    state = Set<String>.unmodifiable(updatedNames);
+    await _repository.saveFavoriteIngredientNames(updatedNames);
+  }
+
+  Future<void> removeName(String name) async {
+    final normalizedName = normalizePantryIngredientName(name);
+    if (!state.contains(normalizedName)) {
+      return;
+    }
+
+    final updatedNames = <String>{...state}..remove(normalizedName);
+    state = Set<String>.unmodifiable(updatedNames);
+    await _repository.saveFavoriteIngredientNames(updatedNames);
+  }
+
+  Future<void> replaceName(String oldName, String newName) async {
+    final normalizedOldName = normalizePantryIngredientName(oldName);
+    final normalizedNewName = normalizePantryIngredientName(newName);
+
+    if (normalizedOldName == normalizedNewName ||
+        !state.contains(normalizedOldName)) {
+      return;
+    }
+
+    final updatedNames = <String>{...state}
+      ..remove(normalizedOldName)
+      ..add(normalizedNewName);
+    state = Set<String>.unmodifiable(updatedNames);
+    await _repository.saveFavoriteIngredientNames(updatedNames);
+  }
+
+  static bool _sameNames(Set<String> first, Set<String> second) {
+    return first.length == second.length && first.containsAll(second);
+  }
+}
+
+final favoriteIngredientNamesProvider =
+    NotifierProvider<FavoriteIngredientNamesNotifier, Set<String>>(
+      FavoriteIngredientNamesNotifier.new,
+    );
+
+class PantryNotifier extends Notifier<List<Ingredient>> {
+  PantryRepository get _repository {
+    return ref.read(pantryRepositoryProvider);
+  }
+
+  Set<String> get _favoriteNames {
+    return ref.read(favoriteIngredientNamesProvider);
+  }
+
+  FavoriteIngredientNamesNotifier get _favoriteNotifier {
+    return ref.read(favoriteIngredientNamesProvider.notifier);
+  }
+
+  @override
+  List<Ingredient> build() {
+    final favoriteNames = ref.read(favoriteIngredientNamesProvider);
+    final ingredients = _repository.getIngredients();
+    final synchronizedIngredients = _applyFavoriteFlags(
+      ingredients,
+      favoriteNames,
+    );
+
+    if (_favoriteFlagsChanged(ingredients, synchronizedIngredients)) {
+      Future<void>.microtask(
+        () => _repository.saveIngredients(synchronizedIngredients),
+      );
+    }
+
+    return synchronizedIngredients;
   }
 
   Future<void> addIngredient(Ingredient ingredient) async {
-    final normalizedName = _normalizeName(ingredient.name);
+    final normalizedName = normalizePantryIngredientName(ingredient.name);
     final ingredientToAdd = ingredient.copyWith(
-      isFavorite:
-          ingredient.isFavorite || _favoriteNames.contains(normalizedName),
+      isFavorite: _favoriteNames.contains(normalizedName),
     );
     final updatedIngredients = <Ingredient>[...state, ingredientToAdd];
 
@@ -56,23 +131,6 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
   Future<void> updateIngredient(Ingredient ingredient) async {
     final originalIngredient = _findIngredientById(ingredient.id);
     final wasFavorite = originalIngredient?.isFavorite ?? ingredient.isFavorite;
-    final oldName = originalIngredient == null
-        ? null
-        : _normalizeName(originalIngredient.name);
-    final newName = _normalizeName(ingredient.name);
-
-    if (wasFavorite && oldName != newName) {
-      if (oldName != null) {
-        _favoriteNames.remove(oldName);
-      }
-      if (newName.isNotEmpty) {
-        _favoriteNames.add(newName);
-      }
-      await _repository.saveFavoriteIngredientNames(
-        Set<String>.of(_favoriteNames),
-      );
-    }
-
     final updatedIngredient = ingredient.copyWith(
       isFavorite: wasFavorite,
       updatedAt: DateTime.now(),
@@ -82,11 +140,20 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
           if (currentIngredient.id == ingredient.id) {
             return updatedIngredient;
           }
+
           return currentIngredient;
         })
         .toList(growable: false);
 
     state = updatedIngredients;
+
+    if (originalIngredient != null && wasFavorite) {
+      await _favoriteNotifier.replaceName(
+        originalIngredient.name,
+        updatedIngredient.name,
+      );
+    }
+
     await _repository.saveIngredients(updatedIngredients);
   }
 
@@ -96,20 +163,21 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
       return;
     }
 
-    final normalizedName = _normalizeName(targetIngredient.name);
-    final nextFavoriteValue = !targetIngredient.isFavorite;
+    final normalizedName = normalizePantryIngredientName(targetIngredient.name);
+    final nextFavoriteValue = !_favoriteNames.contains(normalizedName);
 
     if (nextFavoriteValue) {
-      _favoriteNames.add(normalizedName);
+      await _favoriteNotifier.addName(targetIngredient.name);
     } else {
-      _favoriteNames.remove(normalizedName);
+      await _favoriteNotifier.removeName(targetIngredient.name);
     }
 
     final updatedIngredients = state
         .map((ingredient) {
-          if (_normalizeName(ingredient.name) != normalizedName) {
+          if (normalizePantryIngredientName(ingredient.name) != normalizedName) {
             return ingredient;
           }
+
           return ingredient.copyWith(
             isFavorite: nextFavoriteValue,
             updatedAt: DateTime.now(),
@@ -118,26 +186,31 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
         .toList(growable: false);
 
     state = updatedIngredients;
+    await _repository.saveIngredients(updatedIngredients);
+  }
 
-    await _repository.saveFavoriteIngredientNames(
-      Set<String>.of(_favoriteNames),
-    );
+  Future<void> removeFavoriteByName(String name) async {
+    final normalizedName = normalizePantryIngredientName(name);
+    await _favoriteNotifier.removeName(name);
+
+    final updatedIngredients = state
+        .map((ingredient) {
+          if (normalizePantryIngredientName(ingredient.name) != normalizedName) {
+            return ingredient;
+          }
+
+          return ingredient.copyWith(
+            isFavorite: false,
+            updatedAt: DateTime.now(),
+          );
+        })
+        .toList(growable: false);
+
+    state = updatedIngredients;
     await _repository.saveIngredients(updatedIngredients);
   }
 
   Future<void> removeIngredient(String id) async {
-    final targetIngredient = _findIngredientById(id);
-
-    if (targetIngredient?.isFavorite ?? false) {
-      final normalizedName = _normalizeName(targetIngredient!.name);
-      if (normalizedName.isNotEmpty) {
-        _favoriteNames.add(normalizedName);
-        await _repository.saveFavoriteIngredientNames(
-          Set<String>.of(_favoriteNames),
-        );
-      }
-    }
-
     final updatedIngredients = state
         .where((ingredient) => ingredient.id != id)
         .toList(growable: false);
@@ -152,24 +225,10 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
   }
 
   Future<void> reload() async {
-    _favoriteNames = _repository.getFavoriteIngredientNames();
-    state = _applyFavoriteFlags(_repository.getIngredients());
-  }
-
-  List<Ingredient> _applyFavoriteFlags(List<Ingredient> ingredients) {
-    return ingredients
-        .map((ingredient) {
-          final shouldBeFavorite =
-              ingredient.isFavorite ||
-              _favoriteNames.contains(_normalizeName(ingredient.name));
-
-          if (ingredient.isFavorite == shouldBeFavorite) {
-            return ingredient;
-          }
-
-          return ingredient.copyWith(isFavorite: shouldBeFavorite);
-        })
-        .toList(growable: false);
+    state = _applyFavoriteFlags(
+      _repository.getIngredients(),
+      _favoriteNames,
+    );
   }
 
   Ingredient? _findIngredientById(String id) {
@@ -178,11 +237,40 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
         return ingredient;
       }
     }
+
     return null;
   }
 
-  static String _normalizeName(String value) {
-    return StorageService.normalizeIngredientName(value);
+  static List<Ingredient> _applyFavoriteFlags(
+    List<Ingredient> ingredients,
+    Set<String> favoriteNames,
+  ) {
+    return ingredients
+        .map(
+          (ingredient) => ingredient.copyWith(
+            isFavorite: favoriteNames.contains(
+              normalizePantryIngredientName(ingredient.name),
+            ),
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  static bool _favoriteFlagsChanged(
+    List<Ingredient> original,
+    List<Ingredient> synchronized,
+  ) {
+    if (original.length != synchronized.length) {
+      return true;
+    }
+
+    for (var index = 0; index < original.length; index++) {
+      if (original[index].isFavorite != synchronized[index].isFavorite) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }
 
