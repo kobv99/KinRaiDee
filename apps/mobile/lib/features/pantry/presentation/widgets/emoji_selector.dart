@@ -185,7 +185,8 @@ class _EmojiSelectorState extends State<EmojiSelector> {
                 child: ListView.separated(
                   shrinkWrap: true,
                   itemCount: results.length,
-                  separatorBuilder: (context, index) => const Divider(height: 1),
+                  separatorBuilder: (context, index) =>
+                      const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final entry = results[index];
                     return ListTile(
@@ -213,20 +214,22 @@ class _EmojiSelectorState extends State<EmojiSelector> {
         Wrap(
           spacing: 10,
           runSpacing: 10,
-          children: foodCategories.map((category) {
-            final selected = selectedCategory == category;
-            return ChoiceChip(
-              avatar: Text(category.emoji),
-              label: Text(category.name),
-              selected: selected,
-              onSelected: (_) {
-                setState(() {
-                  selectedCategory = category;
-                  selectedItem = null;
-                });
-              },
-            );
-          }).toList(growable: false),
+          children: foodCategories
+              .map((category) {
+                final selected = selectedCategory == category;
+                return ChoiceChip(
+                  avatar: Text(category.emoji),
+                  label: Text(category.name),
+                  selected: selected,
+                  onSelected: (_) {
+                    setState(() {
+                      selectedCategory = category;
+                      selectedItem = null;
+                    });
+                  },
+                );
+              })
+              .toList(growable: false),
         ),
         if (selectedCategory != null) ...[
           const SizedBox(height: 20),
@@ -238,15 +241,17 @@ class _EmojiSelectorState extends State<EmojiSelector> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: selectedCategory!.items.map((item) {
-              final selected = selectedItem == item;
-              return FilterChip(
-                avatar: Text(item.emoji),
-                label: Text(item.name),
-                selected: selected,
-                onSelected: (_) => _selectItem(selectedCategory!, item),
-              );
-            }).toList(growable: false),
+            children: selectedCategory!.items
+                .map((item) {
+                  final selected = selectedItem == item;
+                  return FilterChip(
+                    avatar: Text(item.emoji),
+                    label: Text(item.name),
+                    selected: selected,
+                    onSelected: (_) => _selectItem(selectedCategory!, item),
+                  );
+                })
+                .toList(growable: false),
           ),
         ],
       ],

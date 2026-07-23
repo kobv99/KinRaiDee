@@ -144,9 +144,11 @@ class _AddIngredientDialogState extends State<AddIngredientDialog> {
               children: [
                 EmojiSelector(
                   initialName:
-                      widget.ingredient?.name ?? widget.initialCatalogItem?.item.name,
+                      widget.ingredient?.name ??
+                      widget.initialCatalogItem?.item.name,
                   initialSearchQuery:
-                      widget.ingredient == null && widget.initialCatalogItem == null
+                      widget.ingredient == null &&
+                          widget.initialCatalogItem == null
                       ? widget.initialSearchQuery
                       : null,
                   onSelected: (selectedCategory, selectedName, selectedEmoji) {
@@ -162,7 +164,10 @@ class _AddIngredientDialogState extends State<AddIngredientDialog> {
                 if (name.isNotEmpty)
                   Card(
                     child: ListTile(
-                      leading: Text(emoji, style: const TextStyle(fontSize: 30)),
+                      leading: Text(
+                        emoji,
+                        style: const TextStyle(fontSize: 30),
+                      ),
                       title: Text(name),
                       subtitle: Text(category),
                       trailing: const Icon(Icons.check_circle_rounded),
@@ -209,11 +214,20 @@ class _AddIngredientDialogState extends State<AddIngredientDialog> {
                     DropdownMenuItem(value: 'ชิ้น', child: Text('ชิ้น')),
                     DropdownMenuItem(value: 'ฟอง', child: Text('ฟอง')),
                     DropdownMenuItem(value: 'กรัม', child: Text('กรัม')),
-                    DropdownMenuItem(value: 'กิโลกรัม', child: Text('กิโลกรัม')),
-                    DropdownMenuItem(value: 'มิลลิลิตร', child: Text('มิลลิลิตร')),
+                    DropdownMenuItem(
+                      value: 'กิโลกรัม',
+                      child: Text('กิโลกรัม'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'มิลลิลิตร',
+                      child: Text('มิลลิลิตร'),
+                    ),
                     DropdownMenuItem(value: 'ลิตร', child: Text('ลิตร')),
                     DropdownMenuItem(value: 'ช้อนชา', child: Text('ช้อนชา')),
-                    DropdownMenuItem(value: 'ช้อนโต๊ะ', child: Text('ช้อนโต๊ะ')),
+                    DropdownMenuItem(
+                      value: 'ช้อนโต๊ะ',
+                      child: Text('ช้อนโต๊ะ'),
+                    ),
                     DropdownMenuItem(value: 'ขวด', child: Text('ขวด')),
                     DropdownMenuItem(value: 'ถุง', child: Text('ถุง')),
                     DropdownMenuItem(value: 'แพ็ก', child: Text('แพ็ก')),
@@ -264,7 +278,9 @@ class _AddIngredientDialogState extends State<AddIngredientDialog> {
         ),
         ElevatedButton(
           onPressed: _submit,
-          child: Text(widget.ingredient == null ? 'เพิ่มเข้า Pantry' : 'บันทึก'),
+          child: Text(
+            widget.ingredient == null ? 'เพิ่มเข้า Pantry' : 'บันทึก',
+          ),
         ),
       ],
     );

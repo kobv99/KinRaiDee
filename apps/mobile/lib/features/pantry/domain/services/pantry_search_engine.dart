@@ -42,15 +42,11 @@ class PantrySearchMatch {
 
 abstract final class PantrySearchEngine {
   static final Map<String, FoodCatalogItem> _catalogByName = {
-    for (final entry in allFoodCatalogItems)
-      normalize(entry.item.name): entry,
+    for (final entry in allFoodCatalogItems) normalize(entry.item.name): entry,
   };
 
   static String normalize(String value) {
-    return value
-        .trim()
-        .toLowerCase()
-        .replaceAll(RegExp(r'[\s\-_.\/]+'), '');
+    return value.trim().toLowerCase().replaceAll(RegExp(r'[\s\-_.\/]+'), '');
   }
 
   static PantrySearchMatch matchCatalogItem(
@@ -301,16 +297,14 @@ abstract final class PantrySearchEngine {
       current[0] = firstIndex + 1;
 
       for (var secondIndex = 0; secondIndex < second.length; secondIndex++) {
-        final substitutionCost = first[firstIndex] == second[secondIndex] ? 0 : 1;
+        final substitutionCost = first[firstIndex] == second[secondIndex]
+            ? 0
+            : 1;
         final deletion = previous[secondIndex + 1] + 1;
         final insertion = current[secondIndex] + 1;
         final substitution = previous[secondIndex] + substitutionCost;
 
-        current[secondIndex + 1] = _minimum(
-          deletion,
-          insertion,
-          substitution,
-        );
+        current[secondIndex + 1] = _minimum(deletion, insertion, substitution);
       }
 
       previous = current;

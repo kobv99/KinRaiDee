@@ -53,8 +53,7 @@ class SearchHighlightText extends StatelessWidget {
             text: text.substring(matchIndex, matchEnd),
             style: effectiveHighlightStyle,
           ),
-          if (matchEnd < text.length)
-            TextSpan(text: text.substring(matchEnd)),
+          if (matchEnd < text.length) TextSpan(text: text.substring(matchEnd)),
         ],
       ),
       maxLines: maxLines,

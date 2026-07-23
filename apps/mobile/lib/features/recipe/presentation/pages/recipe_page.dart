@@ -29,11 +29,15 @@ class RecipePage extends ConsumerWidget {
               .where(
                 (item) =>
                     !item.canCook &&
-                    item.missingIngredients.where((e) => e.required).length <= 2,
+                    item.missingIngredients.where((e) => e.required).length <=
+                        2,
               )
               .toList();
           final needMore = items
-              .where((item) => !canCook.contains(item) && !almostReady.contains(item))
+              .where(
+                (item) =>
+                    !canCook.contains(item) && !almostReady.contains(item),
+              )
               .toList();
 
           return RefreshIndicator(
@@ -118,9 +122,9 @@ class _RecipeSection extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               title,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -182,9 +186,9 @@ class _RecipeMatchCard extends StatelessWidget {
           if (requiredMissing.isNotEmpty) ...[
             Text(
               'วัตถุดิบที่ขาด',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 6),
             ...requiredMissing.map(
@@ -196,9 +200,9 @@ class _RecipeMatchCard extends StatelessWidget {
           ],
           Text(
             'วิธีทำ',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 6),
           ...match.recipe.steps.indexed.map(

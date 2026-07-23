@@ -315,7 +315,8 @@ class _PantryContent extends StatelessWidget {
                             onSearchChanged('');
                           },
                         ),
-                        if (searchQuery.isNotEmpty && suggestions.isNotEmpty) ...[
+                        if (searchQuery.isNotEmpty &&
+                            suggestions.isNotEmpty) ...[
                           const SizedBox(height: AppSpacing.xs),
                           PantryCatalogPanel(
                             suggestions: suggestions,
@@ -424,8 +425,7 @@ class _PantryContent extends StatelessWidget {
                           ingredient: ingredient,
                           searchQuery: searchQuery,
                           onEdit: () => onEdit(ingredient),
-                          onFavoriteToggle: () =>
-                              onFavoriteToggle(ingredient),
+                          onFavoriteToggle: () => onFavoriteToggle(ingredient),
                           onDelete: () {
                             _confirmDelete(
                               context: context,

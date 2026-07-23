@@ -60,21 +60,23 @@ class PantryFilterBar extends StatelessWidget {
           initialValue: filter.sortOption,
           onSelected: onSortChanged,
           itemBuilder: (context) {
-            return PantrySortOption.values.map((option) {
-              return PopupMenuItem<PantrySortOption>(
-                value: option,
-                child: Row(
-                  children: [
-                    if (option == filter.sortOption)
-                      const Icon(Icons.check_rounded, size: 19)
-                    else
-                      const SizedBox(width: 19),
-                    const SizedBox(width: AppSpacing.xs),
-                    Text(option.label),
-                  ],
-                ),
-              );
-            }).toList(growable: false);
+            return PantrySortOption.values
+                .map((option) {
+                  return PopupMenuItem<PantrySortOption>(
+                    value: option,
+                    child: Row(
+                      children: [
+                        if (option == filter.sortOption)
+                          const Icon(Icons.check_rounded, size: 19)
+                        else
+                          const SizedBox(width: 19),
+                        const SizedBox(width: AppSpacing.xs),
+                        Text(option.label),
+                      ],
+                    ),
+                  );
+                })
+                .toList(growable: false);
           },
           icon: const Icon(Icons.sort_rounded),
         ),

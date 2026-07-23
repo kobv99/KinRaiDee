@@ -70,11 +70,12 @@ class StorageService {
   }
 
   static Future<void> saveFavoriteIngredientNames(Set<String> names) async {
-    final normalizedNames = names
-        .map(normalizeIngredientName)
-        .where((name) => name.isNotEmpty)
-        .toList(growable: false)
-      ..sort();
+    final normalizedNames =
+        names
+            .map(normalizeIngredientName)
+            .where((name) => name.isNotEmpty)
+            .toList(growable: false)
+          ..sort();
 
     await _pantryBox.put(favoriteIngredientNamesKey, normalizedNames);
   }

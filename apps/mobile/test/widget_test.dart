@@ -26,11 +26,7 @@ void main() {
   });
 
   testWidgets('KinRaiDee app loads', (WidgetTester tester) async {
-    await tester.pumpWidget(
-      const ProviderScope(
-        child: KinRaiDeeApp(),
-      ),
-    );
+    await tester.pumpWidget(const ProviderScope(child: KinRaiDeeApp()));
     await tester.pump();
 
     expect(find.byType(KinRaiDeeApp), findsOneWidget);

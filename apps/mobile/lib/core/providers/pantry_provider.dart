@@ -174,7 +174,8 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
 
     final updatedIngredients = state
         .map((ingredient) {
-          if (normalizePantryIngredientName(ingredient.name) != normalizedName) {
+          if (normalizePantryIngredientName(ingredient.name) !=
+              normalizedName) {
             return ingredient;
           }
 
@@ -195,7 +196,8 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
 
     final updatedIngredients = state
         .map((ingredient) {
-          if (normalizePantryIngredientName(ingredient.name) != normalizedName) {
+          if (normalizePantryIngredientName(ingredient.name) !=
+              normalizedName) {
             return ingredient;
           }
 
@@ -225,10 +227,7 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
   }
 
   Future<void> reload() async {
-    state = _applyFavoriteFlags(
-      _repository.getIngredients(),
-      _favoriteNames,
-    );
+    state = _applyFavoriteFlags(_repository.getIngredients(), _favoriteNames);
   }
 
   Ingredient? _findIngredientById(String id) {

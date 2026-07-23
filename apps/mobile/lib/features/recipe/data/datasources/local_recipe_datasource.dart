@@ -12,11 +12,7 @@ class LocalRecipeDataSource {
     final decoded = jsonDecode(raw) as List<dynamic>;
 
     return decoded
-        .map(
-          (item) => Recipe.fromJson(
-            Map<String, dynamic>.from(item as Map),
-          ),
-        )
+        .map((item) => Recipe.fromJson(Map<String, dynamic>.from(item as Map)))
         .toList(growable: false);
   }
 }

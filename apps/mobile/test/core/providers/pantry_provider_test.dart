@@ -5,67 +5,66 @@ import 'package:mobile/core/providers/pantry_provider.dart';
 import 'package:mobile/features/pantry/domain/repositories/pantry_repository.dart';
 
 void main() {
-  test(
-    'frequent ingredient survives delete, refresh, and re-add',
-    () async {
-      final now = DateTime(2026, 7, 23);
-      final original = Ingredient(
-        id: '1',
-        name: 'หมูสับ',
-        category: 'เนื้อสัตว์',
-        emoji: '🐷',
-        quantity: 1,
-        unit: 'กิโลกรัม',
-        createdAt: now,
-        updatedAt: now,
-      );
-      final repository = _FakePantryRepository(<Ingredient>[original]);
-      final firstContainer = ProviderContainer(
-        overrides: [pantryRepositoryProvider.overrideWithValue(repository)],
-      );
+  test('frequent ingredient survives delete, refresh, and re-add', () async {
+    final now = DateTime(2026, 7, 23);
+    final original = Ingredient(
+      id: '1',
+      name: 'หมูสับ',
+      category: 'เนื้อสัตว์',
+      emoji: '🐷',
+      quantity: 1,
+      unit: 'กิโลกรัม',
+      createdAt: now,
+      updatedAt: now,
+    );
+    final repository = _FakePantryRepository(<Ingredient>[original]);
+    final firstContainer = ProviderContainer(
+      overrides: [pantryRepositoryProvider.overrideWithValue(repository)],
+    );
 
-      final firstNotifier = firstContainer.read(pantryProvider.notifier);
-      await firstNotifier.toggleFavorite(original.id);
+    final firstNotifier = firstContainer.read(pantryProvider.notifier);
+    await firstNotifier.toggleFavorite(original.id);
 
-      expect(firstContainer.read(pantryProvider).single.isFavorite, isTrue);
-      expect(
-        firstContainer.read(favoriteIngredientNamesProvider),
-        contains('หมูสับ'),
-      );
+    expect(firstContainer.read(pantryProvider).single.isFavorite, isTrue);
+    expect(
+      firstContainer.read(favoriteIngredientNamesProvider),
+      contains('หมูสับ'),
+    );
 
-      await firstNotifier.removeIngredient(original.id);
+    await firstNotifier.removeIngredient(original.id);
 
-      expect(firstContainer.read(pantryProvider), isEmpty);
-      expect(
-        firstContainer.read(favoriteIngredientNamesProvider),
-        contains('หมูสับ'),
-      );
-      expect(repository.favoriteNames, contains('หมูสับ'));
-      firstContainer.dispose();
+    expect(firstContainer.read(pantryProvider), isEmpty);
+    expect(
+      firstContainer.read(favoriteIngredientNamesProvider),
+      contains('หมูสับ'),
+    );
+    expect(repository.favoriteNames, contains('หมูสับ'));
+    firstContainer.dispose();
 
-      final refreshedContainer = ProviderContainer(
-        overrides: [pantryRepositoryProvider.overrideWithValue(repository)],
-      );
-      addTearDown(refreshedContainer.dispose);
+    final refreshedContainer = ProviderContainer(
+      overrides: [pantryRepositoryProvider.overrideWithValue(repository)],
+    );
+    addTearDown(refreshedContainer.dispose);
 
-      expect(refreshedContainer.read(pantryProvider), isEmpty);
-      expect(
-        refreshedContainer.read(favoriteIngredientNamesProvider),
-        contains('หมูสับ'),
-      );
+    expect(refreshedContainer.read(pantryProvider), isEmpty);
+    expect(
+      refreshedContainer.read(favoriteIngredientNamesProvider),
+      contains('หมูสับ'),
+    );
 
-      await refreshedContainer.read(pantryProvider.notifier).addIngredient(
-        original.copyWith(
-          id: '2',
-          isFavorite: false,
-          createdAt: now.add(const Duration(minutes: 1)),
-          updatedAt: now.add(const Duration(minutes: 1)),
-        ),
-      );
+    await refreshedContainer
+        .read(pantryProvider.notifier)
+        .addIngredient(
+          original.copyWith(
+            id: '2',
+            isFavorite: false,
+            createdAt: now.add(const Duration(minutes: 1)),
+            updatedAt: now.add(const Duration(minutes: 1)),
+          ),
+        );
 
-      expect(refreshedContainer.read(pantryProvider).single.isFavorite, isTrue);
-    },
-  );
+    expect(refreshedContainer.read(pantryProvider).single.isFavorite, isTrue);
+  });
 
   test('removing from frequent ingredients clears pantry star', () async {
     final now = DateTime(2026, 7, 23);
