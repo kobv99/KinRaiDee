@@ -5,5 +5,9 @@ abstract interface class PantryRepository {
 
   Future<void> saveIngredients(List<Ingredient> ingredients);
 
+  Set<String> getFavoriteIngredientNames();
+
+  Future<void> saveFavoriteIngredientNames(Set<String> names);
+
   Future<void> clearIngredients();
 }
