@@ -29,11 +29,11 @@ class _PantryPageState extends ConsumerState<PantryPage> {
     super.dispose();
   }
 
-  Future<void> _addIngredient() async {
+  Future<void> _addIngredient([String? initialSearchQuery]) async {
     final ingredient = await showDialog<Ingredient>(
       context: context,
       builder: (context) {
-        return const AddIngredientDialog();
+        return AddIngredientDialog(initialSearchQuery: initialSearchQuery);
       },
     );
 
@@ -42,6 +42,7 @@ class _PantryPageState extends ConsumerState<PantryPage> {
     }
 
     await ref.read(pantryProvider.notifier).addIngredient(ingredient);
+    _clearFilters();
   }
 
   Future<void> _editIngredient(Ingredient originalIngredient) async {
@@ -61,7 +62,6 @@ class _PantryPageState extends ConsumerState<PantryPage> {
 
   void _clearFilters() {
     _searchController.clear();
-
     ref.read(pantryFilterProvider.notifier).clearFilters();
   }
 
@@ -81,10 +81,9 @@ class _PantryPageState extends ConsumerState<PantryPage> {
           filter: filter,
           categories: categories,
           searchController: _searchController,
-
-          onAddIngredient: _addIngredient,
+          onAddIngredient: () => _addIngredient(),
+          onAddIngredientFromSearch: _addIngredient,
           onEdit: _editIngredient,
-
           onSearchChanged: (value) {
             ref.read(pantryFilterProvider.notifier).setSearchQuery(value);
           },
@@ -107,7 +106,7 @@ class _PantryPageState extends ConsumerState<PantryPage> {
       ),
       floatingActionButton: allIngredients.isNotEmpty
           ? FloatingActionButton.extended(
-              onPressed: _addIngredient,
+              onPressed: () => _addIngredient(),
               icon: const Icon(Icons.add_rounded),
               label: const Text('เพิ่มวัตถุดิบ'),
             )
@@ -124,6 +123,7 @@ class _PantryContent extends StatelessWidget {
     required this.categories,
     required this.searchController,
     required this.onAddIngredient,
+    required this.onAddIngredientFromSearch,
     required this.onSearchChanged,
     required this.onCategoryChanged,
     required this.onExpiringChanged,
@@ -139,6 +139,7 @@ class _PantryContent extends StatelessWidget {
   final List<String> categories;
   final TextEditingController searchController;
   final VoidCallback onAddIngredient;
+  final ValueChanged<String?> onAddIngredientFromSearch;
   final ValueChanged<String> onSearchChanged;
   final ValueChanged<String?> onCategoryChanged;
   final VoidCallback onExpiringChanged;
@@ -151,16 +152,15 @@ class _PantryContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final expiringCount = allIngredients.where((ingredient) {
       final days = ingredient.daysUntilExpiry;
-
       return days != null && days <= 7;
     }).length;
+    final searchQuery = filter.searchQuery.trim();
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final horizontalPadding = constraints.maxWidth >= 900
             ? AppSpacing.xl
             : AppSpacing.screenHorizontal;
-
         final contentWidth = constraints.maxWidth >= 1100
             ? 1000.0
             : double.infinity;
@@ -237,14 +237,28 @@ class _PantryContent extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (allIngredients.isEmpty)
+                if (allIngredients.isEmpty && searchQuery.isNotEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: EmptyState(
+                      icon: Icons.add_circle_outline_rounded,
+                      title: 'ยังไม่มี "$searchQuery" ในคลัง',
+                      description:
+                          'ค้นหาและเลือกวัตถุดิบที่ต้องการ แล้วเพิ่มเข้าคลังได้ทันที',
+                      actionLabel: 'ค้นหาและเพิ่ม "$searchQuery"',
+                      onActionPressed: () {
+                        onAddIngredientFromSearch(searchQuery);
+                      },
+                    ),
+                  )
+                else if (allIngredients.isEmpty)
                   SliverFillRemaining(
                     hasScrollBody: false,
                     child: EmptyState(
                       icon: Icons.kitchen_outlined,
                       title: 'ยังไม่มีวัตถุดิบ',
                       description:
-                          'กดปุ่ม "เพิ่มวัตถุดิบ" ด้านล่างเพื่อเริ่มใช้งาน',
+                          'พิมพ์ชื่อวัตถุดิบด้านบน หรือกดปุ่มเพิ่มวัตถุดิบเพื่อเริ่มใช้งาน',
                       actionLabel: 'เพิ่มวัตถุดิบ',
                       onActionPressed: onAddIngredient,
                     ),
@@ -254,11 +268,18 @@ class _PantryContent extends StatelessWidget {
                     hasScrollBody: false,
                     child: EmptyState(
                       icon: Icons.search_off_rounded,
-                      title: 'ไม่พบวัตถุดิบ',
-                      description:
-                          'ลองเปลี่ยนคำค้นหา หมวดอาหาร หรือตัวกรองที่เลือก',
-                      actionLabel: 'ล้างตัวกรอง',
-                      onActionPressed: onClearFilters,
+                      title: 'ไม่พบวัตถุดิบในคลัง',
+                      description: searchQuery.isEmpty
+                          ? 'ลองเปลี่ยนหมวดอาหารหรือตัวกรองที่เลือก'
+                          : 'ยังไม่มี "$searchQuery" ในคลัง คุณสามารถเพิ่มรายการนี้ได้',
+                      actionLabel: searchQuery.isEmpty
+                          ? 'ล้างตัวกรอง'
+                          : 'ค้นหาและเพิ่ม "$searchQuery"',
+                      onActionPressed: searchQuery.isEmpty
+                          ? onClearFilters
+                          : () {
+                              onAddIngredientFromSearch(searchQuery);
+                            },
                     ),
                   )
                 else
@@ -276,7 +297,6 @@ class _PantryContent extends StatelessWidget {
                       },
                       itemBuilder: (context, index) {
                         final ingredient = visibleIngredients[index];
-
                         return IngredientCard(
                           ingredient: ingredient,
                           onEdit: () {
@@ -307,16 +327,13 @@ class _PantryContent extends StatelessWidget {
     if (!filter.hasActiveFilters) {
       return 'แสดงทั้งหมด ${visibleIngredients.length} รายการ';
     }
-
-    return 'พบ ${visibleIngredients.length} จาก '
-        '${allIngredients.length} รายการ';
+    return 'พบ ${visibleIngredients.length} จาก ${allIngredients.length} รายการ';
   }
 
   String _buildSubtitle({required int totalCount, required int expiringCount}) {
     if (expiringCount == 0) {
       return 'ทั้งหมด $totalCount รายการ';
     }
-
     return 'ทั้งหมด $totalCount รายการ • ใกล้หมดอายุ $expiringCount รายการ';
   }
 
@@ -374,7 +391,7 @@ class _PantrySearchField extends StatelessWidget {
       onChanged: onChanged,
       textInputAction: TextInputAction.search,
       decoration: InputDecoration(
-        hintText: 'ค้นหาวัตถุดิบหรือหมวดอาหาร',
+        hintText: 'ค้นหาในคลัง หรือพิมพ์ชื่อเพื่อเพิ่มวัตถุดิบ',
         prefixIcon: const Icon(Icons.search_rounded),
         suffixIcon: controller.text.isEmpty
             ? null
