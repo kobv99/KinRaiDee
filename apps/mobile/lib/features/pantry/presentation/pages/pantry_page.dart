@@ -11,6 +11,11 @@ import '../../domain/models/food_category.dart';
 import '../providers/pantry_filter_provider.dart';
 import '../widgets/add_ingredient_dialog.dart';
 import '../widgets/ingredient_card.dart';
+import '../widgets/pantry_catalog_panel.dart';
+import '../widgets/pantry_filter_bar.dart';
+import '../widgets/pantry_overview_card.dart';
+import '../widgets/pantry_recent_section.dart';
+import '../widgets/pantry_search_field.dart';
 
 class PantryPage extends ConsumerStatefulWidget {
   const PantryPage({super.key});
@@ -96,6 +101,9 @@ class _PantryPageState extends ConsumerState<PantryPage> {
             ref.read(pantryFilterProvider.notifier).setSortOption(option);
           },
           onClearFilters: _clearFilters,
+          onFavoriteToggle: (ingredient) {
+            ref.read(pantryProvider.notifier).toggleFavorite(ingredient.id);
+          },
           onDelete: (ingredient) async {
             await ref
                 .read(pantryProvider.notifier)
@@ -130,6 +138,7 @@ class _PantryContent extends StatelessWidget {
     required this.onClearFilters,
     required this.onDelete,
     required this.onEdit,
+    required this.onFavoriteToggle,
   });
 
   final List<Ingredient> allIngredients;
@@ -146,6 +155,7 @@ class _PantryContent extends StatelessWidget {
   final VoidCallback onClearFilters;
   final ValueChanged<Ingredient> onDelete;
   final ValueChanged<Ingredient> onEdit;
+  final ValueChanged<Ingredient> onFavoriteToggle;
 
   List<FoodCatalogItem> get _catalogSuggestions {
     final query = filter.searchQuery.trim();
@@ -162,12 +172,22 @@ class _PantryContent extends StatelessWidget {
         .toList(growable: false);
   }
 
+  List<Ingredient> get _recentIngredients {
+    final recent = List<Ingredient>.of(allIngredients)
+      ..sort((first, second) => second.createdAt.compareTo(first.createdAt));
+
+    return recent.take(5).toList(growable: false);
+  }
+
   @override
   Widget build(BuildContext context) {
     final expiringCount = allIngredients.where((ingredient) {
       final days = ingredient.daysUntilExpiry;
       return days != null && days <= 7;
     }).length;
+    final favoriteCount = allIngredients
+        .where((ingredient) => ingredient.isFavorite)
+        .length;
     final searchQuery = filter.searchQuery.trim();
     final suggestions = _catalogSuggestions;
 
@@ -194,13 +214,10 @@ class _PantryContent extends StatelessWidget {
                     horizontalPadding,
                     AppSpacing.sm,
                   ),
-                  sliver: SliverToBoxAdapter(
+                  sliver: const SliverToBoxAdapter(
                     child: SectionHeader(
                       title: 'วัตถุดิบของคุณ',
-                      subtitle: _buildSubtitle(
-                        totalCount: allIngredients.length,
-                        expiringCount: expiringCount,
-                      ),
+                      subtitle: 'จัดการของที่มี ใช้ของให้ทัน และหยิบของโปรดได้เร็วขึ้น',
                       icon: Icons.kitchen_outlined,
                     ),
                   ),
@@ -213,9 +230,39 @@ class _PantryContent extends StatelessWidget {
                     AppSpacing.sm,
                   ),
                   sliver: SliverToBoxAdapter(
+                    child: PantryOverviewCard(
+                      totalCount: allIngredients.length,
+                      expiringCount: expiringCount,
+                      favoriteCount: favoriteCount,
+                    ),
+                  ),
+                ),
+                if (allIngredients.isNotEmpty)
+                  SliverPadding(
+                    padding: EdgeInsets.fromLTRB(
+                      horizontalPadding,
+                      AppSpacing.sm,
+                      horizontalPadding,
+                      AppSpacing.md,
+                    ),
+                    sliver: SliverToBoxAdapter(
+                      child: PantryRecentSection(
+                        ingredients: _recentIngredients,
+                        onIngredientTap: onEdit,
+                      ),
+                    ),
+                  ),
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                    horizontalPadding,
+                    AppSpacing.sm,
+                    horizontalPadding,
+                    AppSpacing.sm,
+                  ),
+                  sliver: SliverToBoxAdapter(
                     child: Column(
                       children: [
-                        _PantrySearchField(
+                        PantrySearchField(
                           controller: searchController,
                           onChanged: onSearchChanged,
                           onClear: () {
@@ -225,7 +272,7 @@ class _PantryContent extends StatelessWidget {
                         ),
                         if (searchQuery.isNotEmpty && suggestions.isNotEmpty) ...[
                           const SizedBox(height: AppSpacing.xs),
-                          _CatalogSuggestionPanel(
+                          PantryCatalogPanel(
                             suggestions: suggestions,
                             onSelected: (entry) {
                               FocusScope.of(context).unfocus();
@@ -240,7 +287,7 @@ class _PantryContent extends StatelessWidget {
                 SliverPadding(
                   padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                   sliver: SliverToBoxAdapter(
-                    child: _PantryFilterBar(
+                    child: PantryFilterBar(
                       categories: categories,
                       filter: filter,
                       onCategoryChanged: onCategoryChanged,
@@ -327,6 +374,8 @@ class _PantryContent extends StatelessWidget {
                         return IngredientCard(
                           ingredient: ingredient,
                           onEdit: () => onEdit(ingredient),
+                          onFavoriteToggle: () =>
+                              onFavoriteToggle(ingredient),
                           onDelete: () {
                             _confirmDelete(
                               context: context,
@@ -348,16 +397,10 @@ class _PantryContent extends StatelessWidget {
 
   String _buildResultLabel() {
     if (!filter.hasActiveFilters) {
-      return 'แสดงทั้งหมด ${visibleIngredients.length} รายการ';
+      return 'แสดงทั้งหมด ${visibleIngredients.length} รายการ • รายการโปรดอยู่ด้านบน';
     }
-    return 'พบ ${visibleIngredients.length} จาก ${allIngredients.length} รายการ';
-  }
 
-  String _buildSubtitle({required int totalCount, required int expiringCount}) {
-    if (expiringCount == 0) {
-      return 'ทั้งหมด $totalCount รายการ';
-    }
-    return 'ทั้งหมด $totalCount รายการ • ใกล้หมดอายุ $expiringCount รายการ';
+    return 'พบ ${visibleIngredients.length} จาก ${allIngredients.length} รายการ';
   }
 
   Future<void> _confirmDelete({
@@ -386,166 +429,8 @@ class _PantryContent extends StatelessWidget {
       },
     );
 
-    if (confirmed == true) {
+    if (confirmed ?? false) {
       onConfirmed();
     }
-  }
-}
-
-class _CatalogSuggestionPanel extends StatelessWidget {
-  const _CatalogSuggestionPanel({
-    required this.suggestions,
-    required this.onSelected,
-  });
-
-  final List<FoodCatalogItem> suggestions;
-  final ValueChanged<FoodCatalogItem> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      elevation: 3,
-      borderRadius: BorderRadius.circular(16),
-      clipBehavior: Clip.antiAlias,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxHeight: 300),
-        child: ListView.separated(
-          shrinkWrap: true,
-          itemCount: suggestions.length,
-          separatorBuilder: (_, _) => const Divider(height: 1),
-          itemBuilder: (context, index) {
-            final entry = suggestions[index];
-            return ListTile(
-              dense: true,
-              leading: Text(
-                entry.item.emoji,
-                style: const TextStyle(fontSize: 24),
-              ),
-              title: Text(entry.item.name),
-              subtitle: Text(entry.category),
-              trailing: const Icon(Icons.add_circle_outline_rounded),
-              onTap: () => onSelected(entry),
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
-
-class _PantrySearchField extends StatelessWidget {
-  const _PantrySearchField({
-    required this.controller,
-    required this.onChanged,
-    required this.onClear,
-  });
-
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-  final VoidCallback onClear;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      onChanged: onChanged,
-      textInputAction: TextInputAction.search,
-      decoration: InputDecoration(
-        hintText: 'ค้นหาในคลัง หรือพิมพ์ชื่อเพื่อเพิ่มวัตถุดิบ',
-        prefixIcon: const Icon(Icons.search_rounded),
-        suffixIcon: controller.text.isEmpty
-            ? null
-            : IconButton(
-                tooltip: 'ล้างคำค้นหา',
-                onPressed: onClear,
-                icon: const Icon(Icons.close_rounded),
-              ),
-      ),
-    );
-  }
-}
-
-class _PantryFilterBar extends StatelessWidget {
-  const _PantryFilterBar({
-    required this.categories,
-    required this.filter,
-    required this.onCategoryChanged,
-    required this.onExpiringChanged,
-    required this.onSortChanged,
-    required this.onClearFilters,
-  });
-
-  final List<String> categories;
-  final PantryFilterState filter;
-  final ValueChanged<String?> onCategoryChanged;
-  final VoidCallback onExpiringChanged;
-  final ValueChanged<PantrySortOption> onSortChanged;
-  final VoidCallback onClearFilters;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                ChoiceChip(
-                  label: const Text('ทั้งหมด'),
-                  selected: filter.selectedCategory == null,
-                  onSelected: (_) => onCategoryChanged(null),
-                ),
-                const SizedBox(width: AppSpacing.xs),
-                for (final category in categories) ...[
-                  ChoiceChip(
-                    label: Text(category),
-                    selected: filter.selectedCategory == category,
-                    onSelected: (_) => onCategoryChanged(category),
-                  ),
-                  const SizedBox(width: AppSpacing.xs),
-                ],
-                FilterChip(
-                  avatar: const Icon(Icons.schedule_rounded, size: 18),
-                  label: const Text('ใกล้หมดอายุ'),
-                  selected: filter.onlyExpiringSoon,
-                  onSelected: (_) => onExpiringChanged(),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        PopupMenuButton<PantrySortOption>(
-          tooltip: 'เรียงลำดับ',
-          initialValue: filter.sortOption,
-          onSelected: onSortChanged,
-          itemBuilder: (context) {
-            return PantrySortOption.values.map((option) {
-              return PopupMenuItem<PantrySortOption>(
-                value: option,
-                child: Row(
-                  children: [
-                    if (option == filter.sortOption)
-                      const Icon(Icons.check_rounded, size: 19)
-                    else
-                      const SizedBox(width: 19),
-                    const SizedBox(width: AppSpacing.xs),
-                    Text(option.label),
-                  ],
-                ),
-              );
-            }).toList(growable: false);
-          },
-          icon: const Icon(Icons.sort_rounded),
-        ),
-        if (filter.hasActiveFilters)
-          IconButton(
-            tooltip: 'ล้างตัวกรอง',
-            onPressed: onClearFilters,
-            icon: const Icon(Icons.filter_alt_off_outlined),
-          ),
-      ],
-    );
   }
 }
