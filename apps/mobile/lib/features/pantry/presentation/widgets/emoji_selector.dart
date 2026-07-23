@@ -2,410 +2,148 @@ import 'package:flutter/material.dart';
 
 import '../../domain/models/food_category.dart';
 
-
-
 class EmojiSelector extends StatefulWidget {
+  final Function(String category, String name, String emoji) onSelected;
 
-
-  final Function(
-
-    String category,
-
-    String name,
-
-    String emoji,
-
-  ) onSelected;
-
-
-
-  const EmojiSelector({
-
-    super.key,
-
-    required this.onSelected,
-
-  });
-
-
+  const EmojiSelector({super.key, required this.onSelected});
 
   @override
-  State<EmojiSelector> createState() =>
-      _EmojiSelectorState();
-
+  State<EmojiSelector> createState() => _EmojiSelectorState();
 }
 
-
-
-
-
-class _EmojiSelectorState
-    extends State<EmojiSelector> {
-
-
+class _EmojiSelectorState extends State<EmojiSelector> {
   FoodCategory? selectedCategory;
-
 
   FoodItem? selectedItem;
 
-
-
-
-
   @override
   Widget build(BuildContext context) {
-
-
     return Column(
-
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
-
+      crossAxisAlignment: CrossAxisAlignment.start,
 
       children: [
-
-
-
         const Text(
-
           'ประเภทอาหาร',
 
-          style: TextStyle(
-
-            fontSize: 16,
-
-            fontWeight:
-                FontWeight.bold,
-
-          ),
-
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
-
-
 
         const SizedBox(height: 10),
 
-
-
-
-
         Wrap(
-
           spacing: 10,
 
           runSpacing: 10,
 
+          children: foodCategories.map((category) {
+            final selected = selectedCategory == category;
 
-          children: foodCategories.map(
+            return InkWell(
+              borderRadius: BorderRadius.circular(12),
 
-            (category) {
+              onTap: () {
+                setState(() {
+                  selectedCategory = category;
 
+                  selectedItem = null;
+                });
+              },
 
-              final selected =
-                  selectedCategory == category;
+              child: Container(
+                padding: const EdgeInsets.all(10),
 
+                decoration: BoxDecoration(
+                  color: selected
+                      ? Colors.orange.shade100
+                      : Colors.grey.shade100,
 
+                  borderRadius: BorderRadius.circular(12),
 
-              return InkWell(
-
-                borderRadius:
-                    BorderRadius.circular(12),
-
-
-
-                onTap: () {
-
-
-                  setState(() {
-
-
-                    selectedCategory =
-                        category;
-
-
-                    selectedItem =
-                        null;
-
-
-                  });
-
-
-                },
-
-
-
-                child: Container(
-
-                  padding:
-                      const EdgeInsets.all(10),
-
-
-                  decoration:
-                      BoxDecoration(
-
-                    color:
-
-                        selected
-
-                            ? Colors.orange.shade100
-
-                            : Colors.grey.shade100,
-
-
-                    borderRadius:
-
-                        BorderRadius.circular(12),
-
-
-                    border:
-
-                        Border.all(
-
-                      color:
-
-                          selected
-
-                              ? Colors.orange
-
-                              : Colors.transparent,
-
-                    ),
-
+                  border: Border.all(
+                    color: selected ? Colors.orange : Colors.transparent,
                   ),
-
-
-
-                  child: Column(
-
-                    children: [
-
-
-                      Text(
-
-                        category.emoji,
-
-                        style:
-                            const TextStyle(
-
-                          fontSize: 30,
-
-                        ),
-
-                      ),
-
-
-
-                      Text(
-
-                        category.name,
-
-                      ),
-
-
-                    ],
-
-                  ),
-
                 ),
 
-              );
+                child: Column(
+                  children: [
+                    Text(category.emoji, style: const TextStyle(fontSize: 30)),
 
-
-            },
-
-          ).toList(),
-
-
+                    Text(category.name),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
         ),
 
-
-
-
-
         if (selectedCategory != null) ...[
-
-
-
           const SizedBox(height: 20),
 
-
-
-
-
           const Text(
-
             'เลือกวัตถุดิบ',
 
-            style: TextStyle(
-
-              fontSize: 16,
-
-              fontWeight:
-                  FontWeight.bold,
-
-            ),
-
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
-
-
-
-
 
           const SizedBox(height: 10),
 
-
-
-
-
           Wrap(
-
             spacing: 10,
 
             runSpacing: 10,
 
+            children: selectedCategory!.items.map((item) {
+              final selected = selectedItem == item;
 
+              return InkWell(
+                borderRadius: BorderRadius.circular(20),
 
-            children:
+                onTap: () {
+                  setState(() {
+                    selectedItem = item;
+                  });
 
-                selectedCategory!.items.map(
+                  widget.onSelected(
+                    selectedCategory!.name,
 
-              (item) {
+                    item.name,
 
+                    item.emoji,
+                  );
+                },
 
-                final selected =
-                    selectedItem == item;
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
 
-
-
-                return InkWell(
-
-                  borderRadius:
-                      BorderRadius.circular(20),
-
-
-
-                  onTap: () {
-
-
-                    setState(() {
-
-
-                      selectedItem =
-                          item;
-
-
-                    });
-
-
-
-                    widget.onSelected(
-
-                      selectedCategory!.name,
-
-                      item.name,
-
-                      item.emoji,
-
-                    );
-
-
-                  },
-
-
-
-                  child: Container(
-
-                    padding:
-                        const EdgeInsets.symmetric(
-
-                      horizontal: 12,
-
-                      vertical: 8,
-
-                    ),
-
-
-
-                    decoration:
-                        BoxDecoration(
-
-                      color:
-
-                          selected
-
-                              ? Colors.orange.shade100
-
-                              : Colors.grey.shade200,
-
-
-                      borderRadius:
-
-                          BorderRadius.circular(20),
-
-                    ),
-
-
-
-                    child: Row(
-
-                      mainAxisSize:
-                          MainAxisSize.min,
-
-
-                      children: [
-
-
-
-                        Text(
-
-                          item.emoji,
-
-                          style:
-                              const TextStyle(
-
-                            fontSize: 20,
-
-                          ),
-
-                        ),
-
-
-
-                        const SizedBox(width: 5),
-
-
-
-                        Text(
-
-                          item.name,
-
-                        ),
-
-
-                      ],
-
-                    ),
-
+                    vertical: 8,
                   ),
 
-                );
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? Colors.orange.shade100
+                        : Colors.grey.shade200,
 
+                    borderRadius: BorderRadius.circular(20),
+                  ),
 
-              },
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
 
-            ).toList(),
+                    children: [
+                      Text(item.emoji, style: const TextStyle(fontSize: 20)),
 
+                      const SizedBox(width: 5),
 
+                      Text(item.name),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
           ),
-
         ],
-
-
       ],
-
     );
-
   }
-
-
 }

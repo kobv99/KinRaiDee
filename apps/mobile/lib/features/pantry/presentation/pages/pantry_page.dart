@@ -1,658 +1,195 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_spacing.dart';
 import '../../../../core/models/ingredient.dart';
 import '../../../../core/providers/pantry_provider.dart';
+import '../../../../shared/widgets/empty_state.dart';
+import '../../../../shared/widgets/section_header.dart';
 import '../widgets/add_ingredient_dialog.dart';
-
-
+import '../widgets/ingredient_card.dart';
 
 class PantryPage extends ConsumerWidget {
-
-
-  const PantryPage({
-
-    super.key,
-
-  });
-
-
+  const PantryPage({super.key});
 
   @override
-  Widget build(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ingredients = ref.watch(pantryProvider);
 
-    BuildContext context,
+    Future<void> addIngredient() async {
+      final ingredient = await showDialog<Ingredient>(
+        context: context,
+        builder: (context) {
+          return const AddIngredientDialog();
+        },
+      );
 
-    WidgetRef ref,
+      if (ingredient == null) {
+        return;
+      }
 
-  ) {
-
-
-
-    final ingredients =
-        ref.watch(pantryProvider);
-
-
-
+      ref.read(pantryProvider.notifier).addIngredient(ingredient);
+    }
 
     return Scaffold(
-
-
-
-      appBar: AppBar(
-
-
-        title:
-
-            const Text(
-
-          'Pantry 🥬',
-
-        ),
-
-
+      appBar: AppBar(title: const Text('คลังวัตถุดิบ')),
+      body: SafeArea(
+        child: ingredients.isEmpty
+            ? EmptyState(
+                icon: Icons.kitchen_outlined,
+                title: 'ยังไม่มีวัตถุดิบ',
+                description:
+                    'เพิ่มวัตถุดิบที่มีอยู่ในบ้าน เพื่อให้ KinRaiDee ช่วยแนะนำเมนูได้แม่นยำขึ้น',
+                actionLabel: 'เพิ่มวัตถุดิบ',
+                onActionPressed: addIngredient,
+              )
+            : _PantryContent(
+                ingredients: ingredients,
+                onDelete: (ingredient) {
+                  ref
+                      .read(pantryProvider.notifier)
+                      .removeIngredient(ingredient.id);
+                },
+              ),
       ),
-
-
-
-
-
-      body:
-
-
-
-          ingredients.isEmpty
-
-
-
-              ? const Center(
-
-
-                  child: Text(
-
-                    'ยังไม่มีวัตถุดิบ\nกด + เพื่อเพิ่ม',
-
-                    textAlign:
-
-                        TextAlign.center,
-
-                  ),
-
-
-                )
-
-
-
-
-
-              : ListView.builder(
-
-
-
-                  padding:
-
-                      const EdgeInsets.all(12),
-
-
-
-
-                  itemCount:
-
-                      ingredients.length,
-
-
-
-
-
-                  itemBuilder:
-
-                      (context, index) {
-
-
-
-                    final item =
-
-                        ingredients[index];
-
-
-
-
-                    return _IngredientCard(
-
-                      item: item,
-
-                      onDelete: () {
-
-
-
-                        ref
-
-                            .read(
-
-                              pantryProvider
-
-                                  .notifier,
-
-                            )
-
-                            .removeIngredient(
-
-                              item.id,
-
-                            );
-
-
-                      },
-
-
-                    );
-
-
-
-                  },
-
-                ),
-
-
-
-
-
-
-
-      floatingActionButton:
-
-          FloatingActionButton(
-
-
-
-        onPressed: () async {
-
-
-
-          final ingredient =
-
-              await showDialog<Ingredient>(
-
-
-
-            context: context,
-
-
-
-            builder: (context) {
-
-
-
-              return const
-
-                  AddIngredientDialog();
-
-
-
-            },
-
-
-          );
-
-
-
-
-          if (ingredient != null) {
-
-
-
-            ref
-
-                .read(
-
-                  pantryProvider.notifier,
-
-                )
-
-                .addIngredient(
-
-                  ingredient,
-
-                );
-
-
-
-          }
-
-
-        },
-
-
-
-        child:
-
-            const Icon(
-
-          Icons.add,
-
-        ),
-
-
-
-      ),
-
-
+      floatingActionButton: ingredients.isEmpty
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: addIngredient,
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('เพิ่มวัตถุดิบ'),
+            ),
     );
-
-
   }
-
-
 }
 
+class _PantryContent extends StatelessWidget {
+  const _PantryContent({required this.ingredients, required this.onDelete});
 
-
-
-
-
-
-class _IngredientCard extends StatelessWidget {
-
-
-  final Ingredient item;
-
-
-  final VoidCallback onDelete;
-
-
-
-  const _IngredientCard({
-
-    required this.item,
-
-    required this.onDelete,
-
-  });
-
-
-
-
+  final List<Ingredient> ingredients;
+  final ValueChanged<Ingredient> onDelete;
 
   @override
   Widget build(BuildContext context) {
+    final expiringCount = ingredients.where((ingredient) {
+      final days = ingredient.daysUntilExpiry;
 
+      return days != null && days <= 7;
+    }).length;
 
-    return Card(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final horizontalPadding = constraints.maxWidth >= 900
+            ? AppSpacing.xl
+            : AppSpacing.screenHorizontal;
 
+        final contentWidth = constraints.maxWidth >= 1100
+            ? 1000.0
+            : double.infinity;
 
-      elevation: 2,
-
-
-      margin:
-
-          const EdgeInsets.only(
-
-        bottom: 12,
-
-      ),
-
-
-
-      child: Padding(
-
-
-        padding:
-
-            const EdgeInsets.all(12),
-
-
-
-        child: Row(
-
-
-
-          children: [
-
-
-
-
-
-            Container(
-
-
-              width: 55,
-
-              height: 55,
-
-
-
-              decoration:
-
-                  BoxDecoration(
-
-
-                color:
-
-                    Colors.orange.shade50,
-
-
-
-                borderRadius:
-
-                    BorderRadius.circular(15),
-
-
-
-              ),
-
-
-
-
-              child:
-
-                  Center(
-
-
-                    child: Text(
-
-
-                      item.emoji,
-
-
-
-                      style:
-
-                          const TextStyle(
-
-                        fontSize: 32,
-
-                      ),
-
-
-
-                    ),
-
+        return Align(
+          alignment: Alignment.topCenter,
+          child: SizedBox(
+            width: contentWidth,
+            child: CustomScrollView(
+              slivers: [
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                    horizontalPadding,
+                    AppSpacing.md,
+                    horizontalPadding,
+                    AppSpacing.sm,
                   ),
+                  sliver: SliverToBoxAdapter(
+                    child: SectionHeader(
+                      title: 'วัตถุดิบของคุณ',
+                      subtitle: _buildSubtitle(
+                        totalCount: ingredients.length,
+                        expiringCount: expiringCount,
+                      ),
+                      icon: Icons.kitchen_outlined,
+                    ),
+                  ),
+                ),
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                    horizontalPadding,
+                    AppSpacing.sm,
+                    horizontalPadding,
+                    112,
+                  ),
+                  sliver: SliverList.separated(
+                    itemCount: ingredients.length,
+                    separatorBuilder: (context, index) {
+                      return const SizedBox(height: AppSpacing.sm);
+                    },
+                    itemBuilder: (context, index) {
+                      final ingredient = ingredients[index];
 
-
+                      return IngredientCard(
+                        ingredient: ingredient,
+                        onDelete: () {
+                          _confirmDelete(
+                            context: context,
+                            ingredient: ingredient,
+                            onConfirmed: () {
+                              onDelete(ingredient);
+                            },
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-
-
-
-
-
-            const SizedBox(width: 15),
-
-
-
-
-
-            Expanded(
-
-
-
-              child: Column(
-
-
-
-                crossAxisAlignment:
-
-                    CrossAxisAlignment.start,
-
-
-
-                children: [
-
-
-
-
-
-                  Text(
-
-
-
-                    item.name,
-
-
-
-                    style:
-
-                        const TextStyle(
-
-
-                      fontSize: 18,
-
-
-                      fontWeight:
-
-                          FontWeight.bold,
-
-
-                    ),
-
-
-
-                  ),
-
-
-
-
-
-
-                  const SizedBox(height: 4),
-
-
-
-
-
-                  Text(
-
-
-                    item.category,
-
-
-
-                    style:
-
-                        TextStyle(
-
-
-                      color:
-
-                          Colors.grey.shade600,
-
-
-                    ),
-
-
-
-                  ),
-
-
-
-
-
-
-                  const SizedBox(height: 8),
-
-
-
-
-
-                  Row(
-
-
-
-                    children: [
-
-
-
-                      const Icon(
-
-                        Icons.inventory_2,
-
-                        size: 18,
-
-                      ),
-
-
-
-                      const SizedBox(width: 5),
-
-
-
-
-
-                      Text(
-
-                        '${item.quantity} ${item.unit}',
-
-                      ),
-
-
-
-                    ],
-
-
-
-                  ),
-
-
-
-
-
-
-                  if (item.expiryDate != null)
-
-                    Padding(
-
-
-
-                      padding:
-
-                          const EdgeInsets.only(
-
-                        top: 6,
-
-                      ),
-
-
-
-                      child: Row(
-
-
-
-                        children: [
-
-
-
-                          const Icon(
-
-                            Icons.calendar_month,
-
-                            size: 16,
-
-                          ),
-
-
-
-
-                          const SizedBox(width: 5),
-
-
-
-
-                          Text(
-
-
-
-                            'หมดอายุ '
-                            '${item.expiryDate!.day}/'
-                            '${item.expiryDate!.month}/'
-                            '${item.expiryDate!.year}',
-
-
-
-                            style:
-
-                                TextStyle(
-
-                              fontSize: 12,
-
-                              color:
-
-                                  Colors.grey.shade700,
-
-                            ),
-
-
-
-                          ),
-
-
-
-                        ],
-
-
-
-                      ),
-
-
-
-                    ),
-
-
-
-
-                ],
-
-
-
-              ),
-
-
-
-            ),
-
-
-
-
-
-
-            IconButton(
-
-
-
-              icon:
-
-                  const Icon(
-
-                Icons.delete_outline,
-
-              ),
-
-
-
-              onPressed:
-
-                  onDelete,
-
-
-
-            ),
-
-
-
-          ],
-
-
-
-        ),
-
-
-
-      ),
-
-
-
+          ),
+        );
+      },
     );
-
   }
 
+  String _buildSubtitle({required int totalCount, required int expiringCount}) {
+    if (expiringCount == 0) {
+      return 'ทั้งหมด $totalCount รายการ';
+    }
 
+    return 'ทั้งหมด $totalCount รายการ • ใกล้หมดอายุ $expiringCount รายการ';
+  }
+
+  Future<void> _confirmDelete({
+    required BuildContext context,
+    required Ingredient ingredient,
+    required VoidCallback onConfirmed,
+  }) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('ลบวัตถุดิบ'),
+          content: Text('ต้องการลบ "${ingredient.name}" ออกจากคลังหรือไม่?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(false);
+              },
+              child: const Text('ยกเลิก'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(true);
+              },
+              style: TextButton.styleFrom(foregroundColor: AppColors.error),
+              child: const Text('ลบ'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      onConfirmed();
+    }
+  }
 }
