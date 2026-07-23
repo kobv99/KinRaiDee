@@ -12,6 +12,7 @@ class IngredientCard extends StatelessWidget {
     required this.ingredient,
     required this.onEdit,
     required this.onDelete,
+    required this.onFavoriteToggle,
     super.key,
     this.onTap,
   });
@@ -19,6 +20,7 @@ class IngredientCard extends StatelessWidget {
   final Ingredient ingredient;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onFavoriteToggle;
   final VoidCallback? onTap;
 
   @override
@@ -86,6 +88,27 @@ class IngredientCard extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              IconButton(
+                tooltip: ingredient.isFavorite
+                    ? 'นำออกจากรายการโปรด'
+                    : 'เพิ่มในรายการโปรด',
+                onPressed: onFavoriteToggle,
+                icon: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 180),
+                  transitionBuilder: (child, animation) {
+                    return ScaleTransition(scale: animation, child: child);
+                  },
+                  child: Icon(
+                    ingredient.isFavorite
+                        ? Icons.star_rounded
+                        : Icons.star_border_rounded,
+                    key: ValueKey<bool>(ingredient.isFavorite),
+                    color: ingredient.isFavorite
+                        ? AppColors.primary
+                        : AppColors.textMuted,
+                  ),
+                ),
+              ),
               IconButton(
                 tooltip: 'แก้ไขวัตถุดิบ',
                 onPressed: onEdit,
