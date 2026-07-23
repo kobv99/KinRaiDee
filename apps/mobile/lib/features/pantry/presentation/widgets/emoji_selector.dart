@@ -33,16 +33,47 @@ class _EmojiSelectorState extends State<EmojiSelector> {
     _searchController = TextEditingController(text: query);
 
     final initialName = widget.initialName?.trim();
-
-    if (initialName == null || initialName.isEmpty) {
+    if (initialName != null && initialName.isNotEmpty) {
+      _selectInitialItem(initialName, notifyParent: false);
       return;
     }
 
+    if (query.isNotEmpty) {
+      final exactMatch = allFoodCatalogItems.where((entry) {
+        return entry.item.name.toLowerCase() == query.toLowerCase();
+      }).firstOrNull;
+
+      if (exactMatch != null) {
+        final category = foodCategories.firstWhere(
+          (candidate) => candidate.name == exactMatch.category,
+        );
+        selectedCategory = category;
+        selectedItem = exactMatch.item;
+        query = '';
+        _searchController.clear();
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          widget.onSelected(
+            exactMatch.category,
+            exactMatch.item.name,
+            exactMatch.item.emoji,
+          );
+        });
+      }
+    }
+  }
+
+  void _selectInitialItem(String name, {required bool notifyParent}) {
     for (final category in foodCategories) {
       for (final item in category.items) {
-        if (item.name == initialName) {
+        if (item.name == name) {
           selectedCategory = category;
           selectedItem = item;
+          if (notifyParent) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              widget.onSelected(category.name, item.name, item.emoji);
+            });
+          }
           return;
         }
       }
@@ -154,12 +185,9 @@ class _EmojiSelectorState extends State<EmojiSelector> {
                 child: ListView.separated(
                   shrinkWrap: true,
                   itemCount: results.length,
-                  separatorBuilder: (context, index) {
-                    return const Divider(height: 1);
-                  },
+                  separatorBuilder: (context, index) => const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final entry = results[index];
-
                     return ListTile(
                       dense: true,
                       leading: Text(
@@ -169,9 +197,7 @@ class _EmojiSelectorState extends State<EmojiSelector> {
                       title: Text(entry.item.name),
                       subtitle: Text(entry.category),
                       trailing: const Icon(Icons.add_circle_outline_rounded),
-                      onTap: () {
-                        _selectCatalogItem(entry);
-                      },
+                      onTap: () => _selectCatalogItem(entry),
                     );
                   },
                 ),
@@ -189,7 +215,6 @@ class _EmojiSelectorState extends State<EmojiSelector> {
           runSpacing: 10,
           children: foodCategories.map((category) {
             final selected = selectedCategory == category;
-
             return ChoiceChip(
               avatar: Text(category.emoji),
               label: Text(category.name),
@@ -215,14 +240,11 @@ class _EmojiSelectorState extends State<EmojiSelector> {
             runSpacing: 8,
             children: selectedCategory!.items.map((item) {
               final selected = selectedItem == item;
-
               return FilterChip(
                 avatar: Text(item.emoji),
                 label: Text(item.name),
                 selected: selected,
-                onSelected: (_) {
-                  _selectItem(selectedCategory!, item);
-                },
+                onSelected: (_) => _selectItem(selectedCategory!, item),
               );
             }).toList(growable: false),
           ),
