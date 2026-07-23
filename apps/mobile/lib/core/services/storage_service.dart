@@ -2,211 +2,116 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../models/ingredient.dart';
 
-
 class StorageService {
+  StorageService._();
 
-  static const String pantryBox = 'pantry_box';
-
-
+  static const String pantryBoxName = 'pantry_box';
+  static const String ingredientsKey = 'ingredients';
 
   static Future<void> init() async {
-
     await Hive.initFlutter();
-
-    await Hive.openBox(pantryBox);
-
+    await Hive.openBox<dynamic>(pantryBoxName);
   }
 
+  static Box<dynamic> get _pantryBox {
+    if (!Hive.isBoxOpen(pantryBoxName)) {
+      throw StateError(
+        'StorageService has not been initialized. '
+        'Call StorageService.init() before using the storage.',
+      );
+    }
 
-
-  static Box get _box {
-
-    return Hive.box(pantryBox);
-
+    return Hive.box<dynamic>(pantryBoxName);
   }
 
+  static Future<void> saveIngredients(List<Ingredient> ingredients) async {
+    final data = ingredients
+        .map<Map<String, dynamic>>(_ingredientToMap)
+        .toList(growable: false);
 
-
-  static Future<void> saveIngredients(
-    List<Ingredient> ingredients,
-  ) async {
-
-
-    final data = ingredients.map(
-
-      (item) {
-
-        return {
-
-          'id': item.id,
-
-          'name': item.name,
-
-          'category': item.category,
-
-          'emoji': item.emoji,
-
-          'quantity': item.quantity,
-
-          'unit': item.unit,
-
-
-          'expiryDate':
-              item.expiryDate
-                  ?.toIso8601String(),
-
-
-          'createdAt':
-              item.createdAt
-                  .toIso8601String(),
-
-
-          'updatedAt':
-              item.updatedAt
-                  .toIso8601String(),
-
-        };
-
-      },
-
-    ).toList();
-
-
-
-    await _box.put(
-
-      'ingredients',
-
-      data,
-
-    );
-
+    await _pantryBox.put(ingredientsKey, data);
   }
-
-
-
-
-
-
 
   static List<Ingredient> loadIngredients() {
+    final rawData = _pantryBox.get(ingredientsKey, defaultValue: <dynamic>[]);
 
+    if (rawData is! List) {
+      return <Ingredient>[];
+    }
 
-    final data = _box.get(
+    final ingredients = <Ingredient>[];
 
-      'ingredients',
+    for (final item in rawData) {
+      final ingredient = _ingredientFromDynamic(item);
 
-      defaultValue: [],
+      if (ingredient != null) {
+        ingredients.add(ingredient);
+      }
+    }
 
-    );
-
-
-
-    return (data as List)
-
-        .map(
-
-          (item) {
-
-
-            return Ingredient(
-
-
-              id:
-                  item['id'] ?? '',
-
-
-
-              name:
-                  item['name'] ?? '',
-
-
-
-              category:
-                  item['category'] ?? 'Other',
-
-
-
-              emoji:
-                  item['emoji'] ?? '🍽️',
-
-
-
-              quantity:
-                  (item['quantity'] ?? 0)
-                      .toDouble(),
-
-
-
-              unit:
-                  item['unit'] ?? 'ชิ้น',
-
-
-
-
-
-              expiryDate:
-
-                  item['expiryDate'] != null
-
-                      ? DateTime.parse(
-                          item['expiryDate'],
-                        )
-
-                      : null,
-
-
-
-
-
-              createdAt:
-
-                  item['createdAt'] != null
-
-                      ? DateTime.parse(
-                          item['createdAt'],
-                        )
-
-                      : DateTime.now(),
-
-
-
-
-
-              updatedAt:
-
-                  item['updatedAt'] != null
-
-                      ? DateTime.parse(
-                          item['updatedAt'],
-                        )
-
-                      :
-
-                  // รองรับข้อมูลเก่าที่ไม่มี updatedAt
-
-                  (item['createdAt'] != null
-
-                      ? DateTime.parse(
-                          item['createdAt'],
-                        )
-
-                      : DateTime.now()),
-
-
-
-            );
-
-
-          },
-
-        )
-
-        .toList();
-
-
+    return List<Ingredient>.unmodifiable(ingredients);
   }
 
+  static Future<void> clearIngredients() async {
+    await _pantryBox.delete(ingredientsKey);
+  }
 
+  static Map<String, dynamic> _ingredientToMap(Ingredient ingredient) {
+    return <String, dynamic>{
+      'id': ingredient.id,
+      'name': ingredient.name,
+      'category': ingredient.category,
+      'emoji': ingredient.emoji,
+      'quantity': ingredient.quantity,
+      'unit': ingredient.unit,
+      'expiryDate': ingredient.expiryDate?.toIso8601String(),
+      'createdAt': ingredient.createdAt.toIso8601String(),
+      'updatedAt': ingredient.updatedAt.toIso8601String(),
+    };
+  }
 
+  static Ingredient? _ingredientFromDynamic(dynamic rawItem) {
+    if (rawItem is! Map) {
+      return null;
+    }
+
+    try {
+      final map = Map<String, dynamic>.from(rawItem);
+
+      final createdAt = _parseDateTime(map['createdAt']) ?? DateTime.now();
+      final updatedAt = _parseDateTime(map['updatedAt']) ?? createdAt;
+
+      return Ingredient(
+        id: map['id']?.toString() ?? '',
+        name: map['name']?.toString() ?? '',
+        category: map['category']?.toString() ?? 'อื่น ๆ',
+        emoji: map['emoji']?.toString() ?? '🍽️',
+        quantity: _parseDouble(map['quantity']),
+        unit: map['unit']?.toString() ?? 'ชิ้น',
+        expiryDate: _parseDateTime(map['expiryDate']),
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+      );
+    } on FormatException {
+      return null;
+    } on TypeError {
+      return null;
+    }
+  }
+
+  static double _parseDouble(dynamic value) {
+    if (value is num) {
+      return value.toDouble();
+    }
+
+    return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  static DateTime? _parseDateTime(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+
+    return DateTime.tryParse(value.toString());
+  }
 }
