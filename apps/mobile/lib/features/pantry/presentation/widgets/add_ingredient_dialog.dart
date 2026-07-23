@@ -5,9 +5,14 @@ import '../../../../core/models/ingredient.dart';
 import '../widgets/emoji_selector.dart';
 
 class AddIngredientDialog extends StatefulWidget {
-  const AddIngredientDialog({super.key, this.ingredient});
+  const AddIngredientDialog({
+    super.key,
+    this.ingredient,
+    this.initialSearchQuery,
+  });
 
   final Ingredient? ingredient;
+  final String? initialSearchQuery;
 
   @override
   State<AddIngredientDialog> createState() => _AddIngredientDialogState();
@@ -131,6 +136,9 @@ class _AddIngredientDialogState extends State<AddIngredientDialog> {
               children: [
                 EmojiSelector(
                   initialName: widget.ingredient?.name,
+                  initialSearchQuery: widget.ingredient == null
+                      ? widget.initialSearchQuery
+                      : null,
                   onSelected: (selectedCategory, selectedName, selectedEmoji) {
                     setState(() {
                       category = selectedCategory;
