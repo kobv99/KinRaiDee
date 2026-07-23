@@ -320,7 +320,7 @@ class _PantryContent extends StatelessWidget {
                     ),
                     sliver: SliverList.separated(
                       itemCount: visibleIngredients.length,
-                      separatorBuilder: (_, __) =>
+                      separatorBuilder: (_, _) =>
                           const SizedBox(height: AppSpacing.sm),
                       itemBuilder: (context, index) {
                         final ingredient = visibleIngredients[index];
@@ -412,7 +412,7 @@ class _CatalogSuggestionPanel extends StatelessWidget {
         child: ListView.separated(
           shrinkWrap: true,
           itemCount: suggestions.length,
-          separatorBuilder: (_, __) => const Divider(height: 1),
+          separatorBuilder: (_, _) => const Divider(height: 1),
           itemBuilder: (context, index) {
             final entry = suggestions[index];
             return ListTile(
