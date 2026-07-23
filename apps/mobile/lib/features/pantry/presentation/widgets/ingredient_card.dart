@@ -10,12 +10,14 @@ import '../../../../shared/widgets/app_card.dart';
 class IngredientCard extends StatelessWidget {
   const IngredientCard({
     required this.ingredient,
+    required this.onEdit,
     required this.onDelete,
     super.key,
     this.onTap,
   });
 
   final Ingredient ingredient;
+  final VoidCallback onEdit;
   final VoidCallback onDelete;
   final VoidCallback? onTap;
 
@@ -81,11 +83,22 @@ class IngredientCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppSpacing.xs),
-          IconButton(
-            tooltip: 'ลบวัตถุดิบ',
-            onPressed: onDelete,
-            color: AppColors.textMuted,
-            icon: const Icon(Icons.delete_outline_rounded),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                tooltip: 'แก้ไขวัตถุดิบ',
+                onPressed: onEdit,
+                color: AppColors.textMuted,
+                icon: const Icon(Icons.edit_outlined),
+              ),
+              IconButton(
+                tooltip: 'ลบวัตถุดิบ',
+                onPressed: onDelete,
+                color: AppColors.textMuted,
+                icon: const Icon(Icons.delete_outline_rounded),
+              ),
+            ],
           ),
         ],
       ),

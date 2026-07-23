@@ -7,72 +7,152 @@ import '../../../../core/models/ingredient.dart';
 import '../../../../core/providers/pantry_provider.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/section_header.dart';
+import '../providers/pantry_filter_provider.dart';
 import '../widgets/add_ingredient_dialog.dart';
 import '../widgets/ingredient_card.dart';
 
-class PantryPage extends ConsumerWidget {
+class PantryPage extends ConsumerStatefulWidget {
   const PantryPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final ingredients = ref.watch(pantryProvider);
+  ConsumerState<PantryPage> createState() {
+    return _PantryPageState();
+  }
+}
 
-    Future<void> addIngredient() async {
-      final ingredient = await showDialog<Ingredient>(
-        context: context,
-        builder: (context) {
-          return const AddIngredientDialog();
-        },
-      );
+class _PantryPageState extends ConsumerState<PantryPage> {
+  final TextEditingController _searchController = TextEditingController();
 
-      if (ingredient == null) {
-        return;
-      }
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
-      ref.read(pantryProvider.notifier).addIngredient(ingredient);
+  Future<void> _addIngredient() async {
+    final ingredient = await showDialog<Ingredient>(
+      context: context,
+      builder: (context) {
+        return const AddIngredientDialog();
+      },
+    );
+
+    if (ingredient == null || !mounted) {
+      return;
     }
+
+    await ref.read(pantryProvider.notifier).addIngredient(ingredient);
+  }
+
+  Future<void> _editIngredient(Ingredient originalIngredient) async {
+    final updatedIngredient = await showDialog<Ingredient>(
+      context: context,
+      builder: (context) {
+        return AddIngredientDialog(ingredient: originalIngredient);
+      },
+    );
+
+    if (updatedIngredient == null || !mounted) {
+      return;
+    }
+
+    final notifier = ref.read(pantryProvider.notifier);
+
+    await notifier.removeIngredient(originalIngredient.id);
+    await notifier.addIngredient(updatedIngredient);
+  }
+
+  void _clearFilters() {
+    _searchController.clear();
+
+    ref.read(pantryFilterProvider.notifier).clearFilters();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final allIngredients = ref.watch(pantryProvider);
+    final visibleIngredients = ref.watch(filteredPantryProvider);
+    final filter = ref.watch(pantryFilterProvider);
+    final categories = ref.watch(pantryCategoriesProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('คลังวัตถุดิบ')),
       body: SafeArea(
-        child: ingredients.isEmpty
-            ? EmptyState(
-                icon: Icons.kitchen_outlined,
-                title: 'ยังไม่มีวัตถุดิบ',
-                description:
-                    'เพิ่มวัตถุดิบที่มีอยู่ในบ้าน เพื่อให้ KinRaiDee ช่วยแนะนำเมนูได้แม่นยำขึ้น',
-                actionLabel: 'เพิ่มวัตถุดิบ',
-                onActionPressed: addIngredient,
-              )
-            : _PantryContent(
-                ingredients: ingredients,
-                onDelete: (ingredient) {
-                  ref
-                      .read(pantryProvider.notifier)
-                      .removeIngredient(ingredient.id);
-                },
-              ),
+        child: _PantryContent(
+          allIngredients: allIngredients,
+          visibleIngredients: visibleIngredients,
+          filter: filter,
+          categories: categories,
+          searchController: _searchController,
+
+          onAddIngredient: _addIngredient,
+          onEdit: _editIngredient,
+
+          onSearchChanged: (value) {
+            ref.read(pantryFilterProvider.notifier).setSearchQuery(value);
+          },
+          onCategoryChanged: (category) {
+            ref.read(pantryFilterProvider.notifier).setCategory(category);
+          },
+          onExpiringChanged: () {
+            ref.read(pantryFilterProvider.notifier).toggleExpiringSoon();
+          },
+          onSortChanged: (sortOption) {
+            ref.read(pantryFilterProvider.notifier).setSortOption(sortOption);
+          },
+          onClearFilters: _clearFilters,
+          onDelete: (ingredient) async {
+            await ref
+                .read(pantryProvider.notifier)
+                .removeIngredient(ingredient.id);
+          },
+        ),
       ),
-      floatingActionButton: ingredients.isEmpty
-          ? null
-          : FloatingActionButton.extended(
-              onPressed: addIngredient,
+      floatingActionButton: allIngredients.isNotEmpty
+          ? FloatingActionButton.extended(
+              onPressed: _addIngredient,
               icon: const Icon(Icons.add_rounded),
               label: const Text('เพิ่มวัตถุดิบ'),
-            ),
+            )
+          : null,
     );
   }
 }
 
 class _PantryContent extends StatelessWidget {
-  const _PantryContent({required this.ingredients, required this.onDelete});
+  const _PantryContent({
+    required this.allIngredients,
+    required this.visibleIngredients,
+    required this.filter,
+    required this.categories,
+    required this.searchController,
+    required this.onAddIngredient,
+    required this.onSearchChanged,
+    required this.onCategoryChanged,
+    required this.onExpiringChanged,
+    required this.onSortChanged,
+    required this.onClearFilters,
+    required this.onDelete,
+    required this.onEdit,
+  });
 
-  final List<Ingredient> ingredients;
+  final List<Ingredient> allIngredients;
+  final List<Ingredient> visibleIngredients;
+  final PantryFilterState filter;
+  final List<String> categories;
+  final TextEditingController searchController;
+  final VoidCallback onAddIngredient;
+  final ValueChanged<String> onSearchChanged;
+  final ValueChanged<String?> onCategoryChanged;
+  final VoidCallback onExpiringChanged;
+  final ValueChanged<PantrySortOption> onSortChanged;
+  final VoidCallback onClearFilters;
   final ValueChanged<Ingredient> onDelete;
+  final ValueChanged<Ingredient> onEdit;
 
   @override
   Widget build(BuildContext context) {
-    final expiringCount = ingredients.where((ingredient) {
+    final expiringCount = allIngredients.where((ingredient) {
       final days = ingredient.daysUntilExpiry;
 
       return days != null && days <= 7;
@@ -93,6 +173,7 @@ class _PantryContent extends StatelessWidget {
           child: SizedBox(
             width: contentWidth,
             child: CustomScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               slivers: [
                 SliverPadding(
                   padding: EdgeInsets.fromLTRB(
@@ -105,7 +186,7 @@ class _PantryContent extends StatelessWidget {
                     child: SectionHeader(
                       title: 'วัตถุดิบของคุณ',
                       subtitle: _buildSubtitle(
-                        totalCount: ingredients.length,
+                        totalCount: allIngredients.length,
                         expiringCount: expiringCount,
                       ),
                       icon: Icons.kitchen_outlined,
@@ -117,37 +198,121 @@ class _PantryContent extends StatelessWidget {
                     horizontalPadding,
                     AppSpacing.sm,
                     horizontalPadding,
-                    112,
+                    AppSpacing.sm,
                   ),
-                  sliver: SliverList.separated(
-                    itemCount: ingredients.length,
-                    separatorBuilder: (context, index) {
-                      return const SizedBox(height: AppSpacing.sm);
-                    },
-                    itemBuilder: (context, index) {
-                      final ingredient = ingredients[index];
-
-                      return IngredientCard(
-                        ingredient: ingredient,
-                        onDelete: () {
-                          _confirmDelete(
-                            context: context,
-                            ingredient: ingredient,
-                            onConfirmed: () {
-                              onDelete(ingredient);
-                            },
-                          );
-                        },
-                      );
-                    },
+                  sliver: SliverToBoxAdapter(
+                    child: _PantrySearchField(
+                      controller: searchController,
+                      onChanged: onSearchChanged,
+                      onClear: () {
+                        searchController.clear();
+                        onSearchChanged('');
+                      },
+                    ),
                   ),
                 ),
+                SliverPadding(
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                  sliver: SliverToBoxAdapter(
+                    child: _PantryFilterBar(
+                      categories: categories,
+                      filter: filter,
+                      onCategoryChanged: onCategoryChanged,
+                      onExpiringChanged: onExpiringChanged,
+                      onSortChanged: onSortChanged,
+                      onClearFilters: onClearFilters,
+                    ),
+                  ),
+                ),
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                    horizontalPadding,
+                    AppSpacing.sm,
+                    horizontalPadding,
+                    AppSpacing.sm,
+                  ),
+                  sliver: SliverToBoxAdapter(
+                    child: Text(
+                      _buildResultLabel(),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ),
+                if (allIngredients.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: EmptyState(
+                      icon: Icons.kitchen_outlined,
+                      title: 'ยังไม่มีวัตถุดิบ',
+                      description:
+                          'กดปุ่ม "เพิ่มวัตถุดิบ" ด้านล่างเพื่อเริ่มใช้งาน',
+                      actionLabel: 'เพิ่มวัตถุดิบ',
+                      onActionPressed: onAddIngredient,
+                    ),
+                  )
+                else if (visibleIngredients.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: EmptyState(
+                      icon: Icons.search_off_rounded,
+                      title: 'ไม่พบวัตถุดิบ',
+                      description:
+                          'ลองเปลี่ยนคำค้นหา หมวดอาหาร หรือตัวกรองที่เลือก',
+                      actionLabel: 'ล้างตัวกรอง',
+                      onActionPressed: onClearFilters,
+                    ),
+                  )
+                else
+                  SliverPadding(
+                    padding: EdgeInsets.fromLTRB(
+                      horizontalPadding,
+                      0,
+                      horizontalPadding,
+                      112,
+                    ),
+                    sliver: SliverList.separated(
+                      itemCount: visibleIngredients.length,
+                      separatorBuilder: (context, index) {
+                        return const SizedBox(height: AppSpacing.sm);
+                      },
+                      itemBuilder: (context, index) {
+                        final ingredient = visibleIngredients[index];
+
+                        return IngredientCard(
+                          ingredient: ingredient,
+                          onEdit: () {
+                            onEdit(ingredient);
+                          },
+                          onDelete: () {
+                            _confirmDelete(
+                              context: context,
+                              ingredient: ingredient,
+                              onConfirmed: () {
+                                onDelete(ingredient);
+                              },
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
               ],
             ),
           ),
         );
       },
     );
+  }
+
+  String _buildResultLabel() {
+    if (!filter.hasActiveFilters) {
+      return 'แสดงทั้งหมด ${visibleIngredients.length} รายการ';
+    }
+
+    return 'พบ ${visibleIngredients.length} จาก '
+        '${allIngredients.length} รายการ';
   }
 
   String _buildSubtitle({required int totalCount, required int expiringCount}) {
@@ -191,5 +356,130 @@ class _PantryContent extends StatelessWidget {
     if (confirmed == true) {
       onConfirmed();
     }
+  }
+}
+
+class _PantrySearchField extends StatelessWidget {
+  const _PantrySearchField({
+    required this.controller,
+    required this.onChanged,
+    required this.onClear,
+  });
+
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      onChanged: onChanged,
+      textInputAction: TextInputAction.search,
+      decoration: InputDecoration(
+        hintText: 'ค้นหาวัตถุดิบหรือหมวดอาหาร',
+        prefixIcon: const Icon(Icons.search_rounded),
+        suffixIcon: controller.text.isEmpty
+            ? null
+            : IconButton(
+                tooltip: 'ล้างคำค้นหา',
+                onPressed: onClear,
+                icon: const Icon(Icons.close_rounded),
+              ),
+      ),
+    );
+  }
+}
+
+class _PantryFilterBar extends StatelessWidget {
+  const _PantryFilterBar({
+    required this.categories,
+    required this.filter,
+    required this.onCategoryChanged,
+    required this.onExpiringChanged,
+    required this.onSortChanged,
+    required this.onClearFilters,
+  });
+
+  final List<String> categories;
+  final PantryFilterState filter;
+  final ValueChanged<String?> onCategoryChanged;
+  final VoidCallback onExpiringChanged;
+  final ValueChanged<PantrySortOption> onSortChanged;
+  final VoidCallback onClearFilters;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                ChoiceChip(
+                  label: const Text('ทั้งหมด'),
+                  selected: filter.selectedCategory == null,
+                  onSelected: (_) {
+                    onCategoryChanged(null);
+                  },
+                ),
+                const SizedBox(width: AppSpacing.xs),
+                for (final category in categories) ...[
+                  ChoiceChip(
+                    label: Text(category),
+                    selected: filter.selectedCategory == category,
+                    onSelected: (_) {
+                      onCategoryChanged(category);
+                    },
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                ],
+                FilterChip(
+                  avatar: const Icon(Icons.schedule_rounded, size: 18),
+                  label: const Text('ใกล้หมดอายุ'),
+                  selected: filter.onlyExpiringSoon,
+                  onSelected: (_) {
+                    onExpiringChanged();
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        PopupMenuButton<PantrySortOption>(
+          tooltip: 'เรียงลำดับ',
+          initialValue: filter.sortOption,
+          onSelected: onSortChanged,
+          itemBuilder: (context) {
+            return PantrySortOption.values
+                .map((option) {
+                  return PopupMenuItem<PantrySortOption>(
+                    value: option,
+                    child: Row(
+                      children: [
+                        if (option == filter.sortOption)
+                          const Icon(Icons.check_rounded, size: 19)
+                        else
+                          const SizedBox(width: 19),
+                        const SizedBox(width: AppSpacing.xs),
+                        Text(option.label),
+                      ],
+                    ),
+                  );
+                })
+                .toList(growable: false);
+          },
+          icon: const Icon(Icons.sort_rounded),
+        ),
+        if (filter.hasActiveFilters)
+          IconButton(
+            tooltip: 'ล้างตัวกรอง',
+            onPressed: onClearFilters,
+            icon: const Icon(Icons.filter_alt_off_outlined),
+          ),
+      ],
+    );
   }
 }

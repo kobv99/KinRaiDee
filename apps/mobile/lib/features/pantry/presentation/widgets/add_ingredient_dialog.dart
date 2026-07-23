@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 
+import 'package:flutter/services.dart';
+
 import '../../../../core/models/ingredient.dart';
 
 import '../widgets/emoji_selector.dart';
 
 class AddIngredientDialog extends StatefulWidget {
-  const AddIngredientDialog({super.key});
+  const AddIngredientDialog({super.key, this.ingredient});
+
+  final Ingredient? ingredient;
 
   @override
   State<AddIngredientDialog> createState() => _AddIngredientDialogState();
@@ -23,6 +27,22 @@ class _AddIngredientDialogState extends State<AddIngredientDialog> {
   String emoji = '';
 
   DateTime? expiryDate;
+
+  @override
+  void initState() {
+    super.initState();
+
+    final ingredient = widget.ingredient;
+
+    if (ingredient != null) {
+      quantityController.text = ingredient.quantity.toString();
+      unit = ingredient.unit;
+      category = ingredient.category;
+      name = ingredient.name;
+      emoji = ingredient.emoji;
+      expiryDate = ingredient.expiryDate;
+    }
+  }
 
   @override
   void dispose() {
@@ -52,7 +72,9 @@ class _AddIngredientDialogState extends State<AddIngredientDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('เพิ่มวัตถุดิบ 🥬'),
+      title: Text(
+        widget.ingredient == null ? 'เพิ่มวัตถุดิบ 🥬' : 'แก้ไขวัตถุดิบ ✏️',
+      ),
 
       content: SingleChildScrollView(
         child: Column(
@@ -92,7 +114,9 @@ class _AddIngredientDialogState extends State<AddIngredientDialog> {
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}$')),
+              ],
               decoration: const InputDecoration(labelText: 'จำนวน'),
             ),
 
@@ -155,11 +179,21 @@ class _AddIngredientDialogState extends State<AddIngredientDialog> {
 
               return;
             }
+            final quantity = double.tryParse(quantityController.text);
 
+            if (quantity == null || quantity <= 0) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('กรุณาระบุจำนวนที่มากกว่า 0')),
+              );
+
+              return;
+            }
             final now = DateTime.now();
 
             final ingredient = Ingredient(
-              id: now.millisecondsSinceEpoch.toString(),
+              id:
+                  widget.ingredient?.id ??
+                  now.millisecondsSinceEpoch.toString(),
 
               name: name,
 
@@ -167,13 +201,13 @@ class _AddIngredientDialogState extends State<AddIngredientDialog> {
 
               emoji: emoji,
 
-              quantity: double.tryParse(quantityController.text) ?? 0,
+              quantity: quantity,
 
               unit: unit,
 
               expiryDate: expiryDate,
 
-              createdAt: now,
+              createdAt: widget.ingredient?.createdAt ?? now,
 
               updatedAt: now,
             );
@@ -181,7 +215,7 @@ class _AddIngredientDialogState extends State<AddIngredientDialog> {
             Navigator.pop(context, ingredient);
           },
 
-          child: const Text('เพิ่ม'),
+          child: Text(widget.ingredient == null ? 'เพิ่ม' : 'บันทึก'),
         ),
       ],
     );

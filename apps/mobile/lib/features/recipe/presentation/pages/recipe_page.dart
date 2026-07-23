@@ -6,14 +6,9 @@ class RecipePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Recipe AI 🍳'),
-      ),
+      appBar: AppBar(title: const Text('Recipe AI 🍳')),
       body: const Center(
-        child: Text(
-          'AI Recipe Assistant',
-          style: TextStyle(fontSize: 24),
-        ),
+        child: Text('AI Recipe Assistant', style: TextStyle(fontSize: 24)),
       ),
     );
   }

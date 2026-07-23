@@ -25,7 +25,6 @@ class Ingredient {
   /// วันที่แก้ไขล่าสุด
   final DateTime updatedAt;
 
-
   const Ingredient({
     required this.id,
     required this.name,
@@ -38,9 +37,7 @@ class Ingredient {
     required this.updatedAt,
   });
 
-
   Ingredient copyWith({
-
     String? id,
 
     String? name,
@@ -58,11 +55,8 @@ class Ingredient {
     DateTime? createdAt,
 
     DateTime? updatedAt,
-
   }) {
-
     return Ingredient(
-
       id: id ?? this.id,
 
       name: name ?? this.name,
@@ -80,38 +74,27 @@ class Ingredient {
       createdAt: createdAt ?? this.createdAt,
 
       updatedAt: updatedAt ?? this.updatedAt,
-
     );
   }
 
-
   bool get isExpired {
-
     if (expiryDate == null) {
       return false;
     }
 
     return expiryDate!.isBefore(DateTime.now());
-
   }
 
-
   int? get daysUntilExpiry {
-
     if (expiryDate == null) {
       return null;
     }
 
-    return expiryDate!
-        .difference(DateTime.now())
-        .inDays;
-
+    return expiryDate!.difference(DateTime.now()).inDays;
   }
-
 
   @override
   String toString() {
-
     return '''
 Ingredient(
   id: $id,
@@ -122,25 +105,17 @@ Ingredient(
   expiryDate: $expiryDate
 )
 ''';
-
   }
-
 
   @override
   bool operator ==(Object other) {
-
     if (identical(this, other)) {
       return true;
     }
 
-
-    return other is Ingredient &&
-        other.id == id;
-
+    return other is Ingredient && other.id == id;
   }
-
 
   @override
   int get hashCode => id.hashCode;
-
 }
