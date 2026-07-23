@@ -14,6 +14,7 @@ import '../widgets/add_ingredient_dialog.dart';
 import '../widgets/ingredient_card.dart';
 import '../widgets/pantry_catalog_panel.dart';
 import '../widgets/pantry_filter_bar.dart';
+import '../widgets/pantry_frequent_section.dart';
 import '../widgets/pantry_overview_card.dart';
 import '../widgets/pantry_recent_section.dart';
 import '../widgets/pantry_search_field.dart';
@@ -39,6 +40,22 @@ class _PantryPageState extends ConsumerState<PantryPage> {
       context: context,
       builder: (context) {
         return AddIngredientDialog(initialSearchQuery: initialSearchQuery);
+      },
+    );
+
+    if (ingredient == null || !mounted) {
+      return;
+    }
+
+    await ref.read(pantryProvider.notifier).addIngredient(ingredient);
+    _clearFilters();
+  }
+
+  Future<void> _addFrequentIngredient(FoodCatalogItem entry) async {
+    final ingredient = await showDialog<Ingredient>(
+      context: context,
+      builder: (context) {
+        return AddIngredientDialog(initialCatalogItem: entry);
       },
     );
 
@@ -76,6 +93,14 @@ class _PantryPageState extends ConsumerState<PantryPage> {
     final visibleIngredients = ref.watch(filteredPantryProvider);
     final filter = ref.watch(pantryFilterProvider);
     final categories = ref.watch(pantryCategoriesProvider);
+    final favoriteNames = ref.watch(favoriteIngredientNamesProvider);
+    final frequentItems = allFoodCatalogItems
+        .where(
+          (entry) => favoriteNames.contains(
+            normalizePantryIngredientName(entry.item.name),
+          ),
+        )
+        .toList(growable: false);
 
     return Scaffold(
       appBar: AppBar(title: const Text('คลังวัตถุดิบ')),
@@ -83,11 +108,13 @@ class _PantryPageState extends ConsumerState<PantryPage> {
         child: _PantryContent(
           allIngredients: allIngredients,
           visibleIngredients: visibleIngredients,
+          frequentItems: frequentItems,
           filter: filter,
           categories: categories,
           searchController: _searchController,
           onAddIngredient: () => _addIngredient(),
           onAddIngredientFromSearch: _addIngredient,
+          onAddFrequentIngredient: _addFrequentIngredient,
           onEdit: _editIngredient,
           onSearchChanged: (value) {
             ref.read(pantryFilterProvider.notifier).setSearchQuery(value);
@@ -104,6 +131,11 @@ class _PantryPageState extends ConsumerState<PantryPage> {
           onClearFilters: _clearFilters,
           onFavoriteToggle: (ingredient) {
             ref.read(pantryProvider.notifier).toggleFavorite(ingredient.id);
+          },
+          onRemoveFrequentIngredient: (entry) {
+            ref
+                .read(pantryProvider.notifier)
+                .removeFavoriteByName(entry.item.name);
           },
           onDelete: (ingredient) async {
             await ref
@@ -127,11 +159,13 @@ class _PantryContent extends StatelessWidget {
   const _PantryContent({
     required this.allIngredients,
     required this.visibleIngredients,
+    required this.frequentItems,
     required this.filter,
     required this.categories,
     required this.searchController,
     required this.onAddIngredient,
     required this.onAddIngredientFromSearch,
+    required this.onAddFrequentIngredient,
     required this.onSearchChanged,
     required this.onCategoryChanged,
     required this.onExpiringChanged,
@@ -140,15 +174,18 @@ class _PantryContent extends StatelessWidget {
     required this.onDelete,
     required this.onEdit,
     required this.onFavoriteToggle,
+    required this.onRemoveFrequentIngredient,
   });
 
   final List<Ingredient> allIngredients;
   final List<Ingredient> visibleIngredients;
+  final List<FoodCatalogItem> frequentItems;
   final PantryFilterState filter;
   final List<String> categories;
   final TextEditingController searchController;
   final VoidCallback onAddIngredient;
   final ValueChanged<String?> onAddIngredientFromSearch;
+  final ValueChanged<FoodCatalogItem> onAddFrequentIngredient;
   final ValueChanged<String> onSearchChanged;
   final ValueChanged<String?> onCategoryChanged;
   final VoidCallback onExpiringChanged;
@@ -157,6 +194,7 @@ class _PantryContent extends StatelessWidget {
   final ValueChanged<Ingredient> onDelete;
   final ValueChanged<Ingredient> onEdit;
   final ValueChanged<Ingredient> onFavoriteToggle;
+  final ValueChanged<FoodCatalogItem> onRemoveFrequentIngredient;
 
   List<FoodCatalogItem> get _catalogSuggestions {
     return PantrySearchEngine.rankCatalogItems(
@@ -178,9 +216,6 @@ class _PantryContent extends StatelessWidget {
       final days = ingredient.daysUntilExpiry;
       return days != null && days <= 7;
     }).length;
-    final favoriteCount = allIngredients
-        .where((ingredient) => ingredient.isFavorite)
-        .length;
     final searchQuery = filter.searchQuery.trim();
     final suggestions = _catalogSuggestions;
 
@@ -227,10 +262,26 @@ class _PantryContent extends StatelessWidget {
                     child: PantryOverviewCard(
                       totalCount: allIngredients.length,
                       expiringCount: expiringCount,
-                      favoriteCount: favoriteCount,
+                      favoriteCount: frequentItems.length,
                     ),
                   ),
                 ),
+                if (frequentItems.isNotEmpty)
+                  SliverPadding(
+                    padding: EdgeInsets.fromLTRB(
+                      horizontalPadding,
+                      AppSpacing.sm,
+                      horizontalPadding,
+                      AppSpacing.md,
+                    ),
+                    sliver: SliverToBoxAdapter(
+                      child: PantryFrequentSection(
+                        items: frequentItems,
+                        onItemTap: onAddFrequentIngredient,
+                        onRemove: onRemoveFrequentIngredient,
+                      ),
+                    ),
+                  ),
                 if (allIngredients.isNotEmpty)
                   SliverPadding(
                     padding: EdgeInsets.fromLTRB(
@@ -329,8 +380,9 @@ class _PantryContent extends StatelessWidget {
                     child: EmptyState(
                       icon: Icons.kitchen_outlined,
                       title: 'ยังไม่มีวัตถุดิบ',
-                      description:
-                          'พิมพ์ชื่อวัตถุดิบด้านบน หรือกดปุ่มเพิ่มวัตถุดิบเพื่อเริ่มใช้งาน',
+                      description: frequentItems.isEmpty
+                          ? 'พิมพ์ชื่อวัตถุดิบด้านบน หรือกดปุ่มเพิ่มวัตถุดิบเพื่อเริ่มใช้งาน'
+                          : 'เลือกจากซื้อประจำด้านบน หรือเพิ่มวัตถุดิบรายการใหม่',
                       actionLabel: 'เพิ่มวัตถุดิบ',
                       onActionPressed: onAddIngredient,
                     ),
