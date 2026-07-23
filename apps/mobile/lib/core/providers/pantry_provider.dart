@@ -30,7 +30,10 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
     final updatedIngredients = state
         .map((currentIngredient) {
           if (currentIngredient.id == ingredient.id) {
-            return ingredient.copyWith(updatedAt: DateTime.now());
+            return ingredient.copyWith(
+              isFavorite: currentIngredient.isFavorite,
+              updatedAt: DateTime.now(),
+            );
           }
 
           return currentIngredient;
