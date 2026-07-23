@@ -42,6 +42,25 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
     await _repository.saveIngredients(updatedIngredients);
   }
 
+  Future<void> toggleFavorite(String id) async {
+    final updatedIngredients = state
+        .map((ingredient) {
+          if (ingredient.id != id) {
+            return ingredient;
+          }
+
+          return ingredient.copyWith(
+            isFavorite: !ingredient.isFavorite,
+            updatedAt: DateTime.now(),
+          );
+        })
+        .toList(growable: false);
+
+    state = updatedIngredients;
+
+    await _repository.saveIngredients(updatedIngredients);
+  }
+
   Future<void> removeIngredient(String id) async {
     final updatedIngredients = state
         .where((ingredient) => ingredient.id != id)
