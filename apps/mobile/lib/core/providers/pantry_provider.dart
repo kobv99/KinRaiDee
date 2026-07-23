@@ -126,6 +126,18 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
   }
 
   Future<void> removeIngredient(String id) async {
+    final targetIngredient = _findIngredientById(id);
+
+    if (targetIngredient?.isFavorite ?? false) {
+      final normalizedName = _normalizeName(targetIngredient!.name);
+      if (normalizedName.isNotEmpty) {
+        _favoriteNames.add(normalizedName);
+        await _repository.saveFavoriteIngredientNames(
+          Set<String>.of(_favoriteNames),
+        );
+      }
+    }
+
     final updatedIngredients = state
         .where((ingredient) => ingredient.id != id)
         .toList(growable: false);
