@@ -16,6 +16,16 @@ class HivePantryRepository implements PantryRepository {
   }
 
   @override
+  Set<String> getFavoriteIngredientNames() {
+    return StorageService.loadFavoriteIngredientNames();
+  }
+
+  @override
+  Future<void> saveFavoriteIngredientNames(Set<String> names) {
+    return StorageService.saveFavoriteIngredientNames(names);
+  }
+
+  @override
   Future<void> clearIngredients() {
     return StorageService.clearIngredients();
   }
