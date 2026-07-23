@@ -19,7 +19,7 @@ class PantrySearchField extends StatelessWidget {
       onChanged: onChanged,
       textInputAction: TextInputAction.search,
       decoration: InputDecoration(
-        hintText: 'ค้นหาในคลัง หรือพิมพ์ชื่อเพื่อเพิ่มวัตถุดิบ',
+        hintText: 'ค้นหาชื่อ ชื่อเรียก หรือคำใกล้เคียง',
         prefixIcon: const Icon(Icons.search_rounded),
         suffixIcon: controller.text.isEmpty
             ? null
