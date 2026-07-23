@@ -1,0 +1,89 @@
+[
+  {
+    "id": "thai_omelette",
+    "name": "ไข่เจียว",
+    "category": "อาหารไทย",
+    "description": "เมนูง่าย ๆ ใช้วัตถุดิบน้อย",
+    "emoji": "🍳",
+    "ingredients": [
+      {"id": "egg", "name": "ไข่ไก่", "quantity": 2, "unit": "ฟอง", "required": true, "aliases": ["ไข่"]},
+      {"id": "fish_sauce", "name": "น้ำปลา", "quantity": 1, "unit": "ช้อนชา", "required": true},
+      {"id": "cooking_oil", "name": "น้ำมันพืช", "quantity": 2, "unit": "ช้อนโต๊ะ", "required": true, "aliases": ["น้ำมัน"]}
+    ],
+    "steps": ["ตีไข่กับน้ำปลา", "ตั้งน้ำมันให้ร้อน", "ทอดไข่จนเหลืองแล้วตักขึ้น"]
+  },
+  {
+    "id": "pork_basil",
+    "name": "กะเพราหมูสับ",
+    "category": "อาหารไทย",
+    "description": "ผัดกะเพรารสจัดจ้าน",
+    "emoji": "🌶️",
+    "ingredients": [
+      {"id": "pork", "name": "หมูสับ", "quantity": 200, "unit": "กรัม", "required": true, "aliases": ["หมู", "เนื้อหมู"]},
+      {"id": "holy_basil", "name": "ใบกะเพรา", "quantity": 1, "unit": "กำ", "required": true, "aliases": ["กะเพรา"]},
+      {"id": "garlic", "name": "กระเทียม", "quantity": 4, "unit": "กลีบ", "required": true},
+      {"id": "chili", "name": "พริก", "quantity": 4, "unit": "เม็ด", "required": false},
+      {"id": "fish_sauce", "name": "น้ำปลา", "quantity": 1, "unit": "ช้อนโต๊ะ", "required": true}
+    ],
+    "steps": ["โขลกพริกกับกระเทียม", "ผัดเครื่องให้หอมแล้วใส่หมู", "ปรุงรสและใส่ใบกะเพรา"]
+  },
+  {
+    "id": "pork_fried_rice",
+    "name": "ข้าวผัดหมู",
+    "category": "อาหารจานเดียว",
+    "description": "ข้าวผัดแบบง่ายสำหรับมื้อเร่งด่วน",
+    "emoji": "🍚",
+    "ingredients": [
+      {"id": "rice", "name": "ข้าวสวย", "quantity": 1, "unit": "ถ้วย", "required": true, "aliases": ["ข้าว"]},
+      {"id": "pork", "name": "หมู", "quantity": 120, "unit": "กรัม", "required": true, "aliases": ["หมูสับ", "เนื้อหมู"]},
+      {"id": "egg", "name": "ไข่ไก่", "quantity": 1, "unit": "ฟอง", "required": true, "aliases": ["ไข่"]},
+      {"id": "soy_sauce", "name": "ซีอิ๊วขาว", "quantity": 1, "unit": "ช้อนโต๊ะ", "required": true, "aliases": ["ซีอิ๊ว", "โชยุ"]},
+      {"id": "spring_onion", "name": "ต้นหอม", "quantity": 1, "unit": "ต้น", "required": false}
+    ],
+    "steps": ["ผัดหมูให้สุก", "ใส่ไข่แล้วผัดให้กระจาย", "ใส่ข้าว ปรุงรส และโรยต้นหอม"]
+  },
+  {
+    "id": "tofu_seaweed_soup",
+    "name": "ซุปเต้าหู้สาหร่ายใส่ไข่",
+    "category": "ซุป",
+    "description": "ซุปรสอ่อน ทำง่ายและสบายท้อง",
+    "emoji": "🍲",
+    "ingredients": [
+      {"id": "tofu", "name": "เต้าหู้", "quantity": 1, "unit": "ก้อน", "required": true},
+      {"id": "seaweed", "name": "สาหร่าย", "quantity": 1, "unit": "กำมือ", "required": true},
+      {"id": "egg", "name": "ไข่ไก่", "quantity": 1, "unit": "ฟอง", "required": false, "aliases": ["ไข่"]},
+      {"id": "soy_sauce", "name": "โชยุ", "quantity": 1, "unit": "ช้อนโต๊ะ", "required": true, "aliases": ["ซีอิ๊ว", "ซีอิ๊วขาว"]}
+    ],
+    "steps": ["ต้มน้ำให้เดือด", "ใส่เต้าหู้และสาหร่าย", "ปรุงด้วยโชยุและใส่ไข่"]
+  },
+  {
+    "id": "tom_kha_gai",
+    "name": "ต้มข่าไก่",
+    "category": "อาหารไทย",
+    "description": "แกงกะทิรสเปรี้ยวเค็มหอมสมุนไพร",
+    "emoji": "🥥",
+    "ingredients": [
+      {"id": "chicken", "name": "เนื้อไก่", "quantity": 250, "unit": "กรัม", "required": true, "aliases": ["ไก่"]},
+      {"id": "coconut_milk", "name": "กะทิ", "quantity": 400, "unit": "มิลลิลิตร", "required": true},
+      {"id": "galangal", "name": "ข่า", "quantity": 6, "unit": "แว่น", "required": true},
+      {"id": "lemongrass", "name": "ตะไคร้", "quantity": 2, "unit": "ต้น", "required": true},
+      {"id": "kaffir_lime_leaf", "name": "ใบมะกรูด", "quantity": 4, "unit": "ใบ", "required": true},
+      {"id": "mushroom", "name": "เห็ด", "quantity": 100, "unit": "กรัม", "required": false}
+    ],
+    "steps": ["ต้มกะทิกับสมุนไพร", "ใส่ไก่และเห็ดจนสุก", "ปรุงรสก่อนยกลง"]
+  },
+  {
+    "id": "garlic_pork",
+    "name": "หมูกระเทียม",
+    "category": "อาหารจานเดียว",
+    "description": "หมูผัดกระเทียมหอม ๆ",
+    "emoji": "🧄",
+    "ingredients": [
+      {"id": "pork", "name": "หมู", "quantity": 200, "unit": "กรัม", "required": true, "aliases": ["หมูสับ", "เนื้อหมู"]},
+      {"id": "garlic", "name": "กระเทียม", "quantity": 6, "unit": "กลีบ", "required": true},
+      {"id": "soy_sauce", "name": "ซีอิ๊วขาว", "quantity": 1, "unit": "ช้อนโต๊ะ", "required": true, "aliases": ["ซีอิ๊ว", "โชยุ"]},
+      {"id": "pepper", "name": "พริกไทย", "quantity": 0.5, "unit": "ช้อนชา", "required": false}
+    ],
+    "steps": ["เจียวกระเทียมให้หอม", "ใส่หมูแล้วผัดจนสุก", "ปรุงรสด้วยซีอิ๊วและพริกไทย"]
+  }
+]
