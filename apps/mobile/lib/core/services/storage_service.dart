@@ -67,6 +67,7 @@ class StorageService {
       'expiryDate': ingredient.expiryDate?.toIso8601String(),
       'createdAt': ingredient.createdAt.toIso8601String(),
       'updatedAt': ingredient.updatedAt.toIso8601String(),
+      'isFavorite': ingredient.isFavorite,
     };
   }
 
@@ -91,6 +92,7 @@ class StorageService {
         expiryDate: _parseDateTime(map['expiryDate']),
         createdAt: createdAt,
         updatedAt: updatedAt,
+        isFavorite: _parseBool(map['isFavorite']),
       );
     } on FormatException {
       return null;
@@ -105,6 +107,14 @@ class StorageService {
     }
 
     return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  static bool _parseBool(dynamic value) {
+    if (value is bool) {
+      return value;
+    }
+
+    return value?.toString().toLowerCase() == 'true';
   }
 
   static DateTime? _parseDateTime(dynamic value) {
