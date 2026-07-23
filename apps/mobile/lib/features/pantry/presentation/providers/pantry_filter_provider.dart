@@ -134,25 +134,23 @@ final filteredPantryProvider = Provider<List<Ingredient>>((ref) {
 
   final sortedIngredients = List<Ingredient>.of(filteredIngredients);
 
-  switch (filter.sortOption) {
-    case PantrySortOption.newest:
-      sortedIngredients.sort(
-        (first, second) => second.createdAt.compareTo(first.createdAt),
-      );
+  sortedIngredients.sort((first, second) {
+    final favoriteComparison = _compareFavorite(first, second);
+    if (favoriteComparison != 0) {
+      return favoriteComparison;
+    }
 
-    case PantrySortOption.oldest:
-      sortedIngredients.sort(
-        (first, second) => first.createdAt.compareTo(second.createdAt),
-      );
-
-    case PantrySortOption.nameAscending:
-      sortedIngredients.sort(
-        (first, second) => first.name.compareTo(second.name),
-      );
-
-    case PantrySortOption.expirySoonest:
-      sortedIngredients.sort(_compareExpiryDate);
-  }
+    switch (filter.sortOption) {
+      case PantrySortOption.newest:
+        return second.createdAt.compareTo(first.createdAt);
+      case PantrySortOption.oldest:
+        return first.createdAt.compareTo(second.createdAt);
+      case PantrySortOption.nameAscending:
+        return first.name.compareTo(second.name);
+      case PantrySortOption.expirySoonest:
+        return _compareExpiryDate(first, second);
+    }
+  });
 
   return List<Ingredient>.unmodifiable(sortedIngredients);
 });
@@ -165,6 +163,14 @@ bool _isExpiringSoon(Ingredient ingredient) {
   }
 
   return days <= 7;
+}
+
+int _compareFavorite(Ingredient first, Ingredient second) {
+  if (first.isFavorite == second.isFavorite) {
+    return 0;
+  }
+
+  return first.isFavorite ? -1 : 1;
 }
 
 int _compareExpiryDate(Ingredient first, Ingredient second) {
