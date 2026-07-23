@@ -5,52 +5,109 @@ import 'package:mobile/core/providers/pantry_provider.dart';
 import 'package:mobile/features/pantry/domain/repositories/pantry_repository.dart';
 
 void main() {
-  test('favorite survives delete and is restored when the same item is added', () async {
+  test(
+    'frequent ingredient survives delete, refresh, and re-add',
+    () async {
+      final now = DateTime(2026, 7, 23);
+      final original = Ingredient(
+        id: '1',
+        name: 'หมูสับ',
+        category: 'เนื้อสัตว์',
+        emoji: '🐷',
+        quantity: 1,
+        unit: 'กิโลกรัม',
+        createdAt: now,
+        updatedAt: now,
+      );
+      final repository = _FakePantryRepository(<Ingredient>[original]);
+      final firstContainer = ProviderContainer(
+        overrides: [pantryRepositoryProvider.overrideWithValue(repository)],
+      );
+
+      final firstNotifier = firstContainer.read(pantryProvider.notifier);
+      await firstNotifier.toggleFavorite(original.id);
+
+      expect(firstContainer.read(pantryProvider).single.isFavorite, isTrue);
+      expect(
+        firstContainer.read(favoriteIngredientNamesProvider),
+        contains('หมูสับ'),
+      );
+
+      await firstNotifier.removeIngredient(original.id);
+
+      expect(firstContainer.read(pantryProvider), isEmpty);
+      expect(
+        firstContainer.read(favoriteIngredientNamesProvider),
+        contains('หมูสับ'),
+      );
+      expect(repository.favoriteNames, contains('หมูสับ'));
+      firstContainer.dispose();
+
+      final refreshedContainer = ProviderContainer(
+        overrides: [pantryRepositoryProvider.overrideWithValue(repository)],
+      );
+      addTearDown(refreshedContainer.dispose);
+
+      expect(refreshedContainer.read(pantryProvider), isEmpty);
+      expect(
+        refreshedContainer.read(favoriteIngredientNamesProvider),
+        contains('หมูสับ'),
+      );
+
+      await refreshedContainer.read(pantryProvider.notifier).addIngredient(
+        original.copyWith(
+          id: '2',
+          isFavorite: false,
+          createdAt: now.add(const Duration(minutes: 1)),
+          updatedAt: now.add(const Duration(minutes: 1)),
+        ),
+      );
+
+      expect(refreshedContainer.read(pantryProvider).single.isFavorite, isTrue);
+    },
+  );
+
+  test('removing from frequent ingredients clears pantry star', () async {
     final now = DateTime(2026, 7, 23);
-    final original = Ingredient(
+    final ingredient = Ingredient(
       id: '1',
-      name: 'หมูสับ',
-      category: 'เนื้อสัตว์',
-      emoji: '🐷',
-      quantity: 1,
-      unit: 'กิโลกรัม',
+      name: 'ไข่ไก่',
+      category: 'ไข่',
+      emoji: '🥚',
+      quantity: 12,
+      unit: 'ฟอง',
       createdAt: now,
       updatedAt: now,
+      isFavorite: true,
     );
-    final repository = _FakePantryRepository(<Ingredient>[original]);
+    final repository = _FakePantryRepository(
+      <Ingredient>[ingredient],
+      favoriteNames: <String>{'ไข่ไก่'},
+    );
     final container = ProviderContainer(
       overrides: [pantryRepositoryProvider.overrideWithValue(repository)],
     );
     addTearDown(container.dispose);
 
-    final notifier = container.read(pantryProvider.notifier);
+    await container
+        .read(pantryProvider.notifier)
+        .removeFavoriteByName('ไข่ไก่');
 
-    await notifier.toggleFavorite(original.id);
-    expect(container.read(pantryProvider).single.isFavorite, isTrue);
-
-    await notifier.removeIngredient(original.id);
-    expect(container.read(pantryProvider), isEmpty);
-    expect(repository.favoriteNames, contains('หมูสับ'));
-
-    await notifier.addIngredient(
-      original.copyWith(
-        id: '2',
-        isFavorite: false,
-        createdAt: now.add(const Duration(minutes: 1)),
-        updatedAt: now.add(const Duration(minutes: 1)),
-      ),
-    );
-
-    expect(container.read(pantryProvider).single.isFavorite, isTrue);
+    expect(container.read(favoriteIngredientNamesProvider), isEmpty);
+    expect(container.read(pantryProvider).single.isFavorite, isFalse);
+    expect(repository.favoriteNames, isEmpty);
   });
 }
 
 class _FakePantryRepository implements PantryRepository {
-  _FakePantryRepository(List<Ingredient> ingredients)
-      : _ingredients = List<Ingredient>.of(ingredients);
+  _FakePantryRepository(
+    List<Ingredient> ingredients, {
+    Set<String>? favoriteNames,
+  }) : _ingredients = List<Ingredient>.of(ingredients),
+       favoriteNames = Set<String>.of(favoriteNames ?? <String>{});
 
   List<Ingredient> _ingredients;
-  Set<String> favoriteNames = <String>{};
+  Set<String> favoriteNames;
 
   @override
   Future<void> clearIngredients() async {
