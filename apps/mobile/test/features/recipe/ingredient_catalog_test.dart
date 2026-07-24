@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -48,6 +47,7 @@ void main() {
   group('Recipe metadata', () {
     test('parses new fields while remaining backward compatible', () {
       final recipe = Recipe.fromJson(const <String, dynamic>{
+        'version': 1,
         'id': 'squid_garlic',
         'name': 'ปลาหมึกผัดกระเทียม',
         'category': 'อาหารไทย',
@@ -56,14 +56,28 @@ void main() {
         'servings': 2,
         'tags': <String>['ปลาหมึก', 'อาหารไทย'],
         'cookingMethod': 'ผัด',
-        'ingredients': <Map<String, dynamic>>[],
+        'heroIngredientId': 'squid',
+        'heroIngredientName': 'ปลาหมึก',
+        'popularity': 90,
+        'ingredients': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 'squid',
+            'name': 'ปลาหมึก',
+            'quantity': 200,
+            'unit': 'กรัม',
+          },
+        ],
         'steps': <String>['ผัดให้สุก'],
       });
 
+      expect(recipe.version, 1);
       expect(recipe.cookTimeMinutes, 15);
       expect(recipe.servings, 2);
       expect(recipe.tags, contains('ปลาหมึก'));
       expect(recipe.cookingMethods, <String>['ผัด']);
+      expect(recipe.resolvedHeroIngredientId, 'squid');
+      expect(recipe.resolvedHeroIngredientName, 'ปลาหมึก');
+      expect(recipe.popularity, 90);
     });
   });
 }
