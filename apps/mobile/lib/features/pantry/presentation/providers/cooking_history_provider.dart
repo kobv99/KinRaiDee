@@ -50,7 +50,13 @@ class CookingHistoryNotifier extends Notifier<List<CookingHistoryEntry>> {
     PantryQuantityTransaction transaction,
   ) async {
     final id = transactionHistoryId(transaction);
-    final entry = state.where((item) => item.id == id).firstOrNull;
+    CookingHistoryEntry? entry;
+    for (final item in state) {
+      if (item.id == id) {
+        entry = item;
+        break;
+      }
+    }
     if (entry == null || entry.isCancelled) {
       return;
     }
@@ -80,13 +86,3 @@ final cookingHistoryProvider =
     NotifierProvider<CookingHistoryNotifier, List<CookingHistoryEntry>>(
       CookingHistoryNotifier.new,
     );
-
-extension _FirstOrNullExtension<T> on Iterable<T> {
-  T? get firstOrNull {
-    final iterator = this.iterator;
-    if (!iterator.moveNext()) {
-      return null;
-    }
-    return iterator.current;
-  }
-}
