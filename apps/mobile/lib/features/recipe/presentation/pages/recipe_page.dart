@@ -173,7 +173,7 @@ class RecipePage extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'วันนี้อยากเน้นวัตถุดิบอะไร?',
+                        'เลือกวัตถุดิบหลัก',
                         style: Theme.of(sheetContext).textTheme.titleLarge
                             ?.copyWith(fontWeight: FontWeight.bold),
                       ),
@@ -326,7 +326,7 @@ class _HeroIngredientCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'วันนี้ ${hero.name} เป็นพระเอก!',
+                  'วัตถุดิบหลักวันนี้: ${hero.name}',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: colors.onPrimaryContainer,
@@ -623,7 +623,7 @@ class _NoHeroView extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'ลองเพิ่มกุ้ง หมู ไก่ ปลาหมึก หรือไข่ใน Pantry แล้วกลับมาหน้านี้อีกครั้ง',
+          'ลองเพิ่มกุ้ง หมู ไก่ เนื้อวัว ปลาหมึก หรือไข่ใน Pantry แล้วกลับมาหน้านี้อีกครั้ง',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
             color: Theme.of(context).colorScheme.onSurfaceVariant,
