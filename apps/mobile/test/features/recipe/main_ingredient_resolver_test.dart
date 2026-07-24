@@ -59,7 +59,6 @@ void main() {
         emoji: '🐷',
         quantity: 500,
         unit: 'กรัม',
-        expiryDate: DateTime(2026, 7, 25),
         createdAt: now,
         updatedAt: now,
       ),
