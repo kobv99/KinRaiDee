@@ -91,9 +91,12 @@ class CookingHistoryAdjustmentPlanner {
     }
 
     final now = adjustedAt ?? DateTime.now();
-    final status = updatedChanges.every(
+    final allReturned = updatedChanges.every(
       (change) => _nearlyEqual(change.afterQuantity, change.beforeQuantity),
-    )
+    );
+    final status = transactionChanges.isEmpty
+        ? entry.status
+        : allReturned
         ? CookingHistoryStatus.cancelled
         : CookingHistoryStatus.adjusted;
 
@@ -108,7 +111,7 @@ class CookingHistoryAdjustmentPlanner {
       updatedEntry: entry.copyWith(
         changes: List<CookingHistoryChange>.unmodifiable(updatedChanges),
         status: status,
-        updatedAt: now,
+        updatedAt: transactionChanges.isEmpty ? entry.updatedAt : now,
       ),
     );
   }
