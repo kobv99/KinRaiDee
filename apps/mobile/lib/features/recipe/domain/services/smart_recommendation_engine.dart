@@ -81,7 +81,12 @@ class SmartRecommendationEngine {
         .where(
           (match) =>
               !heroRecipeIds.contains(match.recipe.id) &&
-              match.matchedIngredients.isNotEmpty,
+              availablePantry.any(
+                (ingredient) => _recipeHeroMatchesPantry(
+                  match.recipe,
+                  ingredient.name,
+                ),
+              ),
         )
         .toList(growable: false)
       ..sort((first, second) => _compareQuality(first, second, shuffleSeed));
@@ -205,11 +210,13 @@ class SmartRecommendationEngine {
       return scoreBandComparison;
     }
 
-    final popularityComparison = second.recipe.popularity.compareTo(
-      first.recipe.popularity,
+    final firstPopularityBand = first.recipe.popularity ~/ 10;
+    final secondPopularityBand = second.recipe.popularity ~/ 10;
+    final popularityBandComparison = secondPopularityBand.compareTo(
+      firstPopularityBand,
     );
-    if (popularityComparison != 0) {
-      return popularityComparison;
+    if (popularityBandComparison != 0) {
+      return popularityBandComparison;
     }
 
     final firstHash = _stableHash(first.recipe.id, seed);
@@ -217,6 +224,13 @@ class SmartRecommendationEngine {
     final hashComparison = firstHash.compareTo(secondHash);
     if (hashComparison != 0) {
       return hashComparison;
+    }
+
+    final popularityComparison = second.recipe.popularity.compareTo(
+      first.recipe.popularity,
+    );
+    if (popularityComparison != 0) {
+      return popularityComparison;
     }
 
     return first.recipe.name.compareTo(second.recipe.name);
