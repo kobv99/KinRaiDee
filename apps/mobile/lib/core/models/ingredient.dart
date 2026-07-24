@@ -68,19 +68,27 @@ class Ingredient {
   }
 
   bool get isExpired {
-    if (expiryDate == null) {
+    final expiry = expiryDate;
+    if (expiry == null) {
       return false;
     }
 
-    return expiryDate!.isBefore(DateTime.now());
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final expiryDay = DateTime(expiry.year, expiry.month, expiry.day);
+    return expiryDay.isBefore(today);
   }
 
   int? get daysUntilExpiry {
-    if (expiryDate == null) {
+    final expiry = expiryDate;
+    if (expiry == null) {
       return null;
     }
 
-    return expiryDate!.difference(DateTime.now()).inDays;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final expiryDay = DateTime(expiry.year, expiry.month, expiry.day);
+    return expiryDay.difference(today).inDays;
   }
 
   @override
