@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/navigation/app_navigation_provider.dart';
 import '../../features/pantry/data/repositories/hive_pantry_repository.dart';
 import '../../features/pantry/domain/models/pantry_quantity_transaction.dart';
 import '../../features/pantry/domain/repositories/pantry_repository.dart';
@@ -242,6 +243,7 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
 
     state = updatedIngredients;
     await _repository.saveIngredients(updatedIngredients);
+    ref.read(appNavigationProvider.notifier).openPantry();
   }
 
   Future<int> undoQuantityTransaction(
