@@ -2,6 +2,7 @@ import '../../../../core/models/ingredient.dart';
 import '../entities/recipe.dart';
 import '../entities/recipe_ingredient.dart';
 import '../entities/recipe_match.dart';
+import 'ingredient_name_matcher.dart';
 
 class RecipeMatcher {
   const RecipeMatcher({
@@ -20,7 +21,7 @@ class RecipeMatcher {
   }) {
     final pantryNames = pantry
         .where(_isAvailable)
-        .map((item) => _normalize(item.name))
+        .map((item) => normalizeRecipeIngredientName(item.name))
         .where((name) => name.isNotEmpty)
         .toSet();
 
@@ -62,17 +63,10 @@ class RecipeMatcher {
     RecipeIngredient ingredient,
     Set<String> pantryNames,
   ) {
-    final candidates = <String>{
-      _normalize(ingredient.name),
-      ...ingredient.aliases.map(_normalize),
-    }..removeWhere((candidate) => candidate.isEmpty);
-
     return pantryNames.any(
-      (pantryName) => candidates.any(
-        (candidate) =>
-            pantryName == candidate ||
-            pantryName.contains(candidate) ||
-            candidate.contains(pantryName),
+      (pantryName) => recipeIngredientMatchesPantryName(
+        ingredient,
+        pantryName,
       ),
     );
   }
@@ -147,16 +141,5 @@ class RecipeMatcher {
     }
 
     return first.recipe.name.compareTo(second.recipe.name);
-  }
-
-  String _normalize(String value) {
-    return value
-        .trim()
-        .toLowerCase()
-        .replaceAll(RegExp(r'\s+'), '')
-        .replaceAll('เนื้อ', '')
-        .replaceAll('สด', '')
-        .replaceAll('ซอย', '')
-        .replaceAll('สับ', '');
   }
 }
