@@ -8,6 +8,7 @@ class StorageService {
   static const String pantryBoxName = 'pantry_box';
   static const String ingredientsKey = 'ingredients';
   static const String favoriteIngredientNamesKey = 'favorite_ingredient_names';
+  static const String pinnedHeroIngredientKey = 'pinned_hero_ingredient_key';
 
   static Future<void> init() async {
     await Hive.initFlutter();
@@ -78,6 +79,26 @@ class StorageService {
           ..sort();
 
     await _pantryBox.put(favoriteIngredientNamesKey, normalizedNames);
+  }
+
+  static String? loadPinnedHeroIngredientKey() {
+    final value = _pantryBox.get(pinnedHeroIngredientKey);
+    final normalized = normalizeIngredientName(value?.toString() ?? '');
+    return normalized.isEmpty ? null : normalized;
+  }
+
+  static Future<void> savePinnedHeroIngredientKey(String key) async {
+    final normalized = normalizeIngredientName(key);
+    if (normalized.isEmpty) {
+      await clearPinnedHeroIngredientKey();
+      return;
+    }
+
+    await _pantryBox.put(pinnedHeroIngredientKey, normalized);
+  }
+
+  static Future<void> clearPinnedHeroIngredientKey() async {
+    await _pantryBox.delete(pinnedHeroIngredientKey);
   }
 
   static String normalizeIngredientName(String value) {
