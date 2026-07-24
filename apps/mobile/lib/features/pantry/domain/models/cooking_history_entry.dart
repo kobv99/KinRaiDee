@@ -29,13 +29,17 @@ class CookingHistoryChange {
     return value > 0 ? value : 0;
   }
 
-  CookingHistoryChange copyWith({double? afterQuantity}) {
+  CookingHistoryChange copyWith({
+    double? originalAfterQuantity,
+    double? afterQuantity,
+  }) {
     return CookingHistoryChange(
       ingredientId: ingredientId,
       ingredientName: ingredientName,
       unit: unit,
       beforeQuantity: beforeQuantity,
-      originalAfterQuantity: originalAfterQuantity,
+      originalAfterQuantity:
+          originalAfterQuantity ?? this.originalAfterQuantity,
       afterQuantity: afterQuantity ?? this.afterQuantity,
     );
   }
@@ -146,7 +150,9 @@ class CookingHistoryEntry {
       'recipeId': recipeId,
       'recipeName': recipeName,
       'servings': servings,
-      'changes': changes.map((change) => change.toJson()).toList(growable: false),
+      'changes': changes
+          .map((change) => change.toJson())
+          .toList(growable: false),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
       'status': status.name,
