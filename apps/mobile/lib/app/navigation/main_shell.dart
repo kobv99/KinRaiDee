@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/providers/pantry_provider.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/pantry/presentation/pages/pantry_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
@@ -54,35 +53,10 @@ class MainShell extends ConsumerWidget {
         messenger.showSnackBar(
           SnackBar(
             content: Text(
-              'ทำอาหารเสร็จแล้ว และหักวัตถุดิบ ${transaction.changedIngredientCount} รายการจาก Pantry',
+              'ทำอาหารเสร็จแล้ว และหักวัตถุดิบ ${transaction.changedIngredientCount} รายการ · แก้ย้อนหลังได้ในประวัติการทำอาหาร',
             ),
-            duration: const Duration(seconds: 6),
+            duration: const Duration(seconds: 4),
             showCloseIcon: true,
-            action: SnackBarAction(
-              label: 'ย้อนกลับ',
-              onPressed: () async {
-                final restored = await ref
-                    .read(pantryProvider.notifier)
-                    .undoQuantityTransaction(transaction);
-                if (!context.mounted) {
-                  return;
-                }
-
-                final resultMessenger = ScaffoldMessenger.of(context);
-                resultMessenger.clearSnackBars();
-                resultMessenger.showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      restored > 0
-                          ? 'คืนวัตถุดิบ $restored รายการกลับเข้า Pantry แล้ว'
-                          : 'ย้อนกลับไม่ได้ เพราะปริมาณวัตถุดิบถูกแก้ไขหลังจากนั้น',
-                    ),
-                    duration: const Duration(seconds: 4),
-                    showCloseIcon: true,
-                  ),
-                );
-              },
-            ),
           ),
         );
       });
