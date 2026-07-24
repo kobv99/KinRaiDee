@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/pantry/data/repositories/hive_pantry_repository.dart';
+import '../../features/pantry/domain/models/pantry_quantity_transaction.dart';
 import '../../features/pantry/domain/repositories/pantry_repository.dart';
 import '../models/ingredient.dart';
 import '../services/storage_service.dart';
@@ -210,6 +211,74 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
 
     state = updatedIngredients;
     await _repository.saveIngredients(updatedIngredients);
+  }
+
+  Future<void> applyQuantityTransaction(
+    PantryQuantityTransaction transaction,
+  ) async {
+    if (!transaction.hasChanges) {
+      return;
+    }
+
+    final changesById = <String, PantryQuantityChange>{
+      for (final change in transaction.changes) change.ingredientId: change,
+    };
+    final now = DateTime.now();
+    final updatedIngredients = state
+        .map((ingredient) {
+          final change = changesById[ingredient.id];
+          if (change == null) {
+            return ingredient;
+          }
+
+          return ingredient.copyWith(
+            quantity: change.afterQuantity
+                .clamp(0, double.infinity)
+                .toDouble(),
+            updatedAt: now,
+          );
+        })
+        .toList(growable: false);
+
+    state = updatedIngredients;
+    await _repository.saveIngredients(updatedIngredients);
+  }
+
+  Future<int> undoQuantityTransaction(
+    PantryQuantityTransaction transaction,
+  ) async {
+    if (!transaction.hasChanges) {
+      return 0;
+    }
+
+    final changesById = <String, PantryQuantityChange>{
+      for (final change in transaction.changes) change.ingredientId: change,
+    };
+    var restoredCount = 0;
+    final now = DateTime.now();
+    final updatedIngredients = state
+        .map((ingredient) {
+          final change = changesById[ingredient.id];
+          if (change == null ||
+              (ingredient.quantity - change.afterQuantity).abs() > 0.000001) {
+            return ingredient;
+          }
+
+          restoredCount++;
+          return ingredient.copyWith(
+            quantity: change.beforeQuantity,
+            updatedAt: now,
+          );
+        })
+        .toList(growable: false);
+
+    if (restoredCount == 0) {
+      return 0;
+    }
+
+    state = updatedIngredients;
+    await _repository.saveIngredients(updatedIngredients);
+    return restoredCount;
   }
 
   Future<void> removeIngredient(String id) async {
