@@ -4,11 +4,13 @@ import 'package:mobile/app/navigation/app_navigation_provider.dart';
 import 'package:mobile/app/navigation/cooking_completion_provider.dart';
 import 'package:mobile/core/models/ingredient.dart';
 import 'package:mobile/core/providers/pantry_provider.dart';
+import 'package:mobile/features/pantry/domain/models/cooking_history_entry.dart';
 import 'package:mobile/features/pantry/domain/models/pantry_quantity_transaction.dart';
 import 'package:mobile/features/pantry/domain/repositories/pantry_repository.dart';
+import 'package:mobile/features/pantry/presentation/providers/cooking_history_provider.dart';
 
 void main() {
-  test('successful cooking deduction opens Pantry and publishes feedback', () async {
+  test('successful cooking deduction opens Pantry and records history', () async {
     final now = DateTime(2026, 7, 24);
     final repository = _FakePantryRepository(
       <Ingredient>[
@@ -62,6 +64,11 @@ void main() {
       AppNavigationNotifier.pantryTab,
     );
     expect(container.read(cookingCompletionProvider), same(transaction));
+    final history = container.read(cookingHistoryProvider);
+    expect(history, hasLength(1));
+    expect(history.single.recipeName, 'ไข่เจียว');
+    expect(history.single.status, CookingHistoryStatus.completed);
+    expect(history.single.changes.single.consumedQuantity, 4);
   });
 }
 
