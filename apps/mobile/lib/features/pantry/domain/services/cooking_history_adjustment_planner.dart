@@ -106,6 +106,16 @@ class CookingHistoryAdjustmentPlanner {
         : allReturned
         ? CookingHistoryStatus.cancelled
         : CookingHistoryStatus.adjusted;
+    final resolvedChanges = allReturned && transactionChanges.isNotEmpty
+        ? entry.changes
+              .map(
+                (change) => change.copyWith(
+                  originalAfterQuantity: change.afterQuantity,
+                  afterQuantity: change.beforeQuantity,
+                ),
+              )
+              .toList(growable: false)
+        : updatedChanges;
 
     return CookingHistoryAdjustmentPlan(
       transaction: PantryQuantityTransaction(
@@ -116,7 +126,7 @@ class CookingHistoryAdjustmentPlanner {
         createdAt: now,
       ),
       updatedEntry: entry.copyWith(
-        changes: List<CookingHistoryChange>.unmodifiable(updatedChanges),
+        changes: List<CookingHistoryChange>.unmodifiable(resolvedChanges),
         status: status,
         updatedAt: transactionChanges.isEmpty ? entry.updatedAt : now,
       ),
