@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_card.dart';
+import '../pages/cooking_history_page.dart';
+import '../providers/cooking_history_provider.dart';
 
-class PantryOverviewCard extends StatelessWidget {
+class PantryOverviewCard extends ConsumerWidget {
   const PantryOverviewCard({
     required this.totalCount,
     required this.expiringCount,
@@ -18,7 +21,9 @@ class PantryOverviewCard extends StatelessWidget {
   final int favoriteCount;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final historyCount = ref.watch(cookingHistoryProvider).length;
+
     return AppCard(
       backgroundColor: AppColors.primaryLight,
       borderColor: AppColors.primary.withValues(alpha: 0.2),
@@ -65,6 +70,25 @@ class PantryOverviewCard extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                Navigator.of(context).push<void>(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const CookingHistoryPage(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.history_rounded),
+              label: Text(
+                historyCount == 0
+                    ? 'ประวัติการทำอาหาร'
+                    : 'ประวัติการทำอาหาร $historyCount รายการ',
+              ),
+            ),
           ),
         ],
       ),
