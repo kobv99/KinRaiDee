@@ -56,7 +56,8 @@ class MainShell extends ConsumerWidget {
             content: Text(
               'ทำอาหารเสร็จแล้ว และหักวัตถุดิบ ${transaction.changedIngredientCount} รายการจาก Pantry',
             ),
-            duration: const Duration(seconds: 8),
+            duration: const Duration(seconds: 6),
+            showCloseIcon: true,
             action: SnackBarAction(
               label: 'ย้อนกลับ',
               onPressed: () async {
@@ -76,6 +77,8 @@ class MainShell extends ConsumerWidget {
                           ? 'คืนวัตถุดิบ $restored รายการกลับเข้า Pantry แล้ว'
                           : 'ย้อนกลับไม่ได้ เพราะปริมาณวัตถุดิบถูกแก้ไขหลังจากนั้น',
                     ),
+                    duration: const Duration(seconds: 4),
+                    showCloseIcon: true,
                   ),
                 );
               },
