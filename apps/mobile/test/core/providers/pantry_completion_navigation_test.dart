@@ -1,13 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/app/navigation/app_navigation_provider.dart';
+import 'package:mobile/app/navigation/cooking_completion_provider.dart';
 import 'package:mobile/core/models/ingredient.dart';
 import 'package:mobile/core/providers/pantry_provider.dart';
 import 'package:mobile/features/pantry/domain/models/pantry_quantity_transaction.dart';
 import 'package:mobile/features/pantry/domain/repositories/pantry_repository.dart';
 
 void main() {
-  test('successful cooking deduction opens the Pantry tab', () async {
+  test('successful cooking deduction opens Pantry and publishes feedback', () async {
     final now = DateTime(2026, 7, 24);
     final repository = _FakePantryRepository(
       <Ingredient>[
@@ -27,6 +28,21 @@ void main() {
       overrides: [pantryRepositoryProvider.overrideWithValue(repository)],
     );
     addTearDown(container.dispose);
+    final transaction = PantryQuantityTransaction(
+      recipeId: 'egg_omelette',
+      recipeName: 'ไข่เจียว',
+      servings: 4,
+      changes: const <PantryQuantityChange>[
+        PantryQuantityChange(
+          ingredientId: 'egg-lot',
+          ingredientName: 'ไข่ไก่',
+          unit: 'ฟอง',
+          beforeQuantity: 10,
+          afterQuantity: 6,
+        ),
+      ],
+      createdAt: now,
+    );
 
     container
         .read(appNavigationProvider.notifier)
@@ -36,29 +52,16 @@ void main() {
       AppNavigationNotifier.recipeTab,
     );
 
-    await container.read(pantryProvider.notifier).applyQuantityTransaction(
-      PantryQuantityTransaction(
-        recipeId: 'egg_omelette',
-        recipeName: 'ไข่เจียว',
-        servings: 4,
-        changes: const <PantryQuantityChange>[
-          PantryQuantityChange(
-            ingredientId: 'egg-lot',
-            ingredientName: 'ไข่ไก่',
-            unit: 'ฟอง',
-            beforeQuantity: 10,
-            afterQuantity: 6,
-          ),
-        ],
-        createdAt: now,
-      ),
-    );
+    await container
+        .read(pantryProvider.notifier)
+        .applyQuantityTransaction(transaction);
 
     expect(container.read(pantryProvider).single.quantity, 6);
     expect(
       container.read(appNavigationProvider),
       AppNavigationNotifier.pantryTab,
     );
+    expect(container.read(cookingCompletionProvider), same(transaction));
   });
 }
 
