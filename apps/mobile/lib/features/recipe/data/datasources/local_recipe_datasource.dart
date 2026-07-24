@@ -15,7 +15,9 @@ class LocalRecipeDataSource {
     'assets/recipes/pork.json',
     'assets/recipes/chicken.json',
     'assets/recipes/beef.json',
+    'assets/recipes/fish.json',
     'assets/recipes/egg.json',
+    'assets/recipes/salted_egg.json',
   ];
 
   final AssetBundle? bundle;
