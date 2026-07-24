@@ -19,4 +19,34 @@ void main() {
     expect(shrimpRecipes, hasLength(20));
     expect(beefRecipes, hasLength(20));
   });
+
+  test('every local recipe has quantities suitable for serving scaling', () async {
+    final recipes = await const LocalRecipeDataSource().loadRecipes();
+
+    for (final recipe in recipes) {
+      expect(
+        recipe.servings,
+        greaterThan(0),
+        reason: '${recipe.id} must define positive base servings',
+      );
+      expect(
+        recipe.ingredients,
+        isNotEmpty,
+        reason: '${recipe.id} must contain ingredients',
+      );
+
+      for (final ingredient in recipe.ingredients) {
+        expect(
+          ingredient.quantity,
+          greaterThan(0),
+          reason: '${recipe.id}/${ingredient.id} must have positive quantity',
+        );
+        expect(
+          ingredient.unit.trim(),
+          isNotEmpty,
+          reason: '${recipe.id}/${ingredient.id} must define a unit',
+        );
+      }
+    }
+  });
 }
