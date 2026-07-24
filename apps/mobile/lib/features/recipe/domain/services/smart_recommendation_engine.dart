@@ -109,20 +109,26 @@ class SmartRecommendationEngine {
     final candidatesByKey = <String, _HeroCandidate>{};
 
     for (final pantryIngredient in pantry) {
-      final key = _normalize(pantryIngredient.name);
-      if (key.isEmpty) {
-        continue;
-      }
-
-      final recipeCount = matches
+      final matchingRecipes = matches
           .where(
             (match) => _recipeHeroMatchesPantry(
               match.recipe,
               pantryIngredient.name,
             ),
           )
-          .length;
-      if (recipeCount == 0) {
+          .toList(growable: false);
+      if (matchingRecipes.isEmpty) {
+        continue;
+      }
+
+      final representativeRecipe = matchingRecipes.first.recipe;
+      final canonicalId = representativeRecipe.resolvedHeroIngredientId;
+      final key = _normalize(
+        canonicalId.isEmpty
+            ? representativeRecipe.resolvedHeroIngredientName
+            : canonicalId,
+      );
+      if (key.isEmpty) {
         continue;
       }
 
@@ -132,7 +138,7 @@ class SmartRecommendationEngine {
           key: key,
           name: pantryIngredient.name,
           emoji: pantryIngredient.emoji,
-          recipeCount: recipeCount,
+          recipeCount: matchingRecipes.length,
         ),
       );
       final current = candidatesByKey[key];
