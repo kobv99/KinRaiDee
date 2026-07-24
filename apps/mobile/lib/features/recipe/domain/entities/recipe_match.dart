@@ -14,7 +14,27 @@ class RecipeMatch {
   final List<RecipeIngredient> missingIngredients;
   final double score;
 
-  bool get canCook => missingIngredients.where((item) => item.required).isEmpty;
+  List<RecipeIngredient> get matchedRequiredIngredients => matchedIngredients
+      .where((item) => item.required)
+      .toList(growable: false);
 
-  int get scorePercent => (score * 100).round();
+  List<RecipeIngredient> get matchedOptionalIngredients => matchedIngredients
+      .where((item) => !item.required)
+      .toList(growable: false);
+
+  List<RecipeIngredient> get missingRequiredIngredients => missingIngredients
+      .where((item) => item.required)
+      .toList(growable: false);
+
+  List<RecipeIngredient> get missingOptionalIngredients => missingIngredients
+      .where((item) => !item.required)
+      .toList(growable: false);
+
+  int get missingRequiredCount => missingRequiredIngredients.length;
+
+  int get missingOptionalCount => missingOptionalIngredients.length;
+
+  bool get canCook => missingRequiredCount == 0;
+
+  int get scorePercent => (score.clamp(0, 1) * 100).round();
 }
