@@ -54,11 +54,6 @@ class CookingHistoryAdjustmentPlanner {
           'หน่วยของ ${change.ingredientName} ถูกเปลี่ยนหลังทำอาหาร กรุณาแก้ใน Pantry โดยตรง',
         );
       }
-      if (!_nearlyEqual(pantryIngredient.quantity, change.afterQuantity)) {
-        throw CookingHistoryAdjustmentException(
-          'ปริมาณ ${change.ingredientName} ถูกแก้ไขหลังทำอาหาร กรุณาตรวจ Pantry ก่อนแก้ประวัติ',
-        );
-      }
 
       final desiredConsumed =
           consumedQuantityByIngredientId[change.ingredientId] ??
@@ -70,22 +65,34 @@ class CookingHistoryAdjustmentPlanner {
         );
       }
 
-      final desiredAfter = (change.beforeQuantity - desiredConsumed)
+      final consumptionDelta = desiredConsumed - change.consumedQuantity;
+      if (consumptionDelta > pantryIngredient.quantity + 0.000001) {
+        throw CookingHistoryAdjustmentException(
+          '${change.ingredientName} ใน Pantry ไม่พอสำหรับหักเพิ่ม ${_formatNumber(consumptionDelta)} ${change.unit}',
+        );
+      }
+
+      final desiredHistoryAfter = (change.beforeQuantity - desiredConsumed)
           .clamp(0, double.infinity)
           .toDouble();
-      updatedChanges.add(change.copyWith(afterQuantity: desiredAfter));
+      updatedChanges.add(
+        change.copyWith(afterQuantity: desiredHistoryAfter),
+      );
 
-      if (_nearlyEqual(change.afterQuantity, desiredAfter)) {
+      if (_nearlyEqual(consumptionDelta, 0)) {
         continue;
       }
 
+      final pantryAfter = (pantryIngredient.quantity - consumptionDelta)
+          .clamp(0, double.infinity)
+          .toDouble();
       transactionChanges.add(
         PantryQuantityChange(
           ingredientId: change.ingredientId,
           ingredientName: change.ingredientName,
           unit: change.unit,
-          beforeQuantity: change.afterQuantity,
-          afterQuantity: desiredAfter,
+          beforeQuantity: pantryIngredient.quantity,
+          afterQuantity: pantryAfter,
         ),
       );
     }
