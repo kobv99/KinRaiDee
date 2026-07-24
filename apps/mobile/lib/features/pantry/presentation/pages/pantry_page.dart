@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/navigation/app_navigation_provider.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../core/models/ingredient.dart';
 import '../../../../core/providers/pantry_provider.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/section_header.dart';
+import '../../../recipe/domain/services/main_ingredient_resolver.dart';
+import '../../../recipe/presentation/providers/recipe_provider.dart';
 import '../../domain/models/food_category.dart';
+import '../../domain/services/pantry_expiry_priority.dart';
 import '../../domain/services/pantry_search_engine.dart';
 import '../providers/pantry_filter_provider.dart';
 import '../widgets/add_ingredient_dialog.dart';
@@ -18,6 +22,7 @@ import '../widgets/pantry_frequent_section.dart';
 import '../widgets/pantry_overview_card.dart';
 import '../widgets/pantry_recent_section.dart';
 import '../widgets/pantry_search_field.dart';
+import '../widgets/pantry_use_soon_section.dart';
 
 class PantryPage extends ConsumerStatefulWidget {
   const PantryPage({super.key});
@@ -28,6 +33,8 @@ class PantryPage extends ConsumerStatefulWidget {
 
 class _PantryPageState extends ConsumerState<PantryPage> {
   final TextEditingController _searchController = TextEditingController();
+
+  String? _loadingRecipeIngredientId;
 
   @override
   void dispose() {
@@ -82,6 +89,68 @@ class _PantryPageState extends ConsumerState<PantryPage> {
     await ref.read(pantryProvider.notifier).updateIngredient(updatedIngredient);
   }
 
+  Future<void> _findRecipesForIngredient(Ingredient ingredient) async {
+    if (PantryExpiryPriority.isExpired(ingredient)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${ingredient.name} หมดอายุแล้ว โปรดตรวจสอบก่อนนำไปทำอาหาร',
+          ),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _loadingRecipeIngredientId = ingredient.id;
+    });
+
+    try {
+      final recipes = await ref.read(recipesProvider.future);
+      final resolution = const MainIngredientResolver().resolve(
+        pantryIngredientName: ingredient.name,
+        recipes: recipes,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      if (resolution == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'ยังไม่มีสูตรที่ใช้ ${ingredient.name} เป็นวัตถุดิบหลัก',
+            ),
+          ),
+        );
+        return;
+      }
+
+      final urgency = PantryExpiryPriority.urgencyLabel(ingredient);
+      await ref.read(heroSelectionProvider.notifier).selectForSession(
+            resolution.key,
+            reason: 'เลือกจาก Pantry เพราะ ${ingredient.name} $urgency',
+          );
+      ref.read(recommendationSessionProvider.notifier).reset();
+      ref.read(appNavigationProvider.notifier).openRecipes();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('เปิดเมนูไม่สำเร็จ: $error')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loadingRecipeIngredientId = null;
+        });
+      }
+    }
+  }
+
   void _clearFilters() {
     _searchController.clear();
     ref.read(pantryFilterProvider.notifier).clearFilters();
@@ -112,6 +181,8 @@ class _PantryPageState extends ConsumerState<PantryPage> {
           filter: filter,
           categories: categories,
           searchController: _searchController,
+          loadingRecipeIngredientId: _loadingRecipeIngredientId,
+          onFindRecipes: _findRecipesForIngredient,
           onAddIngredient: () => _addIngredient(),
           onAddIngredientFromSearch: _addIngredient,
           onAddFrequentIngredient: _addFrequentIngredient,
@@ -163,6 +234,8 @@ class _PantryContent extends StatelessWidget {
     required this.filter,
     required this.categories,
     required this.searchController,
+    required this.loadingRecipeIngredientId,
+    required this.onFindRecipes,
     required this.onAddIngredient,
     required this.onAddIngredientFromSearch,
     required this.onAddFrequentIngredient,
@@ -183,6 +256,8 @@ class _PantryContent extends StatelessWidget {
   final PantryFilterState filter;
   final List<String> categories;
   final TextEditingController searchController;
+  final String? loadingRecipeIngredientId;
+  final ValueChanged<Ingredient> onFindRecipes;
   final VoidCallback onAddIngredient;
   final ValueChanged<String?> onAddIngredientFromSearch;
   final ValueChanged<FoodCatalogItem> onAddFrequentIngredient;
@@ -210,14 +285,16 @@ class _PantryContent extends StatelessWidget {
     return recent.take(5).toList(growable: false);
   }
 
+  List<Ingredient> get _useSoonIngredients {
+    return PantryExpiryPriority.useSoonItems(allIngredients, limit: 3);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final expiringCount = allIngredients.where((ingredient) {
-      final days = ingredient.daysUntilExpiry;
-      return days != null && days <= 7;
-    }).length;
+    final expiringCount = PantryExpiryPriority.useSoonItems(allIngredients).length;
     final searchQuery = filter.searchQuery.trim();
     final suggestions = _catalogSuggestions;
+    final useSoonIngredients = _useSoonIngredients;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -266,6 +343,22 @@ class _PantryContent extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (useSoonIngredients.isNotEmpty)
+                  SliverPadding(
+                    padding: EdgeInsets.fromLTRB(
+                      horizontalPadding,
+                      AppSpacing.sm,
+                      horizontalPadding,
+                      AppSpacing.md,
+                    ),
+                    sliver: SliverToBoxAdapter(
+                      child: PantryUseSoonSection(
+                        ingredients: useSoonIngredients,
+                        loadingIngredientId: loadingRecipeIngredientId,
+                        onFindRecipes: onFindRecipes,
+                      ),
+                    ),
+                  ),
                 if (frequentItems.isNotEmpty)
                   SliverPadding(
                     padding: EdgeInsets.fromLTRB(
@@ -450,8 +543,9 @@ class _PantryContent extends StatelessWidget {
       return 'พบ ${visibleIngredients.length} จาก ${allIngredients.length} รายการ • เรียงตามความใกล้เคียง';
     }
 
-    if (!filter.hasActiveFilters) {
-      return 'แสดงทั้งหมด ${visibleIngredients.length} รายการ • รายการโปรดอยู่ด้านบน';
+    if (!filter.hasActiveFilters &&
+        filter.sortOption == PantrySortOption.expirySoonest) {
+      return 'แสดงทั้งหมด ${visibleIngredients.length} รายการ • ของใกล้หมดอายุอยู่ด้านบน';
     }
 
     return 'พบ ${visibleIngredients.length} จาก ${allIngredients.length} รายการ';
