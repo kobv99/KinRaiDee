@@ -20,6 +20,7 @@ class SmartRecommendationEngine {
     required List<Ingredient> pantry,
     String? selectedHeroKey,
     HeroSelectionMode? selectionMode,
+    String? selectionReason,
     int pageIndex = 0,
     int shuffleSeed = 0,
   }) {
@@ -119,7 +120,11 @@ class SmartRecommendationEngine {
       pageIndex: safePageIndex,
       pageCount: pageCount,
       heroSelectionMode: resolvedMode,
-      heroReason: _heroReason(selectedCandidate, resolvedMode),
+      heroReason: _heroReason(
+        selectedCandidate,
+        resolvedMode,
+        selectionReason: requestedCandidate == null ? null : selectionReason,
+      ),
       requestedSelectionAvailable: requestedSelectionAvailable,
     );
   }
@@ -229,8 +234,14 @@ class SmartRecommendationEngine {
 
   String _heroReason(
     _HeroCandidate candidate,
-    HeroSelectionMode selectionMode,
-  ) {
+    HeroSelectionMode selectionMode, {
+    String? selectionReason,
+  }) {
+    final customReason = selectionReason?.trim();
+    if (customReason != null && customReason.isNotEmpty) {
+      return customReason;
+    }
+
     switch (selectionMode) {
       case HeroSelectionMode.manual:
         return 'คุณเลือก ${candidate.option.name} เป็นวัตถุดิบหลักสำหรับครั้งนี้';
