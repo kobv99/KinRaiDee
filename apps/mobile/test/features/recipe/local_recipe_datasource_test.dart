@@ -13,11 +13,19 @@ void main() {
     final beefRecipes = recipes
         .where((recipe) => recipe.resolvedHeroIngredientId == 'beef')
         .toList(growable: false);
+    final fishRecipes = recipes
+        .where((recipe) => recipe.resolvedHeroIngredientId == 'fish')
+        .toList(growable: false);
+    final saltedEggRecipes = recipes
+        .where((recipe) => recipe.resolvedHeroIngredientId == 'salted_egg')
+        .toList(growable: false);
 
-    expect(recipes.length, greaterThanOrEqualTo(120));
+    expect(recipes.length, greaterThanOrEqualTo(158));
     expect(ids.length, recipes.length);
     expect(shrimpRecipes, hasLength(20));
     expect(beefRecipes, hasLength(20));
+    expect(fishRecipes, hasLength(20));
+    expect(saltedEggRecipes, hasLength(12));
   });
 
   test('every local recipe has quantities suitable for serving scaling', () async {
