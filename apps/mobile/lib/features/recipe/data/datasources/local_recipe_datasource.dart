@@ -6,7 +6,7 @@ import '../../domain/entities/recipe.dart';
 import '../recipe_pack_parser.dart';
 
 class LocalRecipeDataSource {
-  const LocalRecipeDataSource({AssetBundle? bundle}) : _bundle = bundle;
+  const LocalRecipeDataSource({this.bundle});
 
   static const List<String> defaultAssetPaths = <String>[
     'assets/recipes/thai.json',
@@ -17,18 +17,18 @@ class LocalRecipeDataSource {
     'assets/recipes/egg.json',
   ];
 
-  final AssetBundle? _bundle;
+  final AssetBundle? bundle;
 
   Future<List<Recipe>> loadRecipes({
     List<String> assetPaths = defaultAssetPaths,
   }) async {
-    final bundle = _bundle ?? rootBundle;
+    final assetBundle = bundle ?? rootBundle;
     final parser = const RecipePackParser();
     final recipes = <Recipe>[];
     final recipeIds = <String>{};
 
     for (final assetPath in assetPaths) {
-      final raw = await bundle.loadString(assetPath);
+      final raw = await assetBundle.loadString(assetPath);
       final parsedRecipes = parser.parse(jsonDecode(raw));
 
       for (final recipe in parsedRecipes) {
