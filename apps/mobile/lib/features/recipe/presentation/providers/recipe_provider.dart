@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/providers/pantry_provider.dart';
+import '../../../../core/services/storage_service.dart';
 import '../../data/datasources/local_recipe_datasource.dart';
 import '../../data/repositories/local_recipe_repository.dart';
 import '../../domain/entities/recipe.dart';
@@ -77,18 +78,74 @@ final recommendationSessionProvider =
       RecommendationSessionNotifier.new,
     );
 
-class SelectedHeroIngredientNotifier extends Notifier<String?> {
-  @override
-  String? build() => null;
+class HeroSelectionState {
+  const HeroSelectionState({
+    this.mode = HeroSelectionMode.automatic,
+    this.key,
+  });
 
-  void select(String? key) {
-    state = key;
+  final HeroSelectionMode mode;
+  final String? key;
+
+  bool get isAutomatic => mode == HeroSelectionMode.automatic;
+  bool get isPinned => mode == HeroSelectionMode.pinned;
+}
+
+class HeroSelectionNotifier extends Notifier<HeroSelectionState> {
+  @override
+  HeroSelectionState build() {
+    try {
+      final pinnedKey = StorageService.loadPinnedHeroIngredientKey();
+      if (pinnedKey != null) {
+        return HeroSelectionState(
+          mode: HeroSelectionMode.pinned,
+          key: pinnedKey,
+        );
+      }
+    } on StateError {
+      // Some isolated provider tests do not initialize Hive.
+    }
+
+    return const HeroSelectionState();
+  }
+
+  Future<void> useAutomatic() async {
+    state = const HeroSelectionState();
+    try {
+      await StorageService.clearPinnedHeroIngredientKey();
+    } on StateError {
+      // Storage is unavailable only in isolated tests.
+    }
+  }
+
+  Future<void> selectForSession(String key) async {
+    state = HeroSelectionState(
+      mode: HeroSelectionMode.manual,
+      key: key,
+    );
+    try {
+      await StorageService.clearPinnedHeroIngredientKey();
+    } on StateError {
+      // Storage is unavailable only in isolated tests.
+    }
+  }
+
+  Future<void> pin(String key) async {
+    state = HeroSelectionState(
+      mode: HeroSelectionMode.pinned,
+      key: key,
+    );
+    try {
+      await StorageService.savePinnedHeroIngredientKey(key);
+    } on StateError {
+      // Storage is unavailable only in isolated tests.
+    }
   }
 }
 
-final selectedHeroIngredientProvider =
-    NotifierProvider<SelectedHeroIngredientNotifier, String?>(
-      SelectedHeroIngredientNotifier.new,
+final heroSelectionProvider =
+    NotifierProvider<HeroSelectionNotifier, HeroSelectionState>(
+      HeroSelectionNotifier.new,
     );
 
 final smartRecommendationProvider = Provider<AsyncValue<SmartRecommendation>>((
@@ -96,14 +153,15 @@ final smartRecommendationProvider = Provider<AsyncValue<SmartRecommendation>>((
 ) {
   final matches = ref.watch(recipeMatchesProvider);
   final pantry = ref.watch(pantryProvider);
-  final selectedHeroKey = ref.watch(selectedHeroIngredientProvider);
+  final heroSelection = ref.watch(heroSelectionProvider);
   final session = ref.watch(recommendationSessionProvider);
 
   return matches.whenData(
     (items) => const SmartRecommendationEngine().build(
       matches: items,
       pantry: pantry,
-      selectedHeroKey: selectedHeroKey,
+      selectedHeroKey: heroSelection.key,
+      selectionMode: heroSelection.mode,
       pageIndex: session.pageIndex,
       shuffleSeed: session.shuffleSeed,
     ),
