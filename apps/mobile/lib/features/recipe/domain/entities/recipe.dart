@@ -7,6 +7,7 @@ class Recipe {
     required this.category,
     required this.ingredients,
     required this.steps,
+    this.version = 1,
     this.description = '',
     this.emoji = '🍳',
     this.difficulty = 'easy',
@@ -14,10 +15,14 @@ class Recipe {
     this.servings = 1,
     this.tags = const <String>[],
     this.cookingMethods = const <String>[],
+    this.heroIngredientId,
+    this.heroIngredientName,
+    this.popularity = 0,
     this.sourceUrl,
     this.discoveredByAi = false,
   });
 
+  final int version;
   final String id;
   final String name;
   final String category;
@@ -28,13 +33,52 @@ class Recipe {
   final int servings;
   final List<String> tags;
   final List<String> cookingMethods;
+  final String? heroIngredientId;
+  final String? heroIngredientName;
+  final int popularity;
   final List<RecipeIngredient> ingredients;
   final List<String> steps;
   final String? sourceUrl;
   final bool discoveredByAi;
 
+  RecipeIngredient? get heroIngredient {
+    final explicitId = heroIngredientId?.trim();
+    if (explicitId != null && explicitId.isNotEmpty) {
+      for (final ingredient in ingredients) {
+        if (ingredient.id == explicitId) {
+          return ingredient;
+        }
+      }
+    }
+
+    final explicitName = heroIngredientName?.trim();
+    if (explicitName != null && explicitName.isNotEmpty) {
+      for (final ingredient in ingredients) {
+        if (ingredient.name == explicitName) {
+          return ingredient;
+        }
+      }
+    }
+
+    for (final ingredient in ingredients) {
+      if (ingredient.required) {
+        return ingredient;
+      }
+    }
+
+    return ingredients.isEmpty ? null : ingredients.first;
+  }
+
+  String get resolvedHeroIngredientId => heroIngredient?.id ?? '';
+
+  String get resolvedHeroIngredientName =>
+      heroIngredientName?.trim().isNotEmpty == true
+      ? heroIngredientName!.trim()
+      : heroIngredient?.name ?? '';
+
   factory Recipe.fromJson(Map<String, dynamic> json) {
     return Recipe(
+      version: (json['version'] as num?)?.toInt() ?? 1,
       id: json['id'] as String,
       name: json['name'] as String,
       category: json['category'] as String? ?? 'ทั่วไป',
@@ -49,6 +93,9 @@ class Recipe {
       cookingMethods: _stringList(
         json['cookingMethods'] ?? json['cookingMethod'],
       ),
+      heroIngredientId: json['heroIngredientId'] as String?,
+      heroIngredientName: json['heroIngredientName'] as String?,
+      popularity: (json['popularity'] as num?)?.toInt() ?? 0,
       ingredients: (json['ingredients'] as List<dynamic>? ?? const <dynamic>[])
           .map(
             (ingredient) => RecipeIngredient.fromJson(
