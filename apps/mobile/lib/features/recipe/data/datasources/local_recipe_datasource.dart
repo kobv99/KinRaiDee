@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 
 import '../../domain/entities/recipe.dart';
+import '../recipe_pack_parser.dart';
 
 class LocalRecipeDataSource {
   const LocalRecipeDataSource({AssetBundle? bundle}) : _bundle = bundle;
@@ -22,15 +23,15 @@ class LocalRecipeDataSource {
     List<String> assetPaths = defaultAssetPaths,
   }) async {
     final bundle = _bundle ?? rootBundle;
+    final parser = const RecipePackParser();
     final recipes = <Recipe>[];
     final recipeIds = <String>{};
 
     for (final assetPath in assetPaths) {
       final raw = await bundle.loadString(assetPath);
-      final decoded = jsonDecode(raw) as List<dynamic>;
+      final parsedRecipes = parser.parse(jsonDecode(raw));
 
-      for (final item in decoded) {
-        final recipe = Recipe.fromJson(Map<String, dynamic>.from(item as Map));
+      for (final recipe in parsedRecipes) {
         if (!recipeIds.add(recipe.id)) {
           throw FormatException('Duplicate recipe id: ${recipe.id}');
         }
