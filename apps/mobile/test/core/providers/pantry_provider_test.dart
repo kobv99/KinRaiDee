@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/core/models/ingredient.dart';
 import 'package:mobile/core/providers/pantry_provider.dart';
+import 'package:mobile/features/pantry/domain/models/pantry_quantity_transaction.dart';
 import 'package:mobile/features/pantry/domain/repositories/pantry_repository.dart';
 
 void main() {
@@ -95,6 +96,96 @@ void main() {
     expect(container.read(favoriteIngredientNamesProvider), isEmpty);
     expect(container.read(pantryProvider).single.isFavorite, isFalse);
     expect(repository.favoriteNames, isEmpty);
+  });
+
+  test('quantity transaction can be applied and safely undone', () async {
+    final now = DateTime(2026, 7, 24);
+    final ingredient = Ingredient(
+      id: 'egg-lot',
+      name: 'ไข่ไก่',
+      category: 'ไข่',
+      emoji: '🥚',
+      quantity: 10,
+      unit: 'ฟอง',
+      createdAt: now,
+      updatedAt: now,
+    );
+    final repository = _FakePantryRepository(<Ingredient>[ingredient]);
+    final container = ProviderContainer(
+      overrides: [pantryRepositoryProvider.overrideWithValue(repository)],
+    );
+    addTearDown(container.dispose);
+    final notifier = container.read(pantryProvider.notifier);
+    final transaction = PantryQuantityTransaction(
+      recipeId: 'egg_omelette',
+      recipeName: 'ไข่เจียว',
+      servings: 4,
+      changes: const <PantryQuantityChange>[
+        PantryQuantityChange(
+          ingredientId: 'egg-lot',
+          ingredientName: 'ไข่ไก่',
+          unit: 'ฟอง',
+          beforeQuantity: 10,
+          afterQuantity: 6,
+        ),
+      ],
+      createdAt: now,
+    );
+
+    await notifier.applyQuantityTransaction(transaction);
+
+    expect(container.read(pantryProvider).single.quantity, 6);
+    expect(repository.getIngredients().single.quantity, 6);
+
+    final restored = await notifier.undoQuantityTransaction(transaction);
+
+    expect(restored, 1);
+    expect(container.read(pantryProvider).single.quantity, 10);
+    expect(repository.getIngredients().single.quantity, 10);
+  });
+
+  test('undo does not overwrite a quantity edited after deduction', () async {
+    final now = DateTime(2026, 7, 24);
+    final ingredient = Ingredient(
+      id: 'shrimp-lot',
+      name: 'กุ้ง',
+      category: 'อาหารทะเล',
+      emoji: '🦐',
+      quantity: 500,
+      unit: 'กรัม',
+      createdAt: now,
+      updatedAt: now,
+    );
+    final repository = _FakePantryRepository(<Ingredient>[ingredient]);
+    final container = ProviderContainer(
+      overrides: [pantryRepositoryProvider.overrideWithValue(repository)],
+    );
+    addTearDown(container.dispose);
+    final notifier = container.read(pantryProvider.notifier);
+    final transaction = PantryQuantityTransaction(
+      recipeId: 'shrimp_garlic',
+      recipeName: 'กุ้งผัดกระเทียม',
+      servings: 2,
+      changes: const <PantryQuantityChange>[
+        PantryQuantityChange(
+          ingredientId: 'shrimp-lot',
+          ingredientName: 'กุ้ง',
+          unit: 'กรัม',
+          beforeQuantity: 500,
+          afterQuantity: 300,
+        ),
+      ],
+      createdAt: now,
+    );
+
+    await notifier.applyQuantityTransaction(transaction);
+    await notifier.updateIngredient(
+      container.read(pantryProvider).single.copyWith(quantity: 250),
+    );
+    final restored = await notifier.undoQuantityTransaction(transaction);
+
+    expect(restored, 0);
+    expect(container.read(pantryProvider).single.quantity, 250);
   });
 }
 
