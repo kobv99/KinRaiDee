@@ -13,6 +13,24 @@ class MainShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.listen<int>(appNavigationProvider, (previousIndex, nextIndex) {
+      if (nextIndex != AppNavigationNotifier.pantryTab ||
+          previousIndex == nextIndex) {
+        return;
+      }
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) {
+          return;
+        }
+
+        final navigator = Navigator.of(context);
+        if (navigator.canPop()) {
+          navigator.popUntil((route) => route.isFirst);
+        }
+      });
+    });
+
     final currentIndex = ref.watch(appNavigationProvider);
     final navigation = ref.read(appNavigationProvider.notifier);
     final pages = <Widget>[
