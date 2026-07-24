@@ -38,30 +38,46 @@ void main() {
       expect(plan.updatedEntry.changes.single.consumedQuantity, 5);
     });
 
-    test('cancelling restores the original Pantry quantity', () {
+    test('cancelling restores the recorded usage to current Pantry stock', () {
       final entry = _entry(before: 10, after: 6);
-      final pantry = <Ingredient>[_pantry(quantity: 6)];
+      final pantry = <Ingredient>[_pantry(quantity: 4)];
 
       final plan = const CookingHistoryAdjustmentPlanner().cancel(
         entry: entry,
         pantry: pantry,
       );
 
-      expect(plan.transaction.changes.single.afterQuantity, 10);
+      expect(plan.transaction.changes.single.beforeQuantity, 4);
+      expect(plan.transaction.changes.single.afterQuantity, 8);
       expect(plan.updatedEntry.changes.single.consumedQuantity, 0);
       expect(plan.updatedEntry.status, CookingHistoryStatus.cancelled);
     });
 
-    test('blocks history edit after Pantry quantity changed separately', () {
+    test('older history can be corrected after later Pantry consumption', () {
       final entry = _entry(before: 10, after: 6);
       final pantry = <Ingredient>[_pantry(quantity: 5)];
+
+      final plan = const CookingHistoryAdjustmentPlanner().adjust(
+        entry: entry,
+        pantry: pantry,
+        consumedQuantityByIngredientId: const <String, double>{'egg-lot': 3},
+      );
+
+      expect(plan.transaction.changes.single.beforeQuantity, 5);
+      expect(plan.transaction.changes.single.afterQuantity, 6);
+      expect(plan.updatedEntry.changes.single.consumedQuantity, 3);
+    });
+
+    test('blocks extra deduction when current Pantry stock is insufficient', () {
+      final entry = _entry(before: 10, after: 6);
+      final pantry = <Ingredient>[_pantry(quantity: 0)];
 
       expect(
         () => const CookingHistoryAdjustmentPlanner().adjust(
           entry: entry,
           pantry: pantry,
           consumedQuantityByIngredientId: const <String, double>{
-            'egg-lot': 3,
+            'egg-lot': 5,
           },
         ),
         throwsA(isA<CookingHistoryAdjustmentException>()),
