@@ -3,6 +3,7 @@ import '../entities/recipe.dart';
 import '../entities/recipe_ingredient.dart';
 import '../entities/recipe_match.dart';
 import '../entities/smart_recommendation.dart';
+import 'ingredient_name_matcher.dart';
 
 class SmartRecommendationEngine {
   const SmartRecommendationEngine({
@@ -179,22 +180,7 @@ class SmartRecommendationEngine {
   }
 
   bool _ingredientMatches(RecipeIngredient ingredient, String pantryName) {
-    final pantryKey = _normalize(pantryName);
-    if (pantryKey.isEmpty) {
-      return false;
-    }
-
-    final candidateKeys = <String>{
-      _normalize(ingredient.name),
-      ...ingredient.aliases.map(_normalize),
-    }..removeWhere((candidate) => candidate.isEmpty);
-
-    return candidateKeys.any(
-      (candidate) =>
-          pantryKey == candidate ||
-          pantryKey.contains(candidate) ||
-          candidate.contains(pantryKey),
-    );
+    return recipeIngredientMatchesPantryName(ingredient, pantryName);
   }
 
   int _compareQuality(RecipeMatch first, RecipeMatch second, int seed) {
@@ -252,14 +238,7 @@ class SmartRecommendationEngine {
   }
 
   String _normalize(String value) {
-    return value
-        .trim()
-        .toLowerCase()
-        .replaceAll(RegExp(r'\s+'), '')
-        .replaceAll('เนื้อ', '')
-        .replaceAll('สด', '')
-        .replaceAll('ซอย', '')
-        .replaceAll('สับ', '');
+    return normalizeRecipeIngredientName(value);
   }
 }
 
