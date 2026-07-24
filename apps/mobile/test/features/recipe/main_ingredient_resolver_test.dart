@@ -32,6 +32,79 @@ void main() {
       expect(resolution?.recipeCount, 2);
     });
 
+    test('maps sea bass in Pantry to the fish recipe family', () {
+      final resolution = const MainIngredientResolver().resolve(
+        pantryIngredientName: 'ปลากะพง',
+        recipes: <Recipe>[
+          _recipe(
+            id: 'fish_steam',
+            heroId: 'fish',
+            heroName: 'ปลา',
+            aliases: const <String>[
+              'ปลาสด',
+              'เนื้อปลา',
+              'ปลากะพง',
+              'ปลานิล',
+            ],
+          ),
+          _recipe(
+            id: 'fish_fry',
+            heroId: 'fish',
+            heroName: 'ปลา',
+            aliases: const <String>[
+              'ปลาสด',
+              'เนื้อปลา',
+              'ปลากะพง',
+              'ปลานิล',
+            ],
+          ),
+        ],
+      );
+
+      expect(resolution?.key, 'fish');
+      expect(resolution?.recipeCount, 2);
+    });
+
+    test('keeps salted egg separate from the regular egg family', () {
+      final resolution = const MainIngredientResolver().resolve(
+        pantryIngredientName: 'ไข่เค็ม',
+        recipes: <Recipe>[
+          _recipe(
+            id: 'regular_egg',
+            heroId: 'egg',
+            heroName: 'ไข่ไก่',
+            aliases: const <String>['ไข่', 'ไข่เป็ด'],
+          ),
+          _recipe(
+            id: 'salted_egg_salad',
+            heroId: 'salted_egg',
+            heroName: 'ไข่เค็ม',
+            aliases: const <String>['ไข่เป็ดเค็ม'],
+          ),
+        ],
+      );
+
+      expect(resolution?.key, 'salted_egg');
+      expect(resolution?.recipeCount, 1);
+    });
+
+    test('maps duck egg to the regular egg recipe family', () {
+      final resolution = const MainIngredientResolver().resolve(
+        pantryIngredientName: 'ไข่เป็ด',
+        recipes: <Recipe>[
+          _recipe(
+            id: 'egg_omelette',
+            heroId: 'egg',
+            heroName: 'ไข่ไก่',
+            aliases: const <String>['ไข่', 'ไข่เป็ด'],
+          ),
+        ],
+      );
+
+      expect(resolution?.key, 'egg');
+      expect(resolution?.recipeCount, 1);
+    });
+
     test('returns null when no recipe family supports the Pantry item', () {
       final resolution = const MainIngredientResolver().resolve(
         pantryIngredientName: 'อะโวคาโด',
