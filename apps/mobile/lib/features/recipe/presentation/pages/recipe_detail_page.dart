@@ -28,11 +28,11 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
   void initState() {
     super.initState();
     final baseServings = widget.recipe.servings > 0 ? widget.recipe.servings : 2;
-    _selectedServings = baseServings.clamp(1, 12);
+    _selectedServings = baseServings.clamp(1, 12).toInt();
   }
 
   void _setServings(int servings) {
-    final safeServings = servings.clamp(1, 12);
+    final safeServings = servings.clamp(1, 12).toInt();
     if (safeServings == _selectedServings) {
       return;
     }
@@ -182,7 +182,7 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text(
-                        'ทำครบทุกขั้นตอนแล้ว 🎉 ระบบยังไม่หักวัตถุดิบอัตโนมัติใน Sprint นี้',
+                        'ทำครบทุกขั้นตอนแล้ว 🎉 วัตถุดิบใน Pantry ยังไม่ถูกหัก',
                       ),
                     ),
                   );
