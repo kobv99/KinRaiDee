@@ -2,8 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/core/models/ingredient.dart';
 import 'package:mobile/core/providers/pantry_provider.dart';
+import 'package:mobile/features/pantry/domain/models/cooking_history_entry.dart';
 import 'package:mobile/features/pantry/domain/models/pantry_quantity_transaction.dart';
 import 'package:mobile/features/pantry/domain/repositories/pantry_repository.dart';
+import 'package:mobile/features/pantry/presentation/providers/cooking_history_provider.dart';
 
 void main() {
   test('frequent ingredient survives delete, refresh, and re-add', () async {
@@ -136,12 +138,20 @@ void main() {
 
     expect(container.read(pantryProvider).single.quantity, 6);
     expect(repository.getIngredients().single.quantity, 6);
+    expect(
+      container.read(cookingHistoryProvider).single.status,
+      CookingHistoryStatus.completed,
+    );
 
     final restored = await notifier.undoQuantityTransaction(transaction);
 
     expect(restored, 1);
     expect(container.read(pantryProvider).single.quantity, 10);
     expect(repository.getIngredients().single.quantity, 10);
+    expect(
+      container.read(cookingHistoryProvider).single.status,
+      CookingHistoryStatus.cancelled,
+    );
   });
 
   test('undo does not overwrite a quantity edited after deduction', () async {
@@ -186,6 +196,10 @@ void main() {
 
     expect(restored, 0);
     expect(container.read(pantryProvider).single.quantity, 250);
+    expect(
+      container.read(cookingHistoryProvider).single.status,
+      CookingHistoryStatus.completed,
+    );
   });
 }
 
