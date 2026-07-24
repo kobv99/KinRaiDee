@@ -22,6 +22,12 @@ class RecipePage extends ConsumerWidget {
           onRetry: () => ref.invalidate(recipesProvider),
         ),
         data: (result) {
+          if (!result.requestedSelectionAvailable) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              ref.read(heroSelectionProvider.notifier).useAutomatic();
+            });
+          }
+
           if (!result.hasHero) {
             return RefreshIndicator(
               onRefresh: () => _reload(ref),
@@ -37,17 +43,31 @@ class RecipePage extends ConsumerWidget {
               children: [
                 _HeroIngredientCard(
                   hero: result.hero!,
-                  optionCount: result.heroOptions.length,
-                  onChange: result.heroOptions.length > 1
-                      ? () => _showHeroPicker(context, ref, result.heroOptions)
-                      : null,
+                  selectionMode: result.heroSelectionMode,
+                  reason: result.heroReason,
+                  onChange: () => _showHeroPicker(
+                    context,
+                    ref,
+                    result.heroOptions,
+                    result.hero!,
+                    result.heroSelectionMode,
+                  ),
+                  onTogglePin: () async {
+                    final notifier = ref.read(heroSelectionProvider.notifier);
+                    if (result.isPinned) {
+                      await notifier.useAutomatic();
+                    } else {
+                      await notifier.pin(result.hero!.key);
+                    }
+                    ref.read(recommendationSessionProvider.notifier).reset();
+                  },
                 ),
                 const SizedBox(height: 22),
                 Row(
                   children: [
                     Expanded(
                       child: Text(
-                        '5 เมนูที่น่าลองจาก${result.hero!.name}',
+                        '${result.primaryMatches.length} เมนูที่น่าลองจาก${result.hero!.name}',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -63,7 +83,7 @@ class RecipePage extends ConsumerWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'เรียงจากของที่มีอยู่และจำนวนวัตถุดิบที่ต้องซื้อเพิ่ม',
+                  'สุ่มเป็นชุดไม่ซ้ำ และเรียงในแต่ละชุดจากเปอร์เซ็นต์สูงไปต่ำ',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -128,39 +148,128 @@ class RecipePage extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     List<HeroIngredientOption> options,
+    HeroIngredientOption activeHero,
+    HeroSelectionMode activeMode,
   ) async {
     await showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       showDragHandle: true,
       builder: (sheetContext) {
+        final sheetHeight =
+            (MediaQuery.sizeOf(sheetContext).height * 0.72)
+                .clamp(360.0, 640.0)
+                .toDouble();
+
         return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+          child: SizedBox(
+            height: sheetHeight,
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'วันนี้อยากทำจากอะไร?',
-                  style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'วันนี้อยากเน้นวัตถุดิบอะไร?',
+                        style: Theme.of(sheetContext).textTheme.titleLarge
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'แตะเพื่อใช้ครั้งนี้ หรือกดหมุดเพื่อจำไว้ครั้งต่อไป',
+                        style: Theme.of(sheetContext).textTheme.bodyMedium
+                            ?.copyWith(
+                              color: Theme.of(
+                                sheetContext,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 12),
-                ...options.map(
-                  (option) => ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: CircleAvatar(child: Text(option.emoji)),
-                    title: Text(option.name),
-                    subtitle: Text('มี ${option.recipeCount} เมนู'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      ref
-                          .read(selectedHeroIngredientProvider.notifier)
-                          .select(option.key);
-                      ref.read(recommendationSessionProvider.notifier).reset();
-                      Navigator.of(sheetContext).pop();
-                    },
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
+                    children: [
+                      ListTile(
+                        leading: const CircleAvatar(
+                          child: Icon(Icons.auto_awesome_outlined),
+                        ),
+                        title: const Text('ให้ระบบเลือกอัตโนมัติ'),
+                        subtitle: const Text(
+                          'ดูของใกล้หมดอายุ ความพร้อม และเมนูที่ทำได้',
+                        ),
+                        trailing: activeMode == HeroSelectionMode.automatic
+                            ? const Icon(Icons.check_circle)
+                            : null,
+                        onTap: () async {
+                          await ref
+                              .read(heroSelectionProvider.notifier)
+                              .useAutomatic();
+                          ref
+                              .read(recommendationSessionProvider.notifier)
+                              .reset();
+                          if (sheetContext.mounted) {
+                            Navigator.of(sheetContext).pop();
+                          }
+                        },
+                      ),
+                      const Divider(),
+                      ...options.map(
+                        (option) => ListTile(
+                          leading: CircleAvatar(child: Text(option.emoji)),
+                          title: Text(option.name),
+                          subtitle: Text(_heroOptionSubtitle(option)),
+                          selected:
+                              activeMode != HeroSelectionMode.automatic &&
+                              activeHero.key == option.key,
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (activeMode != HeroSelectionMode.automatic &&
+                                  activeHero.key == option.key)
+                                const Icon(Icons.check_circle_outline),
+                              IconButton(
+                                tooltip: 'ปักหมุดเป็นวัตถุดิบหลัก',
+                                onPressed: () async {
+                                  await ref
+                                      .read(heroSelectionProvider.notifier)
+                                      .pin(option.key);
+                                  ref
+                                      .read(
+                                        recommendationSessionProvider.notifier,
+                                      )
+                                      .reset();
+                                  if (sheetContext.mounted) {
+                                    Navigator.of(sheetContext).pop();
+                                  }
+                                },
+                                icon: Icon(
+                                  activeMode == HeroSelectionMode.pinned &&
+                                          activeHero.key == option.key
+                                      ? Icons.push_pin
+                                      : Icons.push_pin_outlined,
+                                ),
+                              ),
+                            ],
+                          ),
+                          onTap: () async {
+                            await ref
+                                .read(heroSelectionProvider.notifier)
+                                .selectForSession(option.key);
+                            ref
+                                .read(recommendationSessionProvider.notifier)
+                                .reset();
+                            if (sheetContext.mounted) {
+                              Navigator.of(sheetContext).pop();
+                            }
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -175,17 +284,22 @@ class RecipePage extends ConsumerWidget {
 class _HeroIngredientCard extends StatelessWidget {
   const _HeroIngredientCard({
     required this.hero,
-    required this.optionCount,
-    this.onChange,
+    required this.selectionMode,
+    required this.reason,
+    required this.onChange,
+    required this.onTogglePin,
   });
 
   final HeroIngredientOption hero;
-  final int optionCount;
-  final VoidCallback? onChange;
+  final HeroSelectionMode selectionMode;
+  final String reason;
+  final VoidCallback onChange;
+  final VoidCallback onTogglePin;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final isPinned = selectionMode == HeroSelectionMode.pinned;
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -194,6 +308,7 @@ class _HeroIngredientCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: 58,
@@ -224,14 +339,41 @@ class _HeroIngredientCard extends StatelessWidget {
                     color: colors.onPrimaryContainer,
                   ),
                 ),
+                if (reason.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        _selectionIcon(selectionMode),
+                        size: 16,
+                        color: colors.onPrimaryContainer,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          reason,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: colors.onPrimaryContainer,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
-          if (onChange != null)
-            TextButton(
-              onPressed: onChange,
-              child: Text(optionCount > 1 ? 'เปลี่ยน' : 'เลือก'),
-            ),
+          Column(
+            children: [
+              TextButton(onPressed: onChange, child: const Text('เปลี่ยน')),
+              IconButton(
+                tooltip: isPinned ? 'กลับไปให้ระบบเลือก' : 'ปักหมุดวัตถุดิบนี้',
+                onPressed: onTogglePin,
+                icon: Icon(isPinned ? Icons.push_pin : Icons.push_pin_outlined),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -253,7 +395,7 @@ class _MoreRecipesSection extends StatelessWidget {
           'เมนูเพิ่มเติมจากวัตถุดิบที่มี',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        subtitle: Text('${matches.length} เมนู — กดเพื่อดู'),
+        subtitle: Text('${matches.length} เมนู — เรียงตามเปอร์เซ็นต์'),
         childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
         children: matches
             .map(
@@ -326,9 +468,9 @@ class _RecipeMatchCard extends StatelessWidget {
           const Divider(height: 20),
           Text(
             _recommendationReason(match),
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
           if (match.recipe.description.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -351,9 +493,9 @@ class _RecipeMatchCard extends StatelessWidget {
           const SizedBox(height: 14),
           Text(
             'วิธีทำ',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 6),
           ...match.recipe.steps.indexed.map(
@@ -420,9 +562,9 @@ class _ScoreBadge extends StatelessWidget {
       ),
       child: Text(
         '$score%',
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          fontWeight: FontWeight.bold,
-        ),
+        style: Theme.of(
+          context,
+        ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -441,9 +583,9 @@ class _IngredientList extends StatelessWidget {
       children: [
         Text(
           title,
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 6),
         ...ingredients.map(
@@ -475,9 +617,9 @@ class _NoHeroView extends StatelessWidget {
         Text(
           'ยังไม่พบเมนูจากวัตถุดิบหลักของคุณ',
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         Text(
@@ -524,6 +666,31 @@ class _ErrorView extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+String _heroOptionSubtitle(HeroIngredientOption option) {
+  final parts = <String>['${option.recipeCount} เมนู'];
+  if (option.readyCount > 0) {
+    parts.add('พร้อมทำ ${option.readyCount}');
+  } else {
+    parts.add('ดีที่สุด ${option.bestScorePercent}%');
+  }
+  final days = option.daysUntilExpiry;
+  if (days != null && days <= 7) {
+    parts.add(days <= 0 ? 'ควรใช้วันนี้' : 'หมดอายุใน $days วัน');
+  }
+  return parts.join(' · ');
+}
+
+IconData _selectionIcon(HeroSelectionMode mode) {
+  switch (mode) {
+    case HeroSelectionMode.automatic:
+      return Icons.auto_awesome_outlined;
+    case HeroSelectionMode.manual:
+      return Icons.touch_app_outlined;
+    case HeroSelectionMode.pinned:
+      return Icons.push_pin;
   }
 }
 
