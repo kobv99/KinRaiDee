@@ -1,10 +1,11 @@
 [
-  {"id":"pork","name":"หมู","category":"protein","defaultUnit":"กรัม","aliases":["เนื้อหมู","หมูสด"],"tags":["เนื้อสัตว์"]},
+  {"id":"pork","name":"หมู","category":"protein","defaultUnit":"กรัม","aliases":["เนื้อหมู","หมูสด","หมูชิ้น","หมูสไลซ์"],"tags":["เนื้อสัตว์"]},
   {"id":"minced_pork","name":"หมูสับ","category":"protein","defaultUnit":"กรัม","parentId":"pork","aliases":["หมูบด"],"tags":["เนื้อสัตว์"]},
   {"id":"pork_belly","name":"หมูสามชั้น","category":"protein","defaultUnit":"กรัม","parentId":"pork","aliases":["สามชั้น"],"tags":["เนื้อสัตว์"]},
+  {"id":"pork_neck","name":"สันคอหมู","category":"protein","defaultUnit":"กรัม","parentId":"pork","aliases":["คอหมู","เนื้อสันคอหมู"],"tags":["เนื้อสัตว์"]},
   {"id":"chicken","name":"ไก่","category":"protein","defaultUnit":"กรัม","aliases":["เนื้อไก่","ไก่สด"],"tags":["เนื้อสัตว์"]},
   {"id":"chicken_breast","name":"อกไก่","category":"protein","defaultUnit":"กรัม","parentId":"chicken","aliases":["เนื้ออกไก่"],"tags":["เนื้อสัตว์"]},
-  {"id":"beef","name":"เนื้อวัว","category":"protein","defaultUnit":"กรัม","aliases":["เนื้อ","วัว"],"tags":["เนื้อสัตว์"]},
+  {"id":"beef","name":"เนื้อวัว","category":"protein","defaultUnit":"กรัม","aliases":["เนื้อ","วัว","เนื้อวัวสด","เนื้อวัวสไลซ์","เนื้อสไลซ์","เนื้อบด","เนื้อชิ้น"],"tags":["เนื้อสัตว์"]},
   {"id":"shrimp","name":"กุ้ง","category":"seafood","defaultUnit":"กรัม","aliases":["กุ้งสด","กุ้งขาว","กุ้งแชบ๊วย"],"tags":["อาหารทะเล"]},
   {"id":"squid","name":"ปลาหมึก","category":"seafood","defaultUnit":"กรัม","aliases":["หมึก","ปลาหมึกสด","หมึกกล้วย","หมึกหอม"],"tags":["อาหารทะเล"]},
   {"id":"shellfish","name":"หอย","category":"seafood","defaultUnit":"กรัม","aliases":["หอยสด","หอยแมลงภู่","หอยลาย"],"tags":["อาหารทะเล"]},
