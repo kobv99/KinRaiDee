@@ -82,10 +82,12 @@ class HeroSelectionState {
   const HeroSelectionState({
     this.mode = HeroSelectionMode.automatic,
     this.key,
+    this.reason,
   });
 
   final HeroSelectionMode mode;
   final String? key;
+  final String? reason;
 
   bool get isAutomatic => mode == HeroSelectionMode.automatic;
   bool get isPinned => mode == HeroSelectionMode.pinned;
@@ -118,10 +120,11 @@ class HeroSelectionNotifier extends Notifier<HeroSelectionState> {
     }
   }
 
-  Future<void> selectForSession(String key) async {
+  Future<void> selectForSession(String key, {String? reason}) async {
     state = HeroSelectionState(
       mode: HeroSelectionMode.manual,
       key: key,
+      reason: reason?.trim().isEmpty == true ? null : reason?.trim(),
     );
     try {
       await StorageService.clearPinnedHeroIngredientKey();
@@ -162,6 +165,7 @@ final smartRecommendationProvider = Provider<AsyncValue<SmartRecommendation>>((
       pantry: pantry,
       selectedHeroKey: heroSelection.key,
       selectionMode: heroSelection.mode,
+      selectionReason: heroSelection.reason,
       pageIndex: session.pageIndex,
       shuffleSeed: session.shuffleSeed,
     ),
