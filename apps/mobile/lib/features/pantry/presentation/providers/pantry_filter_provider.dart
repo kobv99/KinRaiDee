@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/models/ingredient.dart';
 import '../../../../core/providers/pantry_provider.dart';
+import '../../domain/services/pantry_expiry_priority.dart';
 import '../../domain/services/pantry_search_engine.dart';
 
 enum PantrySortOption { newest, oldest, nameAscending, expirySoonest }
@@ -16,7 +17,7 @@ extension PantrySortOptionLabel on PantrySortOption {
       case PantrySortOption.nameAscending:
         return 'ชื่อ ก–ฮ';
       case PantrySortOption.expirySoonest:
-        return 'ใกล้หมดอายุก่อน';
+        return 'ควรใช้ก่อน';
     }
   }
 }
@@ -26,7 +27,7 @@ class PantryFilterState {
     this.searchQuery = '',
     this.selectedCategory,
     this.onlyExpiringSoon = false,
-    this.sortOption = PantrySortOption.newest,
+    this.sortOption = PantrySortOption.expirySoonest,
   });
 
   final String searchQuery;
@@ -132,7 +133,8 @@ final filteredPantryProvider = Provider<List<Ingredient>>((ref) {
             ingredient.category == filter.selectedCategory;
 
         final matchesExpiry =
-            !filter.onlyExpiringSoon || _isExpiringSoon(ingredient);
+            !filter.onlyExpiringSoon ||
+            PantryExpiryPriority.shouldUseSoon(ingredient);
 
         return matchesSearch && matchesCategory && matchesExpiry;
       })
@@ -150,6 +152,10 @@ final filteredPantryProvider = Provider<List<Ingredient>>((ref) {
       }
     }
 
+    if (filter.sortOption == PantrySortOption.expirySoonest) {
+      return PantryExpiryPriority.compare(first, second);
+    }
+
     final favoriteComparison = _compareFavorite(first, second);
     if (favoriteComparison != 0) {
       return favoriteComparison;
@@ -163,22 +169,12 @@ final filteredPantryProvider = Provider<List<Ingredient>>((ref) {
       case PantrySortOption.nameAscending:
         return first.name.compareTo(second.name);
       case PantrySortOption.expirySoonest:
-        return _compareExpiryDate(first, second);
+        return PantryExpiryPriority.compare(first, second);
     }
   });
 
   return List<Ingredient>.unmodifiable(sortedIngredients);
 });
-
-bool _isExpiringSoon(Ingredient ingredient) {
-  final days = ingredient.daysUntilExpiry;
-
-  if (days == null) {
-    return false;
-  }
-
-  return days <= 7;
-}
 
 int _compareFavorite(Ingredient first, Ingredient second) {
   if (first.isFavorite == second.isFavorite) {
@@ -186,23 +182,4 @@ int _compareFavorite(Ingredient first, Ingredient second) {
   }
 
   return first.isFavorite ? -1 : 1;
-}
-
-int _compareExpiryDate(Ingredient first, Ingredient second) {
-  final firstExpiry = first.expiryDate;
-  final secondExpiry = second.expiryDate;
-
-  if (firstExpiry == null && secondExpiry == null) {
-    return first.name.compareTo(second.name);
-  }
-
-  if (firstExpiry == null) {
-    return 1;
-  }
-
-  if (secondExpiry == null) {
-    return -1;
-  }
-
-  return firstExpiry.compareTo(secondExpiry);
 }
