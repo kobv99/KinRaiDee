@@ -19,6 +19,7 @@ class SmartRecommendationEngine {
     required List<RecipeMatch> matches,
     required List<Ingredient> pantry,
     String? selectedHeroKey,
+    HeroSelectionMode? selectionMode,
     int pageIndex = 0,
     int shuffleSeed = 0,
   }) {
@@ -30,22 +31,35 @@ class SmartRecommendationEngine {
         .map((candidate) => candidate.option)
         .toList(growable: false);
     final selectedKey = _normalize(selectedHeroKey ?? '');
-    _HeroCandidate? selectedCandidate;
-    for (final candidate in optionCandidates) {
-      if (candidate.option.key == selectedKey) {
-        selectedCandidate = candidate;
-        break;
+    final requestedMode = selectionMode ??
+        (selectedKey.isEmpty
+            ? HeroSelectionMode.automatic
+            : HeroSelectionMode.manual);
+
+    _HeroCandidate? requestedCandidate;
+    if (requestedMode != HeroSelectionMode.automatic && selectedKey.isNotEmpty) {
+      for (final candidate in optionCandidates) {
+        if (candidate.option.key == selectedKey) {
+          requestedCandidate = candidate;
+          break;
+        }
       }
     }
-    if (selectedCandidate == null && optionCandidates.isNotEmpty) {
-      selectedCandidate = optionCandidates.first;
-    }
+
+    final requestedSelectionAvailable =
+        requestedMode == HeroSelectionMode.automatic ||
+        requestedCandidate != null;
+    final selectedCandidate = requestedCandidate ??
+        (optionCandidates.isEmpty ? null : optionCandidates.first);
+    final resolvedMode = requestedCandidate == null
+        ? HeroSelectionMode.automatic
+        : requestedMode;
 
     if (selectedCandidate == null) {
       final fallbackMatches = matches
           .where((match) => match.matchedIngredients.isNotEmpty)
           .toList(growable: false)
-        ..sort((first, second) => _compareQuality(first, second, shuffleSeed));
+        ..sort(_compareDisplayRank);
 
       return SmartRecommendation(
         heroOptions: heroOptions,
@@ -54,6 +68,7 @@ class SmartRecommendationEngine {
         totalHeroRecipes: 0,
         pageIndex: 0,
         pageCount: 0,
+        requestedSelectionAvailable: requestedSelectionAvailable,
       );
     }
 
@@ -66,7 +81,9 @@ class SmartRecommendationEngine {
           ),
         )
         .toList(growable: false)
-      ..sort((first, second) => _compareQuality(first, second, shuffleSeed));
+      ..sort(
+        (first, second) => _comparePoolOrder(first, second, shuffleSeed),
+      );
 
     final pageCount = heroPool.isEmpty ? 0 : (heroPool.length / pageSize).ceil();
     final safePageIndex = pageCount == 0
@@ -75,8 +92,9 @@ class SmartRecommendationEngine {
     final start = safePageIndex * pageSize;
     final end = (start + pageSize).clamp(0, heroPool.length).toInt();
     final primary = start >= heroPool.length
-        ? const <RecipeMatch>[]
-        : heroPool.sublist(start, end);
+        ? <RecipeMatch>[]
+        : heroPool.sublist(start, end)
+      ..sort(_compareDisplayRank);
     final heroRecipeIds = heroPool.map((match) => match.recipe.id).toSet();
     final more = matches
         .where(
@@ -90,7 +108,7 @@ class SmartRecommendationEngine {
               ),
         )
         .toList(growable: false)
-      ..sort((first, second) => _compareQuality(first, second, shuffleSeed));
+      ..sort(_compareDisplayRank);
 
     return SmartRecommendation(
       hero: selectedCandidate.option,
@@ -100,6 +118,9 @@ class SmartRecommendationEngine {
       totalHeroRecipes: heroPool.length,
       pageIndex: safePageIndex,
       pageCount: pageCount,
+      heroSelectionMode: resolvedMode,
+      heroReason: _heroReason(selectedCandidate, resolvedMode),
+      requestedSelectionAvailable: requestedSelectionAvailable,
     );
   }
 
@@ -133,6 +154,17 @@ class SmartRecommendationEngine {
         continue;
       }
 
+      var bestScorePercent = 0;
+      var readyCount = 0;
+      for (final match in matchingRecipes) {
+        if (match.scorePercent > bestScorePercent) {
+          bestScorePercent = match.scorePercent;
+        }
+        if (match.canCook) {
+          readyCount++;
+        }
+      }
+
       final candidate = _HeroCandidate(
         ingredient: pantryIngredient,
         option: HeroIngredientOption(
@@ -140,34 +172,83 @@ class SmartRecommendationEngine {
           name: pantryIngredient.name,
           emoji: pantryIngredient.emoji,
           recipeCount: matchingRecipes.length,
+          readyCount: readyCount,
+          bestScorePercent: bestScorePercent,
+          daysUntilExpiry: pantryIngredient.daysUntilExpiry,
         ),
       );
       final current = candidatesByKey[key];
-      if (current == null ||
-          pantryIngredient.createdAt.isAfter(current.ingredient.createdAt)) {
+      if (current == null || _compareHeroCandidates(candidate, current) < 0) {
         candidatesByKey[key] = candidate;
       }
     }
 
-    final candidates = candidatesByKey.values.toList(growable: false);
-    candidates.sort((first, second) {
-      final createdComparison = second.ingredient.createdAt.compareTo(
-        first.ingredient.createdAt,
-      );
-      if (createdComparison != 0) {
-        return createdComparison;
-      }
-
-      final countComparison = second.option.recipeCount.compareTo(
-        first.option.recipeCount,
-      );
-      if (countComparison != 0) {
-        return countComparison;
-      }
-
-      return first.option.name.compareTo(second.option.name);
-    });
+    final candidates = candidatesByKey.values.toList(growable: false)
+      ..sort(_compareHeroCandidates);
     return candidates;
+  }
+
+  int _compareHeroCandidates(_HeroCandidate first, _HeroCandidate second) {
+    final priorityComparison = _autoPriority(second).compareTo(
+      _autoPriority(first),
+    );
+    if (priorityComparison != 0) {
+      return priorityComparison;
+    }
+
+    final createdComparison = second.ingredient.createdAt.compareTo(
+      first.ingredient.createdAt,
+    );
+    if (createdComparison != 0) {
+      return createdComparison;
+    }
+
+    return first.option.name.compareTo(second.option.name);
+  }
+
+  int _autoPriority(_HeroCandidate candidate) {
+    final option = candidate.option;
+    var priority =
+        (option.readyCount * 1000) +
+        (option.bestScorePercent * 10) +
+        (option.recipeCount * 2);
+    final days = option.daysUntilExpiry;
+
+    if (days != null) {
+      if (days <= 1) {
+        priority += 100000;
+      } else if (days <= 3) {
+        priority += 80000;
+      } else if (days <= 7) {
+        priority += 50000;
+      }
+    }
+
+    return priority;
+  }
+
+  String _heroReason(
+    _HeroCandidate candidate,
+    HeroSelectionMode selectionMode,
+  ) {
+    switch (selectionMode) {
+      case HeroSelectionMode.manual:
+        return 'คุณเลือก ${candidate.option.name} เป็นวัตถุดิบหลักสำหรับครั้งนี้';
+      case HeroSelectionMode.pinned:
+        return 'คุณปักหมุด ${candidate.option.name} ไว้เป็นวัตถุดิบหลัก';
+      case HeroSelectionMode.automatic:
+        final days = candidate.option.daysUntilExpiry;
+        if (days != null && days <= 7) {
+          if (days <= 0) {
+            return 'ระบบเลือกให้อัตโนมัติ เพราะควรใช้ ${candidate.option.name} วันนี้';
+          }
+          return 'ระบบเลือกให้อัตโนมัติ เพราะ ${candidate.option.name} จะหมดอายุใน $days วัน';
+        }
+        if (candidate.option.readyCount > 0) {
+          return 'ระบบเลือกให้อัตโนมัติ เพราะมี ${candidate.option.readyCount} เมนูที่พร้อมทำ';
+        }
+        return 'ระบบเลือกให้อัตโนมัติ จากความพร้อมของวัตถุดิบและเมนูที่เกี่ยวข้อง';
+    }
   }
 
   bool _recipeHeroMatchesPantry(Recipe recipe, String pantryName) {
@@ -183,7 +264,41 @@ class SmartRecommendationEngine {
     return recipeIngredientMatchesPantryName(ingredient, pantryName);
   }
 
-  int _compareQuality(RecipeMatch first, RecipeMatch second, int seed) {
+  int _comparePoolOrder(RecipeMatch first, RecipeMatch second, int seed) {
+    if (first.canCook != second.canCook) {
+      return first.canCook ? -1 : 1;
+    }
+
+    final firstBand = (first.score * 10).floor();
+    final secondBand = (second.score * 10).floor();
+    final scoreBandComparison = secondBand.compareTo(firstBand);
+    if (scoreBandComparison != 0) {
+      return scoreBandComparison;
+    }
+
+    final missingComparison = first.missingRequiredCount.compareTo(
+      second.missingRequiredCount,
+    );
+    if (missingComparison != 0) {
+      return missingComparison;
+    }
+
+    final firstHash = _stableHash(first.recipe.id, seed);
+    final secondHash = _stableHash(second.recipe.id, seed);
+    final hashComparison = firstHash.compareTo(secondHash);
+    if (hashComparison != 0) {
+      return hashComparison;
+    }
+
+    return first.recipe.name.compareTo(second.recipe.name);
+  }
+
+  int _compareDisplayRank(RecipeMatch first, RecipeMatch second) {
+    final scoreComparison = second.score.compareTo(first.score);
+    if (scoreComparison != 0) {
+      return scoreComparison;
+    }
+
     if (first.canCook != second.canCook) {
       return first.canCook ? -1 : 1;
     }
@@ -195,34 +310,22 @@ class SmartRecommendationEngine {
       return missingComparison;
     }
 
-    final firstBand = (first.score * 10).floor();
-    final secondBand = (second.score * 10).floor();
-    final scoreBandComparison = secondBand.compareTo(firstBand);
-    if (scoreBandComparison != 0) {
-      return scoreBandComparison;
-    }
-
-    final firstPopularityBand = first.recipe.popularity ~/ 10;
-    final secondPopularityBand = second.recipe.popularity ~/ 10;
-    final popularityBandComparison = secondPopularityBand.compareTo(
-      firstPopularityBand,
-    );
-    if (popularityBandComparison != 0) {
-      return popularityBandComparison;
-    }
-
-    final firstHash = _stableHash(first.recipe.id, seed);
-    final secondHash = _stableHash(second.recipe.id, seed);
-    final hashComparison = firstHash.compareTo(secondHash);
-    if (hashComparison != 0) {
-      return hashComparison;
-    }
-
     final popularityComparison = second.recipe.popularity.compareTo(
       first.recipe.popularity,
     );
     if (popularityComparison != 0) {
       return popularityComparison;
+    }
+
+    final firstCookTime = first.recipe.cookTimeMinutes <= 0
+        ? 1 << 30
+        : first.recipe.cookTimeMinutes;
+    final secondCookTime = second.recipe.cookTimeMinutes <= 0
+        ? 1 << 30
+        : second.recipe.cookTimeMinutes;
+    final cookTimeComparison = firstCookTime.compareTo(secondCookTime);
+    if (cookTimeComparison != 0) {
+      return cookTimeComparison;
     }
 
     return first.recipe.name.compareTo(second.recipe.name);
