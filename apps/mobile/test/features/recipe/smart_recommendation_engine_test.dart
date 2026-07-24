@@ -64,9 +64,10 @@ void main() {
         ),
         isTrue,
       );
+      expect(result.moreMatches, hasLength(2));
       expect(
         result.moreMatches.every(
-          (match) => match.recipe.resolvedHeroIngredientId != 'shrimp',
+          (match) => match.recipe.resolvedHeroIngredientId == 'egg',
         ),
         isTrue,
       );
@@ -89,6 +90,28 @@ void main() {
 
       expect(secondPage.primaryMatches, hasLength(1));
       expect(firstIds.intersection(secondIds), isEmpty);
+    });
+
+    test('reshuffles the pool after a completed recommendation cycle', () {
+      const engine = SmartRecommendationEngine();
+      final firstCycle = engine.build(
+        matches: matches,
+        pantry: pantry,
+        shuffleSeed: 0,
+      );
+      final nextCycle = engine.build(
+        matches: matches,
+        pantry: pantry,
+        shuffleSeed: 1,
+      );
+      final firstIds = firstCycle.primaryMatches
+          .map((match) => match.recipe.id)
+          .toList(growable: false);
+      final nextIds = nextCycle.primaryMatches
+          .map((match) => match.recipe.id)
+          .toList(growable: false);
+
+      expect(nextIds, isNot(equals(firstIds)));
     });
 
     test('allows the user to override the selected hero ingredient', () {
