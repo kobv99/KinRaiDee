@@ -1,5 +1,6 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
+import '../../features/pantry/domain/models/cooking_history_entry.dart';
 import '../models/ingredient.dart';
 
 class StorageService {
@@ -9,6 +10,7 @@ class StorageService {
   static const String ingredientsKey = 'ingredients';
   static const String favoriteIngredientNamesKey = 'favorite_ingredient_names';
   static const String pinnedHeroIngredientKey = 'pinned_hero_ingredient_key';
+  static const String cookingHistoryKey = 'cooking_history';
 
   static Future<void> init() async {
     await Hive.initFlutter();
@@ -99,6 +101,48 @@ class StorageService {
 
   static Future<void> clearPinnedHeroIngredientKey() async {
     await _pantryBox.delete(pinnedHeroIngredientKey);
+  }
+
+  static List<CookingHistoryEntry> loadCookingHistory() {
+    final rawData = _pantryBox.get(
+      cookingHistoryKey,
+      defaultValue: <dynamic>[],
+    );
+    if (rawData is! List) {
+      return <CookingHistoryEntry>[];
+    }
+
+    final entries = <CookingHistoryEntry>[];
+    for (final item in rawData) {
+      if (item is! Map) {
+        continue;
+      }
+
+      try {
+        final entry = CookingHistoryEntry.fromJson(
+          Map<String, dynamic>.from(item),
+        );
+        if (entry.id.isNotEmpty && entry.recipeName.isNotEmpty) {
+          entries.add(entry);
+        }
+      } on FormatException {
+        continue;
+      } on TypeError {
+        continue;
+      }
+    }
+
+    entries.sort((first, second) => second.createdAt.compareTo(first.createdAt));
+    return List<CookingHistoryEntry>.unmodifiable(entries);
+  }
+
+  static Future<void> saveCookingHistory(
+    List<CookingHistoryEntry> entries,
+  ) async {
+    final data = entries
+        .map<Map<String, dynamic>>((entry) => entry.toJson())
+        .toList(growable: false);
+    await _pantryBox.put(cookingHistoryKey, data);
   }
 
   static String normalizeIngredientName(String value) {
