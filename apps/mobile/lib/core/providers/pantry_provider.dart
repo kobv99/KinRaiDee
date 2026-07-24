@@ -5,6 +5,7 @@ import '../../app/navigation/cooking_completion_provider.dart';
 import '../../features/pantry/data/repositories/hive_pantry_repository.dart';
 import '../../features/pantry/domain/models/pantry_quantity_transaction.dart';
 import '../../features/pantry/domain/repositories/pantry_repository.dart';
+import '../../features/pantry/presentation/providers/cooking_history_provider.dart';
 import '../models/ingredient.dart';
 import '../services/storage_service.dart';
 
@@ -216,8 +217,10 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
   }
 
   Future<void> applyQuantityTransaction(
-    PantryQuantityTransaction transaction,
-  ) async {
+    PantryQuantityTransaction transaction, {
+    bool recordHistory = true,
+    bool publishCompletion = true,
+  }) async {
     if (!transaction.hasChanges) {
       return;
     }
@@ -244,8 +247,14 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
 
     state = updatedIngredients;
     await _repository.saveIngredients(updatedIngredients);
-    ref.read(cookingCompletionProvider.notifier).publish(transaction);
-    ref.read(appNavigationProvider.notifier).openPantry();
+
+    if (recordHistory) {
+      await ref.read(cookingHistoryProvider.notifier).record(transaction);
+    }
+    if (publishCompletion) {
+      ref.read(cookingCompletionProvider.notifier).publish(transaction);
+      ref.read(appNavigationProvider.notifier).openPantry();
+    }
   }
 
   Future<int> undoQuantityTransaction(
@@ -282,6 +291,11 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
 
     state = updatedIngredients;
     await _repository.saveIngredients(updatedIngredients);
+    if (restoredCount == transaction.changedIngredientCount) {
+      await ref
+          .read(cookingHistoryProvider.notifier)
+          .markCancelledForTransaction(transaction);
+    }
     return restoredCount;
   }
 
