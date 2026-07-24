@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/providers/pantry_provider.dart';
+import '../../../pantry/domain/models/pantry_quantity_transaction.dart';
 import '../../domain/entities/recipe.dart';
+import '../../domain/services/pantry_deduction_planner.dart';
 import '../../domain/services/recipe_serving_calculator.dart';
 
 class RecipeDetailPage extends ConsumerStatefulWidget {
@@ -23,6 +25,12 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
 
   late int _selectedServings;
   bool _cookingMode = false;
+  bool _isFinishing = false;
+
+  bool get _allStepsCompleted {
+    return widget.recipe.steps.isEmpty ||
+        _completedSteps.length == widget.recipe.steps.length;
+  }
 
   @override
   void initState() {
@@ -51,10 +59,10 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final context = _stepsKey.currentContext;
-      if (context != null) {
+      final stepsContext = _stepsKey.currentContext;
+      if (stepsContext != null) {
         Scrollable.ensureVisible(
-          context,
+          stepsContext,
           duration: const Duration(milliseconds: 350),
           curve: Curves.easeOut,
           alignment: 0.08,
@@ -63,29 +71,169 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
     });
   }
 
+  Future<void> _finishCooking(RecipeServingPlan servingPlan) async {
+    if (_isFinishing) {
+      return;
+    }
+
+    final pantry = ref.read(pantryProvider);
+    final planner = const PantryDeductionPlanner();
+    final deductionPlan = planner.build(
+      servingPlan: servingPlan,
+      pantry: pantry,
+    );
+
+    if (!deductionPlan.canDeduct) {
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('ทำอาหารเสร็จแล้ว 🎉'),
+          content: const Text(
+            'ไม่พบวัตถุดิบที่ระบบสามารถหักได้อัตโนมัติ เครื่องปรุงและรายการที่หน่วยไม่ตรงจะไม่ถูกเปลี่ยนแปลง',
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('รับทราบ'),
+            ),
+          ],
+        ),
+      );
+      if (mounted) {
+        setState(() {
+          _cookingMode = false;
+          _completedSteps.clear();
+        });
+      }
+      return;
+    }
+
+    final selection = await showModalBottomSheet<_DeductionSelection>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => _DeductionConfirmationSheet(plan: deductionPlan),
+    );
+    if (selection == null || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _isFinishing = true;
+    });
+
+    try {
+      final transaction = planner.createTransaction(
+        plan: deductionPlan,
+        selectedLineKeys: selection.selectedLineKeys,
+        quantitiesByLineKey: selection.quantitiesByLineKey,
+      );
+
+      if (!transaction.hasChanges) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('ไม่มีวัตถุดิบที่เลือกให้หักออกจาก Pantry'),
+          ),
+        );
+        return;
+      }
+
+      await ref
+          .read(pantryProvider.notifier)
+          .applyQuantityTransaction(transaction);
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _cookingMode = false;
+        _completedSteps.clear();
+      });
+
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.clearSnackBars();
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'หักวัตถุดิบ ${transaction.changedIngredientCount} รายการจาก Pantry แล้ว',
+          ),
+          duration: const Duration(seconds: 8),
+          action: SnackBarAction(
+            label: 'ย้อนกลับ',
+            onPressed: () => _undoTransaction(transaction),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isFinishing = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _undoTransaction(PantryQuantityTransaction transaction) async {
+    final restored = await ref
+        .read(pantryProvider.notifier)
+        .undoQuantityTransaction(transaction);
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          restored > 0
+              ? 'คืนวัตถุดิบ $restored รายการกลับเข้า Pantry แล้ว'
+              : 'ย้อนกลับไม่ได้ เพราะปริมาณวัตถุดิบถูกแก้ไขหลังจากนั้น',
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final pantry = ref.watch(pantryProvider);
-    final plan = const RecipeServingCalculator().calculate(
+    final servingPlan = const RecipeServingCalculator().calculate(
       recipe: widget.recipe,
       pantry: pantry,
       servings: _selectedServings,
     );
     final colors = Theme.of(context).colorScheme;
+    final completedCount = _completedSteps.length;
+    final totalSteps = widget.recipe.steps.length;
 
     return Scaffold(
       appBar: AppBar(title: const Text('สูตรอาหาร')),
       bottomNavigationBar: SafeArea(
         minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
         child: FilledButton.icon(
-          onPressed: _cookingMode ? null : _startCooking,
-          icon: Icon(
-            _cookingMode ? Icons.soup_kitchen : Icons.play_arrow_rounded,
-          ),
+          onPressed: _bottomButtonEnabled
+              ? () {
+                  if (_cookingMode) {
+                    _finishCooking(servingPlan);
+                  } else {
+                    _startCooking();
+                  }
+                }
+              : null,
+          icon: _isFinishing
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Icon(
+                  _cookingMode
+                      ? Icons.check_circle_outline_rounded
+                      : Icons.play_arrow_rounded,
+                ),
           label: Text(
-            _cookingMode
-                ? 'กำลังทำสำหรับ $_selectedServings คน'
-                : 'เริ่มทำอาหารสำหรับ $_selectedServings คน',
+            _bottomButtonLabel(
+              completedCount: completedCount,
+              totalSteps: totalSteps,
+            ),
           ),
         ),
       ),
@@ -94,7 +242,7 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
         children: [
           _RecipeHeader(recipe: widget.recipe),
           const SizedBox(height: 18),
-          _SectionTitle(
+          const _SectionTitle(
             icon: Icons.groups_2_outlined,
             title: 'เลือกจำนวนคน',
             subtitle: 'ระบบจะคำนวณปริมาณวัตถุดิบให้ใหม่ทันที',
@@ -108,9 +256,9 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
           _SectionTitle(
             icon: Icons.inventory_2_outlined,
             title: 'วัตถุดิบสำหรับ $_selectedServings คน',
-            subtitle: plan.hasEnoughRequiredIngredients
+            subtitle: servingPlan.hasEnoughRequiredIngredients
                 ? 'วัตถุดิบหลักใน Pantry เพียงพอสำหรับสูตรนี้'
-                : 'ยังขาดวัตถุดิบหลัก ${plan.missingRequiredCount} รายการ',
+                : 'ยังขาดวัตถุดิบหลัก ${servingPlan.missingRequiredCount} รายการ',
           ),
           const SizedBox(height: 12),
           Container(
@@ -121,15 +269,19 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
             ),
             child: Column(
               children: [
-                for (var index = 0; index < plan.ingredients.length; index++) ...[
-                  _ScaledIngredientTile(item: plan.ingredients[index]),
-                  if (index < plan.ingredients.length - 1)
+                for (
+                  var index = 0;
+                  index < servingPlan.ingredients.length;
+                  index++
+                ) ...[
+                  _ScaledIngredientTile(item: servingPlan.ingredients[index]),
+                  if (index < servingPlan.ingredients.length - 1)
                     Divider(height: 1, color: colors.outlineVariant),
                 ],
               ],
             ),
           ),
-          if (!plan.hasEnoughRequiredIngredients) ...[
+          if (!servingPlan.hasEnoughRequiredIngredients) ...[
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(14),
@@ -159,7 +311,7 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
               icon: Icons.menu_book_outlined,
               title: _cookingMode ? 'โหมดทำอาหาร' : 'วิธีทำ',
               subtitle: _cookingMode
-                  ? 'ทำทีละขั้นและกดเครื่องหมายเมื่อเสร็จ'
+                  ? 'ทำทีละขั้น แล้วกด “ทำเสร็จแล้ว” เพื่ออัปเดต Pantry'
                   : '${widget.recipe.steps.length} ขั้นตอน',
             ),
           ),
@@ -177,12 +329,11 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                   }
                 });
 
-                if (_completedSteps.length == widget.recipe.steps.length &&
-                    widget.recipe.steps.isNotEmpty) {
+                if (_allStepsCompleted && widget.recipe.steps.isNotEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text(
-                        'ทำครบทุกขั้นตอนแล้ว 🎉 วัตถุดิบใน Pantry ยังไม่ถูกหัก',
+                        'ทำครบทุกขั้นตอนแล้ว 🎉 กด “ทำเสร็จแล้ว” เพื่อตรวจปริมาณก่อนหัก Pantry',
                       ),
                     ),
                   );
@@ -193,6 +344,337 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
             _RecipeSteps(steps: widget.recipe.steps),
           const SizedBox(height: 24),
           _RecipeMetadata(recipe: widget.recipe),
+        ],
+      ),
+    );
+  }
+
+  bool get _bottomButtonEnabled {
+    if (_isFinishing) {
+      return false;
+    }
+    if (!_cookingMode) {
+      return true;
+    }
+    return _allStepsCompleted;
+  }
+
+  String _bottomButtonLabel({
+    required int completedCount,
+    required int totalSteps,
+  }) {
+    if (_isFinishing) {
+      return 'กำลังอัปเดต Pantry';
+    }
+    if (!_cookingMode) {
+      return 'เริ่มทำอาหารสำหรับ $_selectedServings คน';
+    }
+    if (!_allStepsCompleted) {
+      return 'ทำแล้ว $completedCount จาก $totalSteps ขั้นตอน';
+    }
+    return 'ทำเสร็จแล้ว · ตรวจและหัก Pantry';
+  }
+}
+
+class _DeductionSelection {
+  const _DeductionSelection({
+    required this.selectedLineKeys,
+    required this.quantitiesByLineKey,
+  });
+
+  final Set<String> selectedLineKeys;
+  final Map<String, double> quantitiesByLineKey;
+}
+
+class _DeductionConfirmationSheet extends StatefulWidget {
+  const _DeductionConfirmationSheet({required this.plan});
+
+  final PantryDeductionPlan plan;
+
+  @override
+  State<_DeductionConfirmationSheet> createState() =>
+      _DeductionConfirmationSheetState();
+}
+
+class _DeductionConfirmationSheetState
+    extends State<_DeductionConfirmationSheet> {
+  final Map<String, TextEditingController> _controllers =
+      <String, TextEditingController>{};
+  final Set<String> _selectedKeys = <String>{};
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    for (final line in widget.plan.lines) {
+      _controllers[line.key] = TextEditingController(
+        text: _formatNumber(line.deductibleQuantity),
+      );
+      if (line.defaultSelected) {
+        _selectedKeys.add(line.key);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final controller in _controllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  void _confirm() {
+    final quantities = <String, double>{};
+
+    for (final line in widget.plan.lines) {
+      if (!_selectedKeys.contains(line.key)) {
+        continue;
+      }
+
+      final raw = _controllers[line.key]?.text.trim() ?? '';
+      final quantity = double.tryParse(raw.replaceAll(',', '.'));
+      if (quantity == null || quantity <= 0) {
+        setState(() {
+          _errorMessage = 'กรุณาระบุปริมาณที่มากกว่า 0';
+        });
+        return;
+      }
+      if (quantity > line.deductibleQuantity + 0.000001) {
+        setState(() {
+          _errorMessage =
+              '${line.ingredient.name} หักได้สูงสุด ${_formatQuantity(line.deductibleQuantity, line.unit)}';
+        });
+        return;
+      }
+
+      quantities[line.key] = quantity;
+    }
+
+    if (quantities.isEmpty) {
+      setState(() {
+        _errorMessage = 'เลือกวัตถุดิบอย่างน้อย 1 รายการ';
+      });
+      return;
+    }
+
+    Navigator.of(context).pop(
+      _DeductionSelection(
+        selectedLineKeys: Set<String>.unmodifiable(_selectedKeys),
+        quantitiesByLineKey: Map<String, double>.unmodifiable(quantities),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final mediaQuery = MediaQuery.of(context);
+
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(bottom: mediaQuery.viewInsets.bottom),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: mediaQuery.size.height * 0.82,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'ตรวจปริมาณก่อนหัก Pantry',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${widget.plan.servingPlan.recipe.name} สำหรับ ${widget.plan.servingPlan.servings} คน',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: colors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                  children: [
+                    ...widget.plan.lines.map(_buildLine),
+                    if (widget.plan.skippedStapleCount > 0) ...[
+                      const SizedBox(height: 8),
+                      _InfoBox(
+                        icon: Icons.info_outline_rounded,
+                        text:
+                            'เครื่องปรุง ${widget.plan.skippedStapleCount} รายการจะไม่ถูกหักอัตโนมัติ',
+                      ),
+                    ],
+                    if (widget.plan.skippedUnavailableCount > 0) ...[
+                      const SizedBox(height: 8),
+                      _InfoBox(
+                        icon: Icons.compare_arrows_rounded,
+                        text:
+                            'มี ${widget.plan.skippedUnavailableCount} รายการที่ไม่มีใน Pantry หรือหน่วยเทียบกันไม่ได้',
+                      ),
+                    ],
+                    if (_errorMessage != null) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        _errorMessage!,
+                        style: TextStyle(
+                          color: colors.error,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('ยกเลิก'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 2,
+                      child: FilledButton.icon(
+                        onPressed: _confirm,
+                        icon: const Icon(Icons.inventory_2_outlined),
+                        label: const Text('ยืนยันและหักวัตถุดิบ'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLine(PantryDeductionLine line) {
+    final selected = _selectedKeys.contains(line.key);
+    final colors = Theme.of(context).colorScheme;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(4, 4, 12, 12),
+        child: Column(
+          children: [
+            CheckboxListTile(
+              value: selected,
+              onChanged: (value) {
+                setState(() {
+                  _errorMessage = null;
+                  if (value ?? false) {
+                    _selectedKeys.add(line.key);
+                  } else {
+                    _selectedKeys.remove(line.key);
+                  }
+                });
+              },
+              controlAffinity: ListTileControlAffinity.leading,
+              title: Text(
+                line.ingredient.name,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              subtitle: Text(
+                line.isPartial
+                    ? 'ต้องใช้ ${_formatQuantity(line.targetQuantity, line.unit)} · ใน Pantry หักได้ ${_formatQuantity(line.deductibleQuantity, line.unit)}'
+                    : 'ต้องใช้ ${_formatQuantity(line.targetQuantity, line.unit)}',
+              ),
+            ),
+            Row(
+              children: [
+                const SizedBox(width: 48),
+                Expanded(
+                  child: TextField(
+                    controller: _controllers[line.key],
+                    enabled: selected,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: 'ปริมาณที่จะหัก',
+                      suffixText: line.unit,
+                      isDense: true,
+                      border: const OutlineInputBorder(),
+                    ),
+                    onChanged: (_) {
+                      if (_errorMessage != null) {
+                        setState(() {
+                          _errorMessage = null;
+                        });
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(width: 10),
+                TextButton(
+                  onPressed: selected
+                      ? () {
+                          _controllers[line.key]?.text = _formatNumber(
+                            line.deductibleQuantity,
+                          );
+                        }
+                      : null,
+                  child: Text(
+                    line.ingredient.required ? 'ตามสูตร' : 'ใช้ของเสริม',
+                    style: TextStyle(color: colors.primary),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoBox extends StatelessWidget {
+  const _InfoBox({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: colors.onSurfaceVariant),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(color: colors.onSurfaceVariant),
+            ),
+          ),
         ],
       ),
     );
