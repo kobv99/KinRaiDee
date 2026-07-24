@@ -10,9 +10,13 @@ void main() {
     final shrimpRecipes = recipes
         .where((recipe) => recipe.resolvedHeroIngredientId == 'shrimp')
         .toList(growable: false);
+    final beefRecipes = recipes
+        .where((recipe) => recipe.resolvedHeroIngredientId == 'beef')
+        .toList(growable: false);
 
-    expect(recipes.length, greaterThanOrEqualTo(100));
+    expect(recipes.length, greaterThanOrEqualTo(120));
     expect(ids.length, recipes.length);
     expect(shrimpRecipes, hasLength(20));
+    expect(beefRecipes, hasLength(20));
   });
 }
