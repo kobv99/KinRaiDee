@@ -1,5 +1,22 @@
 import '../entities/recipe_ingredient.dart';
 
+const Map<String, String> _ingredientFamilyAliases = <String, String>{
+  'สันคอหมู': 'หมู',
+  'คอหมู': 'หมู',
+  'หมูสามชั้น': 'หมู',
+  'สามชั้น': 'หมู',
+  'หมูบด': 'หมู',
+  'หมูชิ้น': 'หมู',
+  'หมูสไลซ์': 'หมู',
+  'หมูเด้ง': 'หมู',
+  'วัวสไลซ์': 'วัว',
+  'เนื้อวัวสไลซ์': 'วัว',
+  'เนื้อบด': 'วัว',
+  'เนื้อวัวบด': 'วัว',
+  'เนื้อชิ้น': 'วัว',
+  'เนื้อวัวชิ้น': 'วัว',
+};
+
 String normalizeRecipeIngredientName(String value) {
   var normalized = value
       .trim()
@@ -18,7 +35,7 @@ String normalizeRecipeIngredientName(String value) {
     normalized = normalized.substring(meatPrefix.length);
   }
 
-  return normalized;
+  return _ingredientFamilyAliases[normalized] ?? normalized;
 }
 
 bool recipeIngredientMatchesPantryName(
