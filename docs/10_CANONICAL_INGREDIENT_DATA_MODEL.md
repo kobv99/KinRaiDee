@@ -7,9 +7,12 @@ erDiagram
     CANONICAL_INGREDIENT ||--o{ PANTRY_LOT : "identifies"
     CANONICAL_INGREDIENT ||--o{ RECIPE_INGREDIENT : "identifies"
     CANONICAL_INGREDIENT ||--o{ HISTORY_CHANGE : "identifies"
+    CANONICAL_INGREDIENT ||--o{ SHOPPING_ITEM : "identifies"
     UNIT_DEFINITION ||--o{ CANONICAL_INGREDIENT : "defaults"
     UNIT_DEFINITION ||--o{ PANTRY_LOT : "measures"
+    UNIT_DEFINITION ||--o{ SHOPPING_ITEM : "measures"
     PANTRY_LOT ||--o{ HISTORY_CHANGE : "mutated by"
+    SHOPPING_LIST ||--o{ SHOPPING_ITEM : "owns"
     CANONICAL_INGREDIENT o|--o{ CANONICAL_INGREDIENT : "parent family"
 ```
 
@@ -22,6 +25,8 @@ erDiagram
 | `Ingredient` Pantry lot | `id` | `InventoryStateEnvelope` in Hive | schema 2 |
 | `RecipeIngredient` | canonical `id` | Bundled recipe assets | recipe version |
 | `CookingHistoryChange` | Pantry `ingredientId` plus canonical ID | `InventoryStateEnvelope` in Hive | parent history schema 2 |
+| `ShoppingList` | `id` | `InventoryStateEnvelope.shoppingLists` under `shopping.v1` | metadata version 1 + list revision |
+| `ShoppingItem` | list-scoped `id` plus canonical ingredient/unit identity | parent Shopping list | metadata version 1 |
 | Migration diagnostics | record ID and issue type | startup provider for support | migration version 2 |
 
 The durable transaction journal stores complete before/after envelopes, so
@@ -77,12 +82,15 @@ New Pantry lots are normalized before `replacePantry`. Cooking deduction adds
 canonical IDs to `PantryQuantityChange`; history creation, adjustment, cancel,
 and undo preserve those IDs.
 
-## Compatibility and Future Shopping
+## Shopping Compatibility
 
-Shopping Foundation can safely reference the same canonical ingredient and unit
-IDs after this sprint. Remaining Shopping-specific decisions include purchase
-package sizing, retailer/catalog identity, price, and aggregation rules; those
-are intentionally not modeled or implemented here.
+Shopping Foundation references the same canonical ingredient and unit IDs.
+`ShoppingDraftBuilder` converts Recipe shortages into versioned Shopping items,
+and `InventoryTransactionCoordinator` rejects unknown or redirected IDs,
+unknown units, duplicate ingredient/unit pairs, and category mismatches.
 
-Unknown legacy records do not silently participate in Recipe or future Shopping
-joins until mapped. This preserves data while preventing false identity.
+Package sizing, retailer/catalog identity, price, purchase state, and advanced
+aggregation remain intentionally unmodeled.
+
+Unknown legacy records do not silently participate in Recipe or Shopping joins
+until mapped. This preserves data while preventing false identity.

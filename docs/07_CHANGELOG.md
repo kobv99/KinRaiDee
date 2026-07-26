@@ -4,6 +4,15 @@
 
 ### Added
 
+- SF-001 Shopping domain entities: `ShoppingList`, `ShoppingItem`,
+  `ShoppingCategory`, `ShoppingStatus`, and `ShoppingSource`.
+- Read-only Shopping repository backed by the durable transaction envelope.
+- Recipe/Pantry shortage-to-Shopping draft builder using canonical ingredient
+  and unit identities.
+- Transaction-safe Shopping create, update, and remove mutations through
+  `InventoryTransactionCoordinator`.
+- Shopping model, repository, Riverpod durability, revision, idempotency, and
+  restart-recovery tests.
 - Canonical Ingredient Registry with globally unique IDs, localized names,
   aliases, search keywords, storage defaults, unit defaults, and versioned
   metadata.
@@ -20,6 +29,10 @@
 
 ### Changed
 
+- `InventoryStateEnvelope` now supports capability-gated `shopping.v1` state
+  while retaining checksum compatibility with pre-Shopping envelopes.
+- Current envelope reader version is `2`; envelope schema remains version `1`.
+- Phase 2 is now Shopping Foundation.
 - Pantry, Recipe, Recommendation, deduction, and cooking-history transaction
   paths now carry canonical ingredient and unit IDs.
 - Recipe quantity conversion now uses the shared Unit Contract.
@@ -34,10 +47,12 @@
 
 ### Quality
 
-- `dart format --output=none --set-exit-if-changed .`: pass.
-- `flutter analyze --no-pub`: pass, no issues.
-- `flutter test --no-pub --coverage`: 104 tests pass.
-- Line coverage: 80.55% (4,167/5,173).
+- `dart format --output=none --set-exit-if-changed .`: 130 files pass
+  without changes.
+- `flutter analyze`: pass, no issues.
+- `flutter test --coverage`: 123 tests pass.
+- Line coverage: 81.47% (4,521/5,549).
+- Focused Shopping Foundation suite: 15 tests pass.
 - Focused Transaction Engine regression: 23 tests pass.
 
 ## v0.1.0

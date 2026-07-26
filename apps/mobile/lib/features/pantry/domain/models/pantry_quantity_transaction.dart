@@ -5,6 +5,7 @@ enum InventoryTransactionKind {
   cancelCookingHistory,
   pantryMutation,
   canonicalIngredientMigration,
+  shoppingMutation,
 }
 
 class PantryQuantityChange {

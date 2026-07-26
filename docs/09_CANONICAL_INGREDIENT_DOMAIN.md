@@ -3,8 +3,9 @@
 ## Purpose
 
 The Canonical Ingredient System gives Pantry, Recipe, Recommendation, and
-future Shopping one deterministic offline identity and one unit contract. This
-sprint does not implement Shopping UI, lists, or purchasing.
+Shopping one deterministic offline identity and one unit contract. SF-001
+introduces Shopping lists and items while continuing to exclude Shopping UI and
+purchasing.
 
 ## Canonical Ingredient
 
@@ -80,8 +81,8 @@ construction.
 - Recommendation hero keys use canonical IDs.
 - Serving and deduction use `UnitConversionEngine`.
 - Transaction and history changes store lot and canonical identities.
-- Future Shopping must reference `canonicalIngredientId`, never create a second
-  ingredient master.
+- Shopping items reference `canonicalIngredientId` and canonical `unitId`;
+  Shopping does not create a second ingredient master.
 
 ## Validation Evidence
 
