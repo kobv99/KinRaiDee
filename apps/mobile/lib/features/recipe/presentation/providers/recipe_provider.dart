@@ -2,12 +2,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/providers/canonical_ingredient_providers.dart';
 import '../../../../core/providers/pantry_provider.dart';
-import '../../../../core/services/storage_service.dart';
 import '../../data/datasources/local_recipe_datasource.dart';
+import '../../data/repositories/local_hero_selection_repository.dart';
 import '../../data/repositories/local_recipe_repository.dart';
 import '../../domain/entities/recipe.dart';
 import '../../domain/entities/recipe_match.dart';
 import '../../domain/entities/smart_recommendation.dart';
+import '../../domain/repositories/hero_selection_repository.dart';
 import '../../domain/repositories/recipe_repository.dart';
 import '../../domain/services/recipe_matcher.dart';
 import '../../domain/services/smart_recommendation_engine.dart';
@@ -18,6 +19,12 @@ final recipeRepositoryProvider = Provider<RecipeRepository>((ref) {
 
 final recipesProvider = FutureProvider<List<Recipe>>((ref) {
   return ref.read(recipeRepositoryProvider).getRecipes();
+});
+
+final heroSelectionRepositoryProvider = Provider<HeroSelectionRepository>((
+  ref,
+) {
+  return const LocalHeroSelectionRepository();
 });
 
 final recipeMatchesProvider = FutureProvider<List<RecipeMatch>>((ref) async {
@@ -94,10 +101,14 @@ class HeroSelectionState {
 }
 
 class HeroSelectionNotifier extends Notifier<HeroSelectionState> {
+  HeroSelectionRepository get _repository {
+    return ref.read(heroSelectionRepositoryProvider);
+  }
+
   @override
   HeroSelectionState build() {
     try {
-      final pinnedKey = StorageService.loadPinnedHeroIngredientKey();
+      final pinnedKey = _repository.loadPinnedIngredientKey();
       if (pinnedKey != null) {
         return HeroSelectionState(
           mode: HeroSelectionMode.pinned,
@@ -105,7 +116,7 @@ class HeroSelectionNotifier extends Notifier<HeroSelectionState> {
         );
       }
     } on StateError {
-      // Some isolated provider tests do not initialize Hive.
+      // Some isolated provider tests intentionally omit local persistence.
     }
 
     return const HeroSelectionState();
@@ -114,7 +125,7 @@ class HeroSelectionNotifier extends Notifier<HeroSelectionState> {
   Future<void> useAutomatic() async {
     state = const HeroSelectionState();
     try {
-      await StorageService.clearPinnedHeroIngredientKey();
+      await _repository.clearPinnedIngredientKey();
     } on StateError {
       // Storage is unavailable only in isolated tests.
     }
@@ -127,7 +138,7 @@ class HeroSelectionNotifier extends Notifier<HeroSelectionState> {
       reason: reason?.trim().isEmpty == true ? null : reason?.trim(),
     );
     try {
-      await StorageService.clearPinnedHeroIngredientKey();
+      await _repository.clearPinnedIngredientKey();
     } on StateError {
       // Storage is unavailable only in isolated tests.
     }
@@ -136,7 +147,7 @@ class HeroSelectionNotifier extends Notifier<HeroSelectionState> {
   Future<void> pin(String key) async {
     state = HeroSelectionState(mode: HeroSelectionMode.pinned, key: key);
     try {
-      await StorageService.savePinnedHeroIngredientKey(key);
+      await _repository.savePinnedIngredientKey(key);
     } on StateError {
       // Storage is unavailable only in isolated tests.
     }
