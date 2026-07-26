@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
+import '../../../../app/providers/canonical_ingredient_providers.dart';
 import '../../../../core/models/ingredient.dart';
 import '../../../recipe/domain/services/main_ingredient_resolver.dart';
 import '../../../recipe/presentation/providers/recipe_provider.dart';
@@ -45,6 +46,8 @@ class PantryUseSoonSection extends ConsumerWidget {
         for (final ingredient in ingredients) {
           final resolution = resolver.resolve(
             pantryIngredientName: ingredient.name,
+            canonicalIngredientId: ingredient.canonicalIngredientId,
+            registry: ref.watch(canonicalIngredientRegistryProvider),
             recipes: recipes,
           );
           if (resolution != null) {

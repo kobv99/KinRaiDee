@@ -15,9 +15,11 @@ class RecipeIngredient {
   final bool required;
   final List<String> aliases;
 
+  String get canonicalIngredientId => id;
+
   factory RecipeIngredient.fromJson(Map<String, dynamic> json) {
     return RecipeIngredient(
-      id: json['id'] as String,
+      id: (json['canonicalIngredientId'] ?? json['id'])?.toString() ?? '',
       name: json['name'] as String,
       quantity: (json['quantity'] as num?)?.toDouble() ?? 0,
       unit: json['unit'] as String? ?? '',

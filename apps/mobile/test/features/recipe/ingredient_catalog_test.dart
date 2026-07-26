@@ -2,23 +2,36 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mobile/core/domain/ingredients/canonical_ingredient.dart';
+import 'package:mobile/core/domain/ingredients/canonical_ingredient_registry.dart';
 import 'package:mobile/features/recipe/data/ingredient_catalog.dart';
-import 'package:mobile/features/recipe/domain/entities/ingredient.dart';
+import 'package:mobile/features/recipe/data/datasources/local_recipe_datasource.dart';
 import 'package:mobile/features/recipe/domain/entities/recipe.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('Ingredient', () {
     test('matches canonical name and aliases', () {
-      final ingredient = Ingredient.fromJson(const <String, dynamic>{
-        'id': 'squid',
-        'name': 'ปลาหมึก',
-        'category': 'seafood',
-        'aliases': <String>['หมึก', 'ปลาหมึกสด'],
-      });
+      final registry = CanonicalIngredientRegistry(
+        ingredients: <CanonicalIngredient>[
+          CanonicalIngredient(
+            id: 'squid',
+            canonicalName: 'Squid',
+            localizedNames: const <String, String>{'th': 'ปลาหมึก'},
+            aliases: const <String>['หมึก', 'ปลาหมึกสด'],
+            searchKeywords: const <String>[],
+            category: 'seafood',
+            defaultStorageType: IngredientStorageType.refrigerated,
+            defaultPurchaseUnitId: 'kilogram',
+            defaultInventoryUnitId: 'gram',
+          ),
+        ],
+      );
 
-      expect(ingredient.matches('ปลาหมึก'), isTrue);
-      expect(ingredient.matches('  หมึก  '), isTrue);
-      expect(ingredient.matches('กุ้ง'), isFalse);
+      expect(registry.resolve('ปลาหมึก').ingredient?.id, 'squid');
+      expect(registry.resolve('  หมึก  ').ingredient?.id, 'squid');
+      expect(registry.resolve('กุ้ง').isResolved, isFalse);
     });
   });
 
@@ -30,6 +43,7 @@ void main() {
             'id': 'squid',
             'name': 'ปลาหมึก',
             'category': 'seafood',
+            'defaultUnit': 'กรัม',
             'aliases': <String>['หมึกกล้วย'],
           },
         ]),
@@ -42,6 +56,37 @@ void main() {
       expect(ingredients, hasLength(1));
       expect(result?.id, 'squid');
     });
+
+    test(
+      'bundled registry is unique and covers every recipe identity',
+      () async {
+        final catalog = IngredientCatalog();
+        final definitions = await catalog.load();
+        final registry = await catalog.loadRegistry();
+        final recipes = await const LocalRecipeDataSource().loadRecipes();
+        final ids = definitions.map((ingredient) => ingredient.id).toList();
+
+        expect(ids.toSet(), hasLength(ids.length));
+        for (final definition in definitions) {
+          expect(definition.canonicalName, isNotEmpty);
+          expect(definition.defaultPurchaseUnitId, isNotEmpty);
+          expect(definition.defaultInventoryUnitId, isNotEmpty);
+          expect(definition.metadata.schemaVersion, greaterThan(0));
+          expect(definition.metadata.revision, greaterThan(0));
+        }
+        for (final recipe in recipes) {
+          for (final ingredient in recipe.ingredients) {
+            expect(
+              registry.byId(ingredient.canonicalIngredientId),
+              isNotNull,
+              reason:
+                  '${recipe.id}/${ingredient.canonicalIngredientId} '
+                  'must exist in the canonical registry',
+            );
+          }
+        }
+      },
+    );
   });
 
   group('Recipe metadata', () {

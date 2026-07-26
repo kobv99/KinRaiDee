@@ -1,4 +1,7 @@
+import '../../../../core/models/ingredient.dart';
 import 'pantry_quantity_transaction.dart';
+
+const int currentCookingHistorySchemaVersion = 2;
 
 enum CookingHistoryStatus { completed, adjusted, cancelled }
 
@@ -10,6 +13,9 @@ class CookingHistoryChange {
     required this.beforeQuantity,
     required this.originalAfterQuantity,
     required this.afterQuantity,
+    this.canonicalIngredientId = '',
+    this.canonicalUnitId = '',
+    this.canonicalMappingStatus = CanonicalMappingStatus.legacy,
   });
 
   final String ingredientId;
@@ -18,6 +24,9 @@ class CookingHistoryChange {
   final double beforeQuantity;
   final double originalAfterQuantity;
   final double afterQuantity;
+  final String canonicalIngredientId;
+  final String canonicalUnitId;
+  final CanonicalMappingStatus canonicalMappingStatus;
 
   double get originalConsumedQuantity {
     final value = beforeQuantity - originalAfterQuantity;
@@ -32,6 +41,9 @@ class CookingHistoryChange {
   CookingHistoryChange copyWith({
     double? originalAfterQuantity,
     double? afterQuantity,
+    String? canonicalIngredientId,
+    String? canonicalUnitId,
+    CanonicalMappingStatus? canonicalMappingStatus,
   }) {
     return CookingHistoryChange(
       ingredientId: ingredientId,
@@ -41,6 +53,11 @@ class CookingHistoryChange {
       originalAfterQuantity:
           originalAfterQuantity ?? this.originalAfterQuantity,
       afterQuantity: afterQuantity ?? this.afterQuantity,
+      canonicalIngredientId:
+          canonicalIngredientId ?? this.canonicalIngredientId,
+      canonicalUnitId: canonicalUnitId ?? this.canonicalUnitId,
+      canonicalMappingStatus:
+          canonicalMappingStatus ?? this.canonicalMappingStatus,
     );
   }
 
@@ -52,6 +69,9 @@ class CookingHistoryChange {
       'beforeQuantity': beforeQuantity,
       'originalAfterQuantity': originalAfterQuantity,
       'afterQuantity': afterQuantity,
+      'canonicalIngredientId': canonicalIngredientId,
+      'canonicalUnitId': canonicalUnitId,
+      'canonicalMappingStatus': canonicalMappingStatus.name,
     };
   }
 
@@ -66,13 +86,19 @@ class CookingHistoryChange {
           ? _parseDouble(json['originalAfterQuantity'])
           : afterQuantity,
       afterQuantity: afterQuantity,
+      canonicalIngredientId: json['canonicalIngredientId']?.toString() ?? '',
+      canonicalUnitId: json['canonicalUnitId']?.toString() ?? '',
+      canonicalMappingStatus: CanonicalMappingStatus.values.firstWhere(
+        (status) => status.name == json['canonicalMappingStatus']?.toString(),
+        orElse: () => CanonicalMappingStatus.legacy,
+      ),
     );
   }
 }
 
 class CookingHistoryEntry {
   const CookingHistoryEntry({
-    this.schemaVersion = 1,
+    this.schemaVersion = currentCookingHistorySchemaVersion,
     this.originatingTransactionId = '',
     this.adjustedByTransactionId,
     this.cancelledByTransactionId,
@@ -115,7 +141,7 @@ class CookingHistoryEntry {
     PantryQuantityTransaction transaction,
   ) {
     return CookingHistoryEntry(
-      schemaVersion: 1,
+      schemaVersion: currentCookingHistorySchemaVersion,
       originatingTransactionId: transaction.transactionId,
       id: transactionHistoryId(transaction),
       recipeId: transaction.recipeId,
@@ -130,6 +156,11 @@ class CookingHistoryEntry {
               beforeQuantity: change.beforeQuantity,
               originalAfterQuantity: change.afterQuantity,
               afterQuantity: change.afterQuantity,
+              canonicalIngredientId: change.canonicalIngredientId,
+              canonicalUnitId: change.canonicalUnitId,
+              canonicalMappingStatus: change.canonicalIngredientId.isEmpty
+                  ? CanonicalMappingStatus.legacy
+                  : CanonicalMappingStatus.mapped,
             ),
           )
           .toList(growable: false),
@@ -140,6 +171,7 @@ class CookingHistoryEntry {
   }
 
   CookingHistoryEntry copyWith({
+    int? schemaVersion,
     String? adjustedByTransactionId,
     String? cancelledByTransactionId,
     String? reversedByTransactionId,
@@ -148,7 +180,7 @@ class CookingHistoryEntry {
     CookingHistoryStatus? status,
   }) {
     return CookingHistoryEntry(
-      schemaVersion: schemaVersion,
+      schemaVersion: schemaVersion ?? this.schemaVersion,
       originatingTransactionId: originatingTransactionId,
       adjustedByTransactionId:
           adjustedByTransactionId ?? this.adjustedByTransactionId,

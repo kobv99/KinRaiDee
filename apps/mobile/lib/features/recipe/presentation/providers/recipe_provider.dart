@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/providers/canonical_ingredient_providers.dart';
 import '../../../../core/providers/pantry_provider.dart';
 import '../../../../core/services/storage_service.dart';
 import '../../data/datasources/local_recipe_datasource.dart';
@@ -23,7 +24,9 @@ final recipeMatchesProvider = FutureProvider<List<RecipeMatch>>((ref) async {
   final recipes = await ref.watch(recipesProvider.future);
   final pantry = ref.watch(pantryProvider);
 
-  return const RecipeMatcher().match(recipes: recipes, pantry: pantry);
+  return RecipeMatcher(
+    registry: ref.watch(canonicalIngredientRegistryProvider),
+  ).match(recipes: recipes, pantry: pantry);
 });
 
 class RecommendationSessionState {
@@ -162,6 +165,7 @@ final smartRecommendationProvider = Provider<AsyncValue<SmartRecommendation>>((
       selectionReason: heroSelection.reason,
       pageIndex: session.pageIndex,
       shuffleSeed: session.shuffleSeed,
+      registry: ref.watch(canonicalIngredientRegistryProvider),
     ),
   );
 });

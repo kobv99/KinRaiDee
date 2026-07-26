@@ -74,3 +74,48 @@ Those operations therefore cannot bypass the durable envelope.
 - Transaction schema version: `1`
 - Every successful mutation increments the envelope revision exactly once.
 - Transaction IDs are secure UUID v4 values.
+
+---
+
+## Canonical Ingredient System
+
+Pantry, Recipe, Recommendation, and future Shopping code share one stable
+ingredient identity:
+
+1. `IngredientCatalog` validates the bundled master data and constructs
+   `CanonicalIngredientRegistry`.
+2. Registry resolution accepts canonical IDs, localized names, aliases, and
+   search keywords. Ambiguous and unknown values are never guessed.
+3. `CanonicalIngredientMigration` projects legacy Pantry lots and cooking
+   history to schema version 2 without changing the user's name, display unit,
+   quantity, timestamps, or lot identity.
+4. The projection is committed through `InventoryTransactionCoordinator` and
+   the durable journal before `ProviderScope` publishes state.
+5. Recipe matching, serving calculations, deduction planning, and
+   recommendations compare canonical IDs first. Text matching exists only as a
+   read-only compatibility path for pre-migration fixtures and imports.
+
+### Identity ownership
+
+- `CanonicalIngredient.id` is the domain identity shared across features.
+- `Ingredient.id` remains the unique Pantry lot identity because multiple
+  purchases of one canonical ingredient may have different expiry dates.
+- `RecipeIngredient.id` is the canonical ingredient ID.
+- `PantryQuantityChange` and `CookingHistoryChange` persist both the lot ID and
+  canonical ingredient/unit IDs so retry, undo, adjustment, and cancel retain
+  identity.
+- Unknown values receive a deterministic `unmapped_*` identity and a migration
+  issue. They remain fully usable as Pantry data but do not silently match a
+  Recipe.
+
+### Unit ownership
+
+`UnitConversionEngine` is the only quantity conversion contract. Each
+`UnitDefinition` declares its dimension, canonical base path, aliases, display
+name, conversion factor, precision, and version. Validation rejects duplicate
+IDs, duplicate aliases, missing parents, dimension mismatches, and circular
+graphs. Invalid runtime conversions return a typed failure rather than
+mutating inventory.
+
+See [Canonical Ingredient Domain](09_CANONICAL_INGREDIENT_DOMAIN.md) and
+[Canonical Ingredient Data Model](10_CANONICAL_INGREDIENT_DATA_MODEL.md).

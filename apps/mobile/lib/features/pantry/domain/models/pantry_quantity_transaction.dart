@@ -4,6 +4,7 @@ enum InventoryTransactionKind {
   adjustCookingHistory,
   cancelCookingHistory,
   pantryMutation,
+  canonicalIngredientMigration,
 }
 
 class PantryQuantityChange {
@@ -13,6 +14,8 @@ class PantryQuantityChange {
     required this.unit,
     required this.beforeQuantity,
     required this.afterQuantity,
+    this.canonicalIngredientId = '',
+    this.canonicalUnitId = '',
   });
 
   final String ingredientId;
@@ -20,6 +23,8 @@ class PantryQuantityChange {
   final String unit;
   final double beforeQuantity;
   final double afterQuantity;
+  final String canonicalIngredientId;
+  final String canonicalUnitId;
 
   double get consumedQuantity {
     final consumed = beforeQuantity - afterQuantity;
@@ -33,6 +38,8 @@ class PantryQuantityChange {
       'unit': unit,
       'beforeQuantity': beforeQuantity,
       'afterQuantity': afterQuantity,
+      'canonicalIngredientId': canonicalIngredientId,
+      'canonicalUnitId': canonicalUnitId,
     };
   }
 
@@ -43,6 +50,8 @@ class PantryQuantityChange {
       unit: json['unit']?.toString() ?? '',
       beforeQuantity: _parseDouble(json['beforeQuantity']),
       afterQuantity: _parseDouble(json['afterQuantity']),
+      canonicalIngredientId: json['canonicalIngredientId']?.toString() ?? '',
+      canonicalUnitId: json['canonicalUnitId']?.toString() ?? '',
     );
   }
 }

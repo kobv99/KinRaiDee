@@ -1,5 +1,9 @@
 import '../time/app_clock.dart';
 
+const int currentPantryIngredientSchemaVersion = 2;
+
+enum CanonicalMappingStatus { mapped, unmapped, legacy }
+
 class Ingredient {
   final String id;
 
@@ -30,6 +34,19 @@ class Ingredient {
   /// รายการโปรดสำหรับเข้าถึงวัตถุดิบที่ใช้บ่อยได้เร็วขึ้น
   final bool isFavorite;
 
+  /// Version of the persisted pantry-lot model.
+  final int schemaVersion;
+
+  /// Stable identity shared by Pantry, Recipe, Recommendation, and Shopping.
+  ///
+  /// Legacy records may be empty until startup migration completes.
+  final String canonicalIngredientId;
+
+  /// Stable unit identity. [unit] remains the user-facing display value.
+  final String canonicalUnitId;
+
+  final CanonicalMappingStatus canonicalMappingStatus;
+
   const Ingredient({
     required this.id,
     required this.name,
@@ -41,6 +58,10 @@ class Ingredient {
     required this.createdAt,
     required this.updatedAt,
     this.isFavorite = false,
+    this.schemaVersion = currentPantryIngredientSchemaVersion,
+    this.canonicalIngredientId = '',
+    this.canonicalUnitId = '',
+    this.canonicalMappingStatus = CanonicalMappingStatus.legacy,
   });
 
   Ingredient copyWith({
@@ -54,6 +75,10 @@ class Ingredient {
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isFavorite,
+    int? schemaVersion,
+    String? canonicalIngredientId,
+    String? canonicalUnitId,
+    CanonicalMappingStatus? canonicalMappingStatus,
   }) {
     return Ingredient(
       id: id ?? this.id,
@@ -66,6 +91,12 @@ class Ingredient {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isFavorite: isFavorite ?? this.isFavorite,
+      schemaVersion: schemaVersion ?? this.schemaVersion,
+      canonicalIngredientId:
+          canonicalIngredientId ?? this.canonicalIngredientId,
+      canonicalUnitId: canonicalUnitId ?? this.canonicalUnitId,
+      canonicalMappingStatus:
+          canonicalMappingStatus ?? this.canonicalMappingStatus,
     );
   }
 
@@ -107,6 +138,10 @@ class Ingredient {
       'createdAt': createdAt.toUtc().toIso8601String(),
       'updatedAt': updatedAt.toUtc().toIso8601String(),
       'isFavorite': isFavorite,
+      'schemaVersion': schemaVersion,
+      'canonicalIngredientId': canonicalIngredientId,
+      'canonicalUnitId': canonicalUnitId,
+      'canonicalMappingStatus': canonicalMappingStatus.name,
     };
   }
 
@@ -129,6 +164,20 @@ class Ingredient {
           DateTime.tryParse(json['updatedAt']?.toString() ?? '')?.toUtc() ??
           createdAt,
       isFavorite: _parseBool(json['isFavorite']),
+      schemaVersion: _parseInt(
+        json['schemaVersion'],
+        fallback: json.containsKey('canonicalIngredientId')
+            ? currentPantryIngredientSchemaVersion
+            : 1,
+      ),
+      canonicalIngredientId: json['canonicalIngredientId']?.toString() ?? '',
+      canonicalUnitId: json['canonicalUnitId']?.toString() ?? '',
+      canonicalMappingStatus: CanonicalMappingStatus.values.firstWhere(
+        (status) => status.name == json['canonicalMappingStatus']?.toString(),
+        orElse: () => json.containsKey('canonicalIngredientId')
+            ? CanonicalMappingStatus.unmapped
+            : CanonicalMappingStatus.legacy,
+      ),
     );
   }
 
@@ -172,4 +221,11 @@ bool _parseBool(dynamic value) {
     return value;
   }
   return value?.toString().toLowerCase() == 'true';
+}
+
+int _parseInt(dynamic value, {required int fallback}) {
+  if (value is int) {
+    return value;
+  }
+  return int.tryParse(value?.toString() ?? '') ?? fallback;
 }

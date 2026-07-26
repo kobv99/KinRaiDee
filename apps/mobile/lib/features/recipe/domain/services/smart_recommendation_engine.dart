@@ -1,4 +1,5 @@
 import '../../../../core/models/ingredient.dart';
+import '../../../../core/domain/ingredients/canonical_ingredient_registry.dart';
 import '../entities/recipe.dart';
 import '../entities/recipe_ingredient.dart';
 import '../entities/recipe_match.dart';
@@ -21,11 +22,16 @@ class SmartRecommendationEngine {
     String? selectionReason,
     int pageIndex = 0,
     int shuffleSeed = 0,
+    CanonicalIngredientRegistry? registry,
   }) {
     final availablePantry = pantry
         .where((ingredient) => ingredient.quantity > 0 && !ingredient.isExpired)
         .toList(growable: false);
-    final optionCandidates = _buildHeroOptions(matches, availablePantry);
+    final optionCandidates = _buildHeroOptions(
+      matches,
+      availablePantry,
+      registry,
+    );
     final heroOptions = optionCandidates
         .map((candidate) => candidate.option)
         .toList(growable: false);
@@ -81,7 +87,8 @@ class SmartRecommendationEngine {
             .where(
               (match) => _recipeHeroMatchesPantry(
                 match.recipe,
-                heroPantryIngredient.name,
+                heroPantryIngredient,
+                registry,
               ),
             )
             .toList(growable: false)
@@ -109,8 +116,11 @@ class SmartRecommendationEngine {
               (match) =>
                   !heroRecipeIds.contains(match.recipe.id) &&
                   availablePantry.any(
-                    (ingredient) =>
-                        _recipeHeroMatchesPantry(match.recipe, ingredient.name),
+                    (ingredient) => _recipeHeroMatchesPantry(
+                      match.recipe,
+                      ingredient,
+                      registry,
+                    ),
                   ),
             )
             .toList(growable: false)
@@ -137,14 +147,18 @@ class SmartRecommendationEngine {
   List<_HeroCandidate> _buildHeroOptions(
     List<RecipeMatch> matches,
     List<Ingredient> pantry,
+    CanonicalIngredientRegistry? registry,
   ) {
     final candidatesByKey = <String, _HeroCandidate>{};
 
     for (final pantryIngredient in pantry) {
       final matchingRecipes = matches
           .where(
-            (match) =>
-                _recipeHeroMatchesPantry(match.recipe, pantryIngredient.name),
+            (match) => _recipeHeroMatchesPantry(
+              match.recipe,
+              pantryIngredient,
+              registry,
+            ),
           )
           .toList(growable: false);
       if (matchingRecipes.isEmpty) {
@@ -152,7 +166,9 @@ class SmartRecommendationEngine {
       }
 
       final representativeRecipe = matchingRecipes.first.recipe;
-      final canonicalId = representativeRecipe.resolvedHeroIngredientId;
+      final canonicalId = pantryIngredient.canonicalIngredientId.isNotEmpty
+          ? pantryIngredient.canonicalIngredientId
+          : representativeRecipe.resolvedHeroIngredientId;
       final key = _normalize(
         canonicalId.isEmpty
             ? representativeRecipe.resolvedHeroIngredientName
@@ -265,17 +281,29 @@ class SmartRecommendationEngine {
     }
   }
 
-  bool _recipeHeroMatchesPantry(Recipe recipe, String pantryName) {
+  bool _recipeHeroMatchesPantry(
+    Recipe recipe,
+    Ingredient pantryIngredient,
+    CanonicalIngredientRegistry? registry,
+  ) {
     final hero = recipe.heroIngredient;
     if (hero == null) {
       return false;
     }
 
-    return _ingredientMatches(hero, pantryName);
+    return _ingredientMatches(hero, pantryIngredient, registry);
   }
 
-  bool _ingredientMatches(RecipeIngredient ingredient, String pantryName) {
-    return recipeIngredientMatchesPantryName(ingredient, pantryName);
+  bool _ingredientMatches(
+    RecipeIngredient ingredient,
+    Ingredient pantryIngredient,
+    CanonicalIngredientRegistry? registry,
+  ) {
+    return recipeIngredientMatchesPantry(
+      ingredient,
+      pantryIngredient,
+      registry: registry,
+    );
   }
 
   int _comparePoolOrder(RecipeMatch first, RecipeMatch second, int seed) {

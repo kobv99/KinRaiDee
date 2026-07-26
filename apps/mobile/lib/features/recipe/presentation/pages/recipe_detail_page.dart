@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/providers/canonical_ingredient_providers.dart';
 import '../../../../core/providers/pantry_provider.dart';
 import '../../../pantry/domain/models/pantry_quantity_transaction.dart';
 import '../../domain/entities/recipe.dart';
@@ -80,6 +81,7 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
     final deductionPlan = planner.build(
       servingPlan: servingPlan,
       pantry: pantry,
+      registry: ref.read(canonicalIngredientRegistryProvider),
     );
 
     if (!deductionPlan.canDeduct) {
@@ -198,6 +200,7 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
       recipe: widget.recipe,
       pantry: pantry,
       servings: _selectedServings,
+      registry: ref.watch(canonicalIngredientRegistryProvider),
     );
     final colors = Theme.of(context).colorScheme;
     final completedCount = _completedSteps.length;

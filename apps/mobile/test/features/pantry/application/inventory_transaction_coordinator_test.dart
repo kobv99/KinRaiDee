@@ -355,6 +355,50 @@ void main() {
         expect(invalid.snapshot.pantry.single.quantity, 12);
       },
     );
+
+    test('canonical migration is durable, validated, and idempotent', () async {
+      final harness = await _Harness.create(
+        now: now,
+        pantry: <Ingredient>[_ingredient('egg', 10, 'piece', now)],
+      );
+      final migrated = <Ingredient>[
+        _ingredient('egg', 10, 'piece', now).copyWith(
+          schemaVersion: 2,
+          canonicalIngredientId: 'egg',
+          canonicalUnitId: 'piece',
+          canonicalMappingStatus: CanonicalMappingStatus.mapped,
+        ),
+      ];
+
+      final result = await harness.coordinator.migrateCanonicalIngredients(
+        pantry: migrated,
+        history: const <CookingHistoryEntry>[],
+        targetSchemaVersion: 2,
+      );
+      expect(result.outcome, InventoryTransactionOutcome.committed);
+      expect(result.snapshot.revision, 1);
+      expect(result.snapshot.pantry.single.canonicalIngredientId, 'egg');
+      await harness.coordinator.completePresentation(
+        result.transaction!.transactionId,
+      );
+
+      final duplicate = await harness.coordinator.migrateCanonicalIngredients(
+        pantry: result.snapshot.pantry,
+        history: result.snapshot.history,
+        targetSchemaVersion: 2,
+      );
+      expect(duplicate.outcome, InventoryTransactionOutcome.alreadyCommitted);
+      expect(duplicate.code, 'canonical_migration_not_required');
+      expect(duplicate.snapshot.revision, 1);
+
+      final invalid = await harness.coordinator.migrateCanonicalIngredients(
+        pantry: <Ingredient>[_ingredient('egg', 10, 'piece', now)],
+        history: const <CookingHistoryEntry>[],
+        targetSchemaVersion: 2,
+      );
+      expect(invalid.outcome, InventoryTransactionOutcome.validationFailure);
+      expect(invalid.snapshot.revision, 1);
+    });
   });
 }
 

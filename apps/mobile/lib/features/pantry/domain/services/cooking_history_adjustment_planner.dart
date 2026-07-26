@@ -94,6 +94,8 @@ class CookingHistoryAdjustmentPlanner {
           unit: change.unit,
           beforeQuantity: pantryIngredient.quantity,
           afterQuantity: pantryAfter,
+          canonicalIngredientId: pantryIngredient.canonicalIngredientId,
+          canonicalUnitId: pantryIngredient.canonicalUnitId,
         ),
       );
     }

@@ -1,4 +1,5 @@
 import '../../../../core/models/ingredient.dart' as pantry_model;
+import '../../../../core/domain/ingredients/canonical_ingredient_registry.dart';
 import '../../../../core/time/app_clock.dart';
 import '../../../pantry/domain/models/pantry_quantity_transaction.dart';
 import '../entities/recipe_ingredient.dart';
@@ -13,6 +14,8 @@ class PantryDeductionAllocation {
     required this.pantryQuantityBefore,
     required this.recipeUnitQuantity,
     required this.pantryUnitQuantity,
+    required this.canonicalIngredientId,
+    required this.canonicalUnitId,
   });
 
   final String pantryIngredientId;
@@ -21,6 +24,8 @@ class PantryDeductionAllocation {
   final double pantryQuantityBefore;
   final double recipeUnitQuantity;
   final double pantryUnitQuantity;
+  final String canonicalIngredientId;
+  final String canonicalUnitId;
 }
 
 class PantryDeductionLine {
@@ -83,6 +88,7 @@ class PantryDeductionPlanner {
   PantryDeductionPlan build({
     required RecipeServingPlan servingPlan,
     required List<pantry_model.Ingredient> pantry,
+    CanonicalIngredientRegistry? registry,
   }) {
     final availablePantry = pantry
         .where((item) => item.quantity > 0 && !item.isExpiredAt(clock.now()))
@@ -101,8 +107,11 @@ class PantryDeductionPlanner {
       final matching =
           availablePantry
               .where(
-                (item) =>
-                    recipeIngredientMatchesPantryName(ingredient, item.name),
+                (item) => recipeIngredientMatchesPantry(
+                  ingredient,
+                  item,
+                  registry: registry,
+                ),
               )
               .toList(growable: false)
             ..sort(_comparePantryLots);
@@ -145,6 +154,8 @@ class PantryDeductionPlanner {
             pantryQuantityBefore: pantryItem.quantity,
             recipeUnitQuantity: recipeQuantityToUse,
             pantryUnitQuantity: pantryQuantityToUse,
+            canonicalIngredientId: pantryItem.canonicalIngredientId,
+            canonicalUnitId: pantryItem.canonicalUnitId,
           ),
         );
         remainingRecipeQuantity -= recipeQuantityToUse;
@@ -190,6 +201,8 @@ class PantryDeductionPlanner {
     final afterByPantryId = <String, double>{};
     final nameByPantryId = <String, String>{};
     final unitByPantryId = <String, String>{};
+    final canonicalIngredientByPantryId = <String, String>{};
+    final canonicalUnitByPantryId = <String, String>{};
 
     for (final line in plan.lines) {
       for (final allocation in line.allocations) {
@@ -204,6 +217,10 @@ class PantryDeductionPlanner {
         nameByPantryId[allocation.pantryIngredientId] =
             allocation.pantryIngredientName;
         unitByPantryId[allocation.pantryIngredientId] = allocation.pantryUnit;
+        canonicalIngredientByPantryId[allocation.pantryIngredientId] =
+            allocation.canonicalIngredientId;
+        canonicalUnitByPantryId[allocation.pantryIngredientId] =
+            allocation.canonicalUnitId;
       }
     }
 
@@ -261,6 +278,8 @@ class PantryDeductionPlanner {
           unit: unitByPantryId[entry.key] ?? '',
           beforeQuantity: entry.value,
           afterQuantity: after,
+          canonicalIngredientId: canonicalIngredientByPantryId[entry.key] ?? '',
+          canonicalUnitId: canonicalUnitByPantryId[entry.key] ?? '',
         ),
       );
     }

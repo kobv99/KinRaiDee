@@ -57,5 +57,16 @@
   {"id":"salt","name":"เกลือ","category":"seasoning","defaultUnit":"ช้อนชา","aliases":["เกลือป่น"],"tags":["เค็ม"]},
   {"id":"pepper","name":"พริกไทย","category":"seasoning","defaultUnit":"ช้อนชา","aliases":["พริกไทยป่น","พริกไทยดำ"],"tags":["เผ็ดอ่อน"]},
   {"id":"chili_paste","name":"น้ำพริกเผา","category":"seasoning","defaultUnit":"ช้อนโต๊ะ","aliases":["พริกเผา"],"tags":["เผ็ด","หวาน"]},
-  {"id":"coconut_milk","name":"กะทิ","category":"seasoning","defaultUnit":"มิลลิลิตร","aliases":["น้ำกะทิ","หัวกะทิ","หางกะทิ"],"tags":["แกง"]}
+  {"id":"coconut_milk","name":"กะทิ","category":"seasoning","defaultUnit":"มิลลิลิตร","aliases":["น้ำกะทิ","หัวกะทิ","หางกะทิ"],"tags":["แกง"]},
+  {"id":"breadcrumbs","name":"เกล็ดขนมปัง","canonicalName":"Breadcrumbs","category":"staple","defaultUnit":"กรัม","aliases":["breadcrumbs"],"tags":["coating"]},
+  {"id":"cashew","name":"เม็ดมะม่วงหิมพานต์","canonicalName":"Cashew","category":"staple","defaultUnit":"กรัม","aliases":["cashew","cashew nut"],"tags":["nut"]},
+  {"id":"flour","name":"แป้งสาลี","canonicalName":"Flour","category":"staple","defaultUnit":"กรัม","aliases":["flour","wheat flour"],"tags":["flour"]},
+  {"id":"glass_noodle","name":"วุ้นเส้น","canonicalName":"Glass Noodle","category":"staple","defaultUnit":"กรัม","aliases":["glass noodle","glass noodles"],"tags":["noodle"]},
+  {"id":"lime","name":"มะนาว","canonicalName":"Lime","category":"herb","defaultUnit":"ลูก","aliases":["lime","น้ำมะนาว"],"tags":["citrus"]},
+  {"id":"mixed_vegetables","name":"ผักรวม","canonicalName":"Mixed Vegetables","category":"vegetable","defaultUnit":"กรัม","aliases":["mixed vegetables"],"tags":["vegetable"]},
+  {"id":"potato","name":"มันฝรั่ง","canonicalName":"Potato","category":"vegetable","defaultUnit":"หัว","aliases":["potato","potatoes"],"tags":["root vegetable"]},
+  {"id":"red_curry_paste","name":"พริกแกงแดง","canonicalName":"Red Curry Paste","category":"seasoning","defaultUnit":"ช้อนโต๊ะ","aliases":["red curry paste"],"tags":["curry"]},
+  {"id":"seaweed","name":"สาหร่าย","canonicalName":"Seaweed","category":"vegetable","defaultUnit":"กรัม","aliases":["seaweed"],"tags":["sea vegetable"]},
+  {"id":"sour_curry_paste","name":"พริกแกงส้ม","canonicalName":"Sour Curry Paste","category":"seasoning","defaultUnit":"ช้อนโต๊ะ","aliases":["sour curry paste"],"tags":["curry"]},
+  {"id":"tamarind_sauce","name":"น้ำมะขามเปียก","canonicalName":"Tamarind Sauce","category":"seasoning","defaultUnit":"ช้อนโต๊ะ","aliases":["tamarind sauce","tamarind water"],"tags":["sour"]}
 ]
