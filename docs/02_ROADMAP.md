@@ -17,16 +17,19 @@ Status: complete.
 - Core Shopping domain
 - Offline Shopping repository and durable persistence
 - Recipe/Pantry shortage integration
+- Multi-Recipe aggregation and duplicate merging
 - Transaction-safe Shopping mutations
+- Purchase-to-Pantry synchronization and undo
 
-Status: SF-001 in progress. Shopping UI, purchase workflow, retailer, pricing,
-and cloud synchronization are outside SF-001.
+Status: SF-001 approved. SF-002 Shopping Engine is implemented and awaiting CTO
+review. Shopping UI, retailer, pricing, package sizing, and cloud
+synchronization remain outside the current scope.
 
 ---
 
 ## Phase 3
 
-- Shopping experience and approved purchase lifecycle
+- Shopping UI and extended purchase experience
 - Meal Planner
 
 ---

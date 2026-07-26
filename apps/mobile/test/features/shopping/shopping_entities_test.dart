@@ -1,7 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/features/shopping/domain/entities/shopping_category.dart';
 import 'package:mobile/features/shopping/domain/entities/shopping_item.dart';
+import 'package:mobile/features/shopping/domain/entities/shopping_item_status.dart';
 import 'package:mobile/features/shopping/domain/entities/shopping_list.dart';
+import 'package:mobile/features/shopping/domain/entities/shopping_purchase.dart';
 import 'package:mobile/features/shopping/domain/entities/shopping_source.dart';
 import 'package:mobile/features/shopping/domain/entities/shopping_status.dart';
 
@@ -23,6 +25,17 @@ void main() {
           category: ShoppingCategory.protein,
           source: ShoppingSource.recipe,
           sourceReferenceId: 'omelette',
+          sourceReferenceIds: const <String>['omelette', 'fried-rice'],
+          status: ShoppingItemStatus.purchased,
+          purchase: ShoppingPurchase(
+            transactionId: 'purchase-1',
+            pantryLotId: 'egg-lot',
+            createdPantryLot: false,
+            pantryUnitId: 'piece',
+            beforeQuantity: 2,
+            afterQuantity: 8,
+            purchasedAt: now,
+          ),
           createdAt: now,
           updatedAt: now,
         ),
@@ -39,6 +52,12 @@ void main() {
     expect(restored.items.single.canonicalIngredientId, 'egg');
     expect(restored.items.single.unitId, 'piece');
     expect(restored.items.single.source, ShoppingSource.recipe);
+    expect(restored.items.single.status, ShoppingItemStatus.purchased);
+    expect(restored.items.single.sourceReferenceIds, <String>[
+      'fried-rice',
+      'omelette',
+    ]);
+    expect(restored.items.single.purchase?.afterQuantity, 8);
     expect(restored.toJson(), original.toJson());
   });
 

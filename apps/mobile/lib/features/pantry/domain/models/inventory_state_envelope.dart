@@ -7,8 +7,9 @@ import '../../../shopping/domain/entities/shopping_list.dart';
 import 'cooking_history_entry.dart';
 
 const int currentInventoryEnvelopeVersion = 1;
-const int currentInventoryReaderVersion = 2;
+const int currentInventoryReaderVersion = 3;
 const String shoppingStateCapability = 'shopping.v1';
+const String shoppingEngineCapability = 'shopping.engine.v1';
 
 class InventoryStateEnvelope {
   InventoryStateEnvelope({
@@ -50,7 +51,7 @@ class InventoryStateEnvelope {
           : currentInventoryReaderVersion,
       capabilities: shoppingLists.isEmpty
           ? const <String>[]
-          : const <String>[shoppingStateCapability],
+          : const <String>[shoppingStateCapability, shoppingEngineCapability],
       revision: 0,
       lastAppliedTransactionId: '',
       updatedAt: createdAt,
