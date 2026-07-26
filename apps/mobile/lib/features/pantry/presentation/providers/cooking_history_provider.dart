@@ -1,22 +1,23 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/services/storage_service.dart';
+import '../../application/inventory_transaction_providers.dart';
 import '../../domain/models/cooking_history_entry.dart';
 
 class CookingHistoryNotifier extends Notifier<List<CookingHistoryEntry>> {
   @override
   List<CookingHistoryEntry> build() {
-    try {
-      return StorageService.loadCookingHistory();
-    } on StateError {
-      return const <CookingHistoryEntry>[];
-    }
+    final recovery = ref.watch(inventoryStartupRecoveryProvider);
+    return _sorted(recovery?.snapshot.history ?? const <CookingHistoryEntry>[]);
   }
 
   void replaceFromCommittedSnapshot(List<CookingHistoryEntry> entries) {
+    state = _sorted(entries);
+  }
+
+  static List<CookingHistoryEntry> _sorted(List<CookingHistoryEntry> entries) {
     final sorted = List<CookingHistoryEntry>.of(entries)
       ..sort((first, second) => second.createdAt.compareTo(first.createdAt));
-    state = List<CookingHistoryEntry>.unmodifiable(sorted);
+    return List<CookingHistoryEntry>.unmodifiable(sorted);
   }
 }
 
