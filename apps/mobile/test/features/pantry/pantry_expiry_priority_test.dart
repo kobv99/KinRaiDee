@@ -6,71 +6,74 @@ void main() {
   group('PantryExpiryPriority', () {
     final now = DateTime(2026, 7, 24, 18, 30);
 
-    test('orders active use-soon items before later, undated and expired items', () {
-      final items = <Ingredient>[
-        _ingredient('undated', 'ไม่ระบุวัน', now: now),
-        _ingredient(
-          'later',
-          'อีกสิบวัน',
-          now: now,
-          expiryDate: DateTime(2026, 8, 3),
-        ),
-        _ingredient(
-          'tomorrow',
-          'หมดอายุพรุ่งนี้',
-          now: now,
-          expiryDate: DateTime(2026, 7, 25),
-        ),
-        _ingredient(
-          'today',
-          'หมดอายุวันนี้',
-          now: now,
-          expiryDate: DateTime(2026, 7, 24),
-        ),
-        _ingredient(
-          'expired',
-          'หมดอายุแล้ว',
-          now: now,
-          expiryDate: DateTime(2026, 7, 23),
-        ),
-      ]..sort((a, b) => PantryExpiryPriority.compare(a, b, now: now));
-
-      expect(
-        items.map((item) => item.id),
-        <String>['today', 'tomorrow', 'later', 'undated', 'expired'],
-      );
-    });
-
-    test('returns only non-expired items within seven days', () {
-      final items = PantryExpiryPriority.useSoonItems(
-        <Ingredient>[
+    test(
+      'orders active use-soon items before later, undated and expired items',
+      () {
+        final items = <Ingredient>[
+          _ingredient('undated', 'ไม่ระบุวัน', now: now),
+          _ingredient(
+            'later',
+            'อีกสิบวัน',
+            now: now,
+            expiryDate: DateTime(2026, 8, 3),
+          ),
+          _ingredient(
+            'tomorrow',
+            'หมดอายุพรุ่งนี้',
+            now: now,
+            expiryDate: DateTime(2026, 7, 25),
+          ),
           _ingredient(
             'today',
-            'วันนี้',
+            'หมดอายุวันนี้',
             now: now,
             expiryDate: DateTime(2026, 7, 24),
           ),
           _ingredient(
-            'seven',
-            'เจ็ดวัน',
-            now: now,
-            expiryDate: DateTime(2026, 7, 31),
-          ),
-          _ingredient(
-            'eight',
-            'แปดวัน',
-            now: now,
-            expiryDate: DateTime(2026, 8, 1),
-          ),
-          _ingredient(
             'expired',
-            'หมดอายุ',
+            'หมดอายุแล้ว',
             now: now,
             expiryDate: DateTime(2026, 7, 23),
           ),
-        ],
-        now: now,
-      );
+        ]..sort((a, b) => PantryExpiryPriority.compare(a, b, now: now));
+
+        expect(items.map((item) => item.id), <String>[
+          'today',
+          'tomorrow',
+          'later',
+          'undated',
+          'expired',
+        ]);
+      },
+    );
+
+    test('returns only non-expired items within seven days', () {
+      final items = PantryExpiryPriority.useSoonItems(<Ingredient>[
+        _ingredient(
+          'today',
+          'วันนี้',
+          now: now,
+          expiryDate: DateTime(2026, 7, 24),
+        ),
+        _ingredient(
+          'seven',
+          'เจ็ดวัน',
+          now: now,
+          expiryDate: DateTime(2026, 7, 31),
+        ),
+        _ingredient(
+          'eight',
+          'แปดวัน',
+          now: now,
+          expiryDate: DateTime(2026, 8, 1),
+        ),
+        _ingredient(
+          'expired',
+          'หมดอายุ',
+          now: now,
+          expiryDate: DateTime(2026, 7, 23),
+        ),
+      ], now: now);
 
       expect(items.map((item) => item.id), <String>['today', 'seven']);
     });

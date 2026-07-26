@@ -8,36 +8,41 @@ void main() {
   const matcher = RecipeMatcher();
 
   group('RecipeMatcher', () {
-    test('returns 100 percent when required and optional ingredients match', () {
-      final result = matcher.match(
-        recipes: [
-          _recipe(
-            id: 'complete',
-            name: 'เมนูครบ',
-            ingredients: const [
-              RecipeIngredient(
-                id: 'pork',
-                name: 'หมูสับ',
-                quantity: 100,
-                unit: 'กรัม',
-              ),
-              RecipeIngredient(
-                id: 'chili',
-                name: 'พริก',
-                quantity: 1,
-                unit: 'เม็ด',
-                required: false,
-              ),
-            ],
-          ),
-        ],
-        pantry: [_pantry('หมูสับ'), _pantry('พริก')],
-      ).single;
+    test(
+      'returns 100 percent when required and optional ingredients match',
+      () {
+        final result = matcher
+            .match(
+              recipes: [
+                _recipe(
+                  id: 'complete',
+                  name: 'เมนูครบ',
+                  ingredients: const [
+                    RecipeIngredient(
+                      id: 'pork',
+                      name: 'หมูสับ',
+                      quantity: 100,
+                      unit: 'กรัม',
+                    ),
+                    RecipeIngredient(
+                      id: 'chili',
+                      name: 'พริก',
+                      quantity: 1,
+                      unit: 'เม็ด',
+                      required: false,
+                    ),
+                  ],
+                ),
+              ],
+              pantry: [_pantry('หมูสับ'), _pantry('พริก')],
+            )
+            .single;
 
-      expect(result.scorePercent, 100);
-      expect(result.canCook, isTrue);
-      expect(result.missingIngredients, isEmpty);
-    });
+        expect(result.scorePercent, 100);
+        expect(result.canCook, isTrue);
+        expect(result.missingIngredients, isEmpty);
+      },
+    );
 
     test('weights required ingredients more heavily than optional ones', () {
       final recipe = _recipe(
@@ -60,14 +65,12 @@ void main() {
         ],
       );
 
-      final requiredOnly = matcher.match(
-        recipes: [recipe],
-        pantry: [_pantry('หมู')],
-      ).single;
-      final optionalOnly = matcher.match(
-        recipes: [recipe],
-        pantry: [_pantry('พริก')],
-      ).single;
+      final requiredOnly = matcher
+          .match(recipes: [recipe], pantry: [_pantry('หมู')])
+          .single;
+      final optionalOnly = matcher
+          .match(recipes: [recipe], pantry: [_pantry('พริก')])
+          .single;
 
       expect(requiredOnly.scorePercent, 80);
       expect(requiredOnly.canCook, isTrue);
@@ -90,23 +93,23 @@ void main() {
         ],
       );
 
-      final aliasMatch = matcher.match(
-        recipes: [recipe],
-        pantry: [_pantry('ไข่')],
-      ).single;
-      final zeroQuantity = matcher.match(
-        recipes: [recipe],
-        pantry: [_pantry('ไข่', quantity: 0)],
-      ).single;
-      final expired = matcher.match(
-        recipes: [recipe],
-        pantry: [
-          _pantry(
-            'ไข่',
-            expiryDate: DateTime.now().subtract(const Duration(days: 1)),
-          ),
-        ],
-      ).single;
+      final aliasMatch = matcher
+          .match(recipes: [recipe], pantry: [_pantry('ไข่')])
+          .single;
+      final zeroQuantity = matcher
+          .match(recipes: [recipe], pantry: [_pantry('ไข่', quantity: 0)])
+          .single;
+      final expired = matcher
+          .match(
+            recipes: [recipe],
+            pantry: [
+              _pantry(
+                'ไข่',
+                expiryDate: DateTime.now().subtract(const Duration(days: 1)),
+              ),
+            ],
+          )
+          .single;
 
       expect(aliasMatch.scorePercent, 100);
       expect(zeroQuantity.scorePercent, 0);
@@ -120,12 +123,7 @@ void main() {
             id: 'low',
             name: 'ค เมนูคะแนนต่ำ',
             ingredients: const [
-              RecipeIngredient(
-                id: 'pork',
-                name: 'หมู',
-                quantity: 1,
-                unit: '份',
-              ),
+              RecipeIngredient(id: 'pork', name: 'หมู', quantity: 1, unit: '份'),
               RecipeIngredient(
                 id: 'egg',
                 name: 'ไข่',
@@ -138,24 +136,14 @@ void main() {
             id: 'b',
             name: 'ข เมนูคะแนนเต็ม',
             ingredients: const [
-              RecipeIngredient(
-                id: 'pork',
-                name: 'หมู',
-                quantity: 1,
-                unit: '份',
-              ),
+              RecipeIngredient(id: 'pork', name: 'หมู', quantity: 1, unit: '份'),
             ],
           ),
           _recipe(
             id: 'a',
             name: 'ก เมนูคะแนนเต็ม',
             ingredients: const [
-              RecipeIngredient(
-                id: 'pork',
-                name: 'หมู',
-                quantity: 1,
-                unit: '份',
-              ),
+              RecipeIngredient(id: 'pork', name: 'หมู', quantity: 1, unit: '份'),
             ],
           ),
         ],
@@ -184,11 +172,7 @@ Recipe _recipe({
   );
 }
 
-Ingredient _pantry(
-  String name, {
-  double quantity = 1,
-  DateTime? expiryDate,
-}) {
+Ingredient _pantry(String name, {double quantity = 1, DateTime? expiryDate}) {
   final now = DateTime(2026, 1, 1);
   return Ingredient(
     id: name,

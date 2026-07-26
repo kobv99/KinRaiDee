@@ -1,4 +1,5 @@
 import '../../../../core/models/ingredient.dart';
+import '../../../../core/time/app_clock.dart';
 import '../models/cooking_history_entry.dart';
 import '../models/pantry_quantity_transaction.dart';
 
@@ -22,7 +23,9 @@ class CookingHistoryAdjustmentException implements Exception {
 }
 
 class CookingHistoryAdjustmentPlanner {
-  const CookingHistoryAdjustmentPlanner();
+  const CookingHistoryAdjustmentPlanner({this.clock = systemAppClock});
+
+  final AppClock clock;
 
   CookingHistoryAdjustmentPlan adjust({
     required CookingHistoryEntry entry,
@@ -75,9 +78,7 @@ class CookingHistoryAdjustmentPlanner {
       final desiredHistoryAfter = (change.beforeQuantity - desiredConsumed)
           .clamp(0, double.infinity)
           .toDouble();
-      updatedChanges.add(
-        change.copyWith(afterQuantity: desiredHistoryAfter),
-      );
+      updatedChanges.add(change.copyWith(afterQuantity: desiredHistoryAfter));
 
       if (_nearlyEqual(consumptionDelta, 0)) {
         continue;
@@ -97,7 +98,7 @@ class CookingHistoryAdjustmentPlanner {
       );
     }
 
-    final now = adjustedAt ?? DateTime.now();
+    final now = adjustedAt ?? clock.now();
     final allReturned = updatedChanges.every(
       (change) => _nearlyEqual(change.afterQuantity, change.beforeQuantity),
     );

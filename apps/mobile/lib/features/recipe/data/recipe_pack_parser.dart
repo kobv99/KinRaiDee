@@ -8,9 +8,7 @@ class RecipePackParser {
     if (decoded is List<dynamic>) {
       return decoded
           .map(
-            (item) => Recipe.fromJson(
-              Map<String, dynamic>.from(item as Map),
-            ),
+            (item) => Recipe.fromJson(Map<String, dynamic>.from(item as Map)),
           )
           .toList(growable: false);
     }
@@ -33,49 +31,48 @@ class RecipePackParser {
     final heroAliases = _stringList(hero['aliases']);
     final rows = pack['recipes'] as List<dynamic>? ?? const <dynamic>[];
 
-    return rows.map((rawRow) {
-      final row = Map<String, dynamic>.from(rawRow as Map);
-      final method = row['method'] as String? ?? 'ปรุง';
-      final name = row['name'] as String;
-      final ingredientIds = _stringList(row['ingredients']);
-      final ingredients = <RecipeIngredient>[
-        RecipeIngredient(
-          id: heroId,
-          name: heroName,
-          quantity: heroQuantity,
-          unit: heroUnit,
-          aliases: heroAliases,
-        ),
-        ...ingredientIds.map(_buildIngredient),
-      ];
+    return rows
+        .map((rawRow) {
+          final row = Map<String, dynamic>.from(rawRow as Map);
+          final method = row['method'] as String? ?? 'ปรุง';
+          final name = row['name'] as String;
+          final ingredientIds = _stringList(row['ingredients']);
+          final ingredients = <RecipeIngredient>[
+            RecipeIngredient(
+              id: heroId,
+              name: heroName,
+              quantity: heroQuantity,
+              unit: heroUnit,
+              aliases: heroAliases,
+            ),
+            ...ingredientIds.map(_buildIngredient),
+          ];
 
-      return Recipe(
-        version: version,
-        id: row['id'] as String,
-        name: name,
-        category: row['category'] as String? ?? 'อาหารไทย',
-        description:
-            row['description'] as String? ??
-            '$name เมนู$methodทำง่าย เหมาะสำหรับมื้อประจำวัน',
-        emoji: row['emoji'] as String? ?? heroEmoji,
-        difficulty: row['difficulty'] as String? ?? 'easy',
-        cookTimeMinutes: (row['time'] as num?)?.toInt() ?? 0,
-        servings: (row['servings'] as num?)?.toInt() ?? 2,
-        tags: <String>[heroName, method, 'อาหารไทย'],
-        cookingMethods: <String>[method],
-        heroIngredientId: heroId,
-        heroIngredientName: heroName,
-        popularity: (row['popularity'] as num?)?.toInt() ?? 0,
-        ingredients: ingredients,
-        steps: _buildSteps(method: method, heroName: heroName),
-      );
-    }).toList(growable: false);
+          return Recipe(
+            version: version,
+            id: row['id'] as String,
+            name: name,
+            category: row['category'] as String? ?? 'อาหารไทย',
+            description:
+                row['description'] as String? ??
+                '$name เมนู$methodทำง่าย เหมาะสำหรับมื้อประจำวัน',
+            emoji: row['emoji'] as String? ?? heroEmoji,
+            difficulty: row['difficulty'] as String? ?? 'easy',
+            cookTimeMinutes: (row['time'] as num?)?.toInt() ?? 0,
+            servings: (row['servings'] as num?)?.toInt() ?? 2,
+            tags: <String>[heroName, method, 'อาหารไทย'],
+            cookingMethods: <String>[method],
+            heroIngredientId: heroId,
+            heroIngredientName: heroName,
+            popularity: (row['popularity'] as num?)?.toInt() ?? 0,
+            ingredients: ingredients,
+            steps: _buildSteps(method: method, heroName: heroName),
+          );
+        })
+        .toList(growable: false);
   }
 
-  List<String> _buildSteps({
-    required String method,
-    required String heroName,
-  }) {
+  List<String> _buildSteps({required String method, required String heroName}) {
     final preparation = 'เตรียม$heroNameและวัตถุดิบทั้งหมดให้พร้อม';
 
     return switch (method) {
@@ -225,18 +222,8 @@ const Map<String, _IngredientTemplate> _ingredientTemplates = {
     required: false,
     aliases: <String>['พริกไทยดำ'],
   ),
-  'rice': _IngredientTemplate(
-    'ข้าวสวย',
-    1,
-    'ถ้วย',
-    aliases: <String>['ข้าว'],
-  ),
-  'egg': _IngredientTemplate(
-    'ไข่ไก่',
-    1,
-    'ฟอง',
-    aliases: <String>['ไข่'],
-  ),
+  'rice': _IngredientTemplate('ข้าวสวย', 1, 'ถ้วย', aliases: <String>['ข้าว']),
+  'egg': _IngredientTemplate('ไข่ไก่', 1, 'ฟอง', aliases: <String>['ไข่']),
   'pork': _IngredientTemplate(
     'หมูสับ',
     100,
@@ -263,12 +250,7 @@ const Map<String, _IngredientTemplate> _ingredientTemplates = {
     required: false,
     aliases: <String>['ต้นหอมซอย'],
   ),
-  'lime': _IngredientTemplate(
-    'มะนาว',
-    1,
-    'ลูก',
-    aliases: <String>['น้ำมะนาว'],
-  ),
+  'lime': _IngredientTemplate('มะนาว', 1, 'ลูก', aliases: <String>['น้ำมะนาว']),
   'lemongrass': _IngredientTemplate('ตะไคร้', 2, 'ต้น'),
   'kaffir_lime_leaf': _IngredientTemplate('ใบมะกรูด', 4, 'ใบ'),
   'galangal': _IngredientTemplate('ข่า', 5, 'แว่น'),
@@ -344,12 +326,7 @@ const Map<String, _IngredientTemplate> _ingredientTemplates = {
     'กรัม',
     aliases: <String>['แป้ง'],
   ),
-  'ginger': _IngredientTemplate(
-    'ขิง',
-    20,
-    'กรัม',
-    aliases: <String>['ขิงซอย'],
-  ),
+  'ginger': _IngredientTemplate('ขิง', 20, 'กรัม', aliases: <String>['ขิงซอย']),
   'cabbage': _IngredientTemplate(
     'กะหล่ำปลี',
     150,

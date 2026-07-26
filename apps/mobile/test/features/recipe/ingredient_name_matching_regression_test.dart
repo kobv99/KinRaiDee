@@ -70,20 +70,23 @@ void main() {
     );
   });
 
-  test('RecipeMatcher does not mark chicken as owned from an egg pantry item', () {
-    final pantry = <pantry_model.Ingredient>[_eggPantryIngredient()];
-    final matches = const RecipeMatcher().match(
-      recipes: <Recipe>[_eggRecipe(), _chickenRecipe()],
-      pantry: pantry,
-    );
-    final chickenMatch = matches.firstWhere(
-      (match) => match.recipe.id == 'chicken_cashew',
-    );
+  test(
+    'RecipeMatcher does not mark chicken as owned from an egg pantry item',
+    () {
+      final pantry = <pantry_model.Ingredient>[_eggPantryIngredient()];
+      final matches = const RecipeMatcher().match(
+        recipes: <Recipe>[_eggRecipe(), _chickenRecipe()],
+        pantry: pantry,
+      );
+      final chickenMatch = matches.firstWhere(
+        (match) => match.recipe.id == 'chicken_cashew',
+      );
 
-    expect(chickenMatch.matchedIngredients, isEmpty);
-    expect(chickenMatch.scorePercent, 0);
-    expect(chickenMatch.canCook, isFalse);
-  });
+      expect(chickenMatch.matchedIngredients, isEmpty);
+      expect(chickenMatch.scorePercent, 0);
+      expect(chickenMatch.canCook, isFalse);
+    },
+  );
 
   test('egg main ingredient recommendations never include chicken recipes', () {
     final pantry = <pantry_model.Ingredient>[_eggPantryIngredient()];
@@ -98,10 +101,9 @@ void main() {
 
     expect(result.hero?.key, 'egg');
     expect(result.totalHeroRecipes, 1);
-    expect(
-      result.primaryMatches.map((match) => match.recipe.id),
-      <String>['egg_omelette'],
-    );
+    expect(result.primaryMatches.map((match) => match.recipe.id), <String>[
+      'egg_omelette',
+    ]);
     expect(
       result.moreMatches.any((match) => match.recipe.id == 'chicken_cashew'),
       isFalse,

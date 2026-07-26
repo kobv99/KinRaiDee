@@ -85,7 +85,8 @@ class Recipe {
       description: json['description'] as String? ?? '',
       emoji: json['emoji'] as String? ?? '🍳',
       difficulty: json['difficulty'] as String? ?? 'easy',
-      cookTimeMinutes: (json['cookTimeMinutes'] as num?)?.toInt() ??
+      cookTimeMinutes:
+          (json['cookTimeMinutes'] as num?)?.toInt() ??
           (json['cookTime'] as num?)?.toInt() ??
           0,
       servings: (json['servings'] as num?)?.toInt() ?? 1,

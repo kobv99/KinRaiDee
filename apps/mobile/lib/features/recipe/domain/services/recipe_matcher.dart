@@ -5,12 +5,10 @@ import '../entities/recipe_match.dart';
 import 'ingredient_name_matcher.dart';
 
 class RecipeMatcher {
-  const RecipeMatcher({
-    this.requiredWeight = 0.8,
-    this.optionalWeight = 0.2,
-  }) : assert(requiredWeight >= 0),
-       assert(optionalWeight >= 0),
-       assert(requiredWeight + optionalWeight > 0);
+  const RecipeMatcher({this.requiredWeight = 0.8, this.optionalWeight = 0.2})
+    : assert(requiredWeight >= 0),
+      assert(optionalWeight >= 0),
+      assert(requiredWeight + optionalWeight > 0);
 
   final double requiredWeight;
   final double optionalWeight;
@@ -59,15 +57,9 @@ class RecipeMatcher {
     return ingredient.quantity > 0 && !ingredient.isExpired;
   }
 
-  bool _hasIngredient(
-    RecipeIngredient ingredient,
-    Set<String> pantryNames,
-  ) {
+  bool _hasIngredient(RecipeIngredient ingredient, Set<String> pantryNames) {
     return pantryNames.any(
-      (pantryName) => recipeIngredientMatchesPantryName(
-        ingredient,
-        pantryName,
-      ),
+      (pantryName) => recipeIngredientMatchesPantryName(ingredient, pantryName),
     );
   }
 

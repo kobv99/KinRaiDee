@@ -72,6 +72,11 @@ class CookingHistoryChange {
 
 class CookingHistoryEntry {
   const CookingHistoryEntry({
+    this.schemaVersion = 1,
+    this.originatingTransactionId = '',
+    this.adjustedByTransactionId,
+    this.cancelledByTransactionId,
+    this.reversedByTransactionId,
     required this.id,
     required this.recipeId,
     required this.recipeName,
@@ -82,6 +87,11 @@ class CookingHistoryEntry {
     required this.status,
   });
 
+  final int schemaVersion;
+  final String originatingTransactionId;
+  final String? adjustedByTransactionId;
+  final String? cancelledByTransactionId;
+  final String? reversedByTransactionId;
   final String id;
   final String recipeId;
   final String recipeName;
@@ -105,6 +115,8 @@ class CookingHistoryEntry {
     PantryQuantityTransaction transaction,
   ) {
     return CookingHistoryEntry(
+      schemaVersion: 1,
+      originatingTransactionId: transaction.transactionId,
       id: transactionHistoryId(transaction),
       recipeId: transaction.recipeId,
       recipeName: transaction.recipeName,
@@ -128,11 +140,22 @@ class CookingHistoryEntry {
   }
 
   CookingHistoryEntry copyWith({
+    String? adjustedByTransactionId,
+    String? cancelledByTransactionId,
+    String? reversedByTransactionId,
     List<CookingHistoryChange>? changes,
     DateTime? updatedAt,
     CookingHistoryStatus? status,
   }) {
     return CookingHistoryEntry(
+      schemaVersion: schemaVersion,
+      originatingTransactionId: originatingTransactionId,
+      adjustedByTransactionId:
+          adjustedByTransactionId ?? this.adjustedByTransactionId,
+      cancelledByTransactionId:
+          cancelledByTransactionId ?? this.cancelledByTransactionId,
+      reversedByTransactionId:
+          reversedByTransactionId ?? this.reversedByTransactionId,
       id: id,
       recipeId: recipeId,
       recipeName: recipeName,
@@ -146,6 +169,11 @@ class CookingHistoryEntry {
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
+      'schemaVersion': schemaVersion,
+      'originatingTransactionId': originatingTransactionId,
+      'adjustedByTransactionId': adjustedByTransactionId,
+      'cancelledByTransactionId': cancelledByTransactionId,
+      'reversedByTransactionId': reversedByTransactionId,
       'id': id,
       'recipeId': recipeId,
       'recipeName': recipeName,
@@ -153,15 +181,17 @@ class CookingHistoryEntry {
       'changes': changes
           .map((change) => change.toJson())
           .toList(growable: false),
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
+      'createdAt': createdAt.toUtc().toIso8601String(),
+      'updatedAt': updatedAt.toUtc().toIso8601String(),
       'status': status.name,
     };
   }
 
   factory CookingHistoryEntry.fromJson(Map<String, dynamic> json) {
-    final createdAt = DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
-        DateTime.now();
+    final createdAt =
+        DateTime.tryParse(json['createdAt']?.toString() ?? '')?.toUtc() ??
+        DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+    final id = json['id']?.toString() ?? '';
     final rawChanges = json['changes'];
     final changes = rawChanges is List
         ? rawChanges
@@ -175,7 +205,15 @@ class CookingHistoryEntry {
         : <CookingHistoryChange>[];
 
     return CookingHistoryEntry(
-      id: json['id']?.toString() ?? '',
+      schemaVersion: _parseInt(json['schemaVersion'], fallback: 1),
+      originatingTransactionId:
+          json['originatingTransactionId']?.toString() ?? id,
+      adjustedByTransactionId: _optionalString(json['adjustedByTransactionId']),
+      cancelledByTransactionId: _optionalString(
+        json['cancelledByTransactionId'],
+      ),
+      reversedByTransactionId: _optionalString(json['reversedByTransactionId']),
+      id: id,
       recipeId: json['recipeId']?.toString() ?? '',
       recipeName: json['recipeName']?.toString() ?? '',
       servings: _parseInt(json['servings'], fallback: 1),
@@ -192,6 +230,9 @@ class CookingHistoryEntry {
 }
 
 String transactionHistoryId(PantryQuantityTransaction transaction) {
+  if (transaction.transactionId.isNotEmpty) {
+    return transaction.transactionId;
+  }
   return '${transaction.createdAt.microsecondsSinceEpoch}_${transaction.recipeId}';
 }
 
@@ -207,4 +248,9 @@ int _parseInt(dynamic value, {required int fallback}) {
     return value;
   }
   return int.tryParse(value?.toString() ?? '') ?? fallback;
+}
+
+String? _optionalString(dynamic value) {
+  final text = value?.toString();
+  return text == null || text.isEmpty ? null : text;
 }

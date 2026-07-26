@@ -2,9 +2,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/navigation/app_navigation_provider.dart';
 import '../../app/navigation/cooking_completion_provider.dart';
+import '../../features/pantry/application/inventory_transaction_coordinator.dart';
+import '../../features/pantry/application/inventory_transaction_providers.dart';
 import '../../features/pantry/data/repositories/hive_pantry_repository.dart';
 import '../../features/pantry/domain/models/pantry_quantity_transaction.dart';
 import '../../features/pantry/domain/repositories/pantry_repository.dart';
+import '../../features/pantry/domain/services/cooking_history_adjustment_planner.dart';
 import '../../features/pantry/presentation/providers/cooking_history_provider.dart';
 import '../models/ingredient.dart';
 import '../services/storage_service.dart';
@@ -103,6 +106,10 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
     return ref.read(favoriteIngredientNamesProvider.notifier);
   }
 
+  InventoryTransactionCoordinator get _coordinator {
+    return ref.read(inventoryTransactionCoordinatorProvider);
+  }
+
   @override
   List<Ingredient> build() {
     final favoriteNames = ref.read(favoriteIngredientNamesProvider);
@@ -111,12 +118,6 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
       ingredients,
       favoriteNames,
     );
-
-    if (_favoriteFlagsChanged(ingredients, synchronizedIngredients)) {
-      Future<void>.microtask(
-        () => _repository.saveIngredients(synchronizedIngredients),
-      );
-    }
 
     return synchronizedIngredients;
   }
@@ -127,9 +128,7 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
       isFavorite: _favoriteNames.contains(normalizedName),
     );
     final updatedIngredients = <Ingredient>[...state, ingredientToAdd];
-
-    state = updatedIngredients;
-    await _repository.saveIngredients(updatedIngredients);
+    await _commitPantryMutation(updatedIngredients, source: 'addIngredient');
   }
 
   Future<void> updateIngredient(Ingredient ingredient) async {
@@ -137,7 +136,7 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
     final wasFavorite = originalIngredient?.isFavorite ?? ingredient.isFavorite;
     final updatedIngredient = ingredient.copyWith(
       isFavorite: wasFavorite,
-      updatedAt: DateTime.now(),
+      updatedAt: ref.read(appClockProvider).now(),
     );
     final updatedIngredients = state
         .map((currentIngredient) {
@@ -149,7 +148,7 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
         })
         .toList(growable: false);
 
-    state = updatedIngredients;
+    await _commitPantryMutation(updatedIngredients, source: 'updateIngredient');
 
     if (originalIngredient != null && wasFavorite) {
       await _favoriteNotifier.replaceName(
@@ -157,8 +156,6 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
         updatedIngredient.name,
       );
     }
-
-    await _repository.saveIngredients(updatedIngredients);
   }
 
   Future<void> toggleFavorite(String id) async {
@@ -170,12 +167,7 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
     final normalizedName = normalizePantryIngredientName(targetIngredient.name);
     final nextFavoriteValue = !_favoriteNames.contains(normalizedName);
 
-    if (nextFavoriteValue) {
-      await _favoriteNotifier.addName(targetIngredient.name);
-    } else {
-      await _favoriteNotifier.removeName(targetIngredient.name);
-    }
-
+    final now = ref.read(appClockProvider).now();
     final updatedIngredients = state
         .map((ingredient) {
           if (normalizePantryIngredientName(ingredient.name) !=
@@ -185,19 +177,21 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
 
           return ingredient.copyWith(
             isFavorite: nextFavoriteValue,
-            updatedAt: DateTime.now(),
+            updatedAt: now,
           );
         })
         .toList(growable: false);
-
-    state = updatedIngredients;
-    await _repository.saveIngredients(updatedIngredients);
+    await _commitPantryMutation(updatedIngredients, source: 'toggleFavorite');
+    if (nextFavoriteValue) {
+      await _favoriteNotifier.addName(targetIngredient.name);
+    } else {
+      await _favoriteNotifier.removeName(targetIngredient.name);
+    }
   }
 
   Future<void> removeFavoriteByName(String name) async {
     final normalizedName = normalizePantryIngredientName(name);
-    await _favoriteNotifier.removeName(name);
-
+    final now = ref.read(appClockProvider).now();
     final updatedIngredients = state
         .map((ingredient) {
           if (normalizePantryIngredientName(ingredient.name) !=
@@ -205,98 +199,56 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
             return ingredient;
           }
 
-          return ingredient.copyWith(
-            isFavorite: false,
-            updatedAt: DateTime.now(),
-          );
+          return ingredient.copyWith(isFavorite: false, updatedAt: now);
         })
         .toList(growable: false);
-
-    state = updatedIngredients;
-    await _repository.saveIngredients(updatedIngredients);
+    await _commitPantryMutation(updatedIngredients, source: 'removeFavorite');
+    await _favoriteNotifier.removeName(name);
   }
 
-  Future<void> applyQuantityTransaction(
-    PantryQuantityTransaction transaction, {
-    bool recordHistory = true,
-    bool publishCompletion = true,
-  }) async {
+  Future<PantryQuantityTransaction> applyQuantityTransaction(
+    PantryQuantityTransaction transaction,
+  ) async {
     if (!transaction.hasChanges) {
-      return;
+      return transaction;
     }
-
-    final changesById = <String, PantryQuantityChange>{
-      for (final change in transaction.changes) change.ingredientId: change,
-    };
-    final now = DateTime.now();
-    final updatedIngredients = state
-        .map((ingredient) {
-          final change = changesById[ingredient.id];
-          if (change == null) {
-            return ingredient;
-          }
-
-          return ingredient.copyWith(
-            quantity: change.afterQuantity
-                .clamp(0, double.infinity)
-                .toDouble(),
-            updatedAt: now,
-          );
-        })
-        .toList(growable: false);
-
-    state = updatedIngredients;
-    await _repository.saveIngredients(updatedIngredients);
-
-    if (recordHistory) {
-      await ref.read(cookingHistoryProvider.notifier).record(transaction);
-    }
-    if (publishCompletion) {
-      ref.read(cookingCompletionProvider.notifier).publish(transaction);
-      ref.read(appNavigationProvider.notifier).openPantry();
-    }
+    final result = await _coordinator.completeCooking(transaction);
+    await _publishCommitted(result);
+    final committedTransaction = result.transaction ?? transaction;
+    ref.read(cookingCompletionProvider.notifier).publish(committedTransaction);
+    ref.read(appNavigationProvider.notifier).openPantry();
+    return committedTransaction;
   }
 
   Future<int> undoQuantityTransaction(
     PantryQuantityTransaction transaction,
   ) async {
-    if (!transaction.hasChanges) {
+    if (!transaction.hasChanges || transaction.transactionId.isEmpty) {
       return 0;
     }
-
-    final changesById = <String, PantryQuantityChange>{
-      for (final change in transaction.changes) change.ingredientId: change,
-    };
-    var restoredCount = 0;
-    final now = DateTime.now();
-    final updatedIngredients = state
-        .map((ingredient) {
-          final change = changesById[ingredient.id];
-          if (change == null ||
-              (ingredient.quantity - change.afterQuantity).abs() > 0.000001) {
-            return ingredient;
-          }
-
-          restoredCount++;
-          return ingredient.copyWith(
-            quantity: change.beforeQuantity,
-            updatedAt: now,
-          );
-        })
-        .toList(growable: false);
-
-    if (restoredCount == 0) {
+    final result = await _coordinator.undoCooking(transaction);
+    if (result.outcome == InventoryTransactionOutcome.conflict ||
+        result.outcome == InventoryTransactionOutcome.validationFailure ||
+        result.outcome == InventoryTransactionOutcome.alreadyUndone) {
       return 0;
     }
+    await _publishCommitted(result);
+    return transaction.changedIngredientCount;
+  }
 
-    state = updatedIngredients;
-    await _repository.saveIngredients(updatedIngredients);
-    if (restoredCount == transaction.changedIngredientCount) {
-      await ref
-          .read(cookingHistoryProvider.notifier)
-          .markCancelledForTransaction(transaction);
+  Future<InventoryTransactionResult> applyHistoryAdjustment({
+    required CookingHistoryAdjustmentPlan plan,
+    required InventoryTransactionKind kind,
+  }) async {
+    final result = await _coordinator.applyHistoryAdjustment(
+      plan: plan,
+      kind: kind,
+    );
+    if (result.outcome == InventoryTransactionOutcome.alreadyCancelled) {
+      return result;
     }
-    return restoredCount;
+    await _publishCommitted(result);
+    return result;
   }
 
   Future<void> removeIngredient(String id) async {
@@ -304,17 +256,19 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
         .where((ingredient) => ingredient.id != id)
         .toList(growable: false);
 
-    state = updatedIngredients;
-    await _repository.saveIngredients(updatedIngredients);
+    await _commitPantryMutation(updatedIngredients, source: 'removeIngredient');
   }
 
   Future<void> clear() async {
-    state = <Ingredient>[];
-    await _repository.clearIngredients();
+    await _commitPantryMutation(const <Ingredient>[], source: 'clearPantry');
   }
 
   Future<void> reload() async {
-    state = _applyFavoriteFlags(_repository.getIngredients(), _favoriteNames);
+    final snapshot = await _coordinator.loadSnapshot();
+    state = _applyFavoriteFlags(snapshot.pantry, _favoriteNames);
+    ref
+        .read(cookingHistoryProvider.notifier)
+        .replaceFromCommittedSnapshot(snapshot.history);
   }
 
   Ingredient? _findIngredientById(String id) {
@@ -342,24 +296,45 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
         .toList(growable: false);
   }
 
-  static bool _favoriteFlagsChanged(
-    List<Ingredient> original,
-    List<Ingredient> synchronized,
-  ) {
-    if (original.length != synchronized.length) {
-      return true;
-    }
+  Future<void> _commitPantryMutation(
+    List<Ingredient> ingredients, {
+    required String source,
+  }) async {
+    final result = await _coordinator.replacePantry(
+      ingredients,
+      source: source,
+    );
+    await _publishCommitted(result);
+  }
 
-    for (var index = 0; index < original.length; index++) {
-      if (original[index].isFavorite != synchronized[index].isFavorite) {
-        return true;
-      }
+  Future<void> _publishCommitted(InventoryTransactionResult result) async {
+    if (!result.isSuccess) {
+      throw InventoryTransactionException(result.code, result.outcome);
     }
-
-    return false;
+    state = List<Ingredient>.unmodifiable(result.snapshot.pantry);
+    ref
+        .read(cookingHistoryProvider.notifier)
+        .replaceFromCommittedSnapshot(result.snapshot.history);
+    final transactionId = result.transaction?.transactionId;
+    if (transactionId != null &&
+        transactionId.isNotEmpty &&
+        (result.outcome == InventoryTransactionOutcome.committed ||
+            result.outcome == InventoryTransactionOutcome.alreadyCommitted)) {
+      await _coordinator.completePresentation(transactionId);
+    }
   }
 }
 
 final pantryProvider = NotifierProvider<PantryNotifier, List<Ingredient>>(
   PantryNotifier.new,
 );
+
+class InventoryTransactionException implements Exception {
+  const InventoryTransactionException(this.code, this.outcome);
+
+  final String code;
+  final InventoryTransactionOutcome outcome;
+
+  @override
+  String toString() => 'Inventory transaction failed: $code';
+}

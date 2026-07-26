@@ -115,11 +115,7 @@ void main() {
           name: 'ครบสองในสี่',
           heroId: 'shrimp',
           heroName: 'กุ้ง',
-          extraIngredients: const <String>[
-            'garlic',
-            'soy_sauce',
-            'onion',
-          ],
+          extraIngredients: const <String>['garlic', 'soy_sauce', 'onion'],
         ),
         _recipe(
           id: 'score_40',

@@ -173,10 +173,9 @@ class RecipePage extends ConsumerWidget {
       isScrollControlled: true,
       showDragHandle: true,
       builder: (sheetContext) {
-        final sheetHeight =
-            (MediaQuery.sizeOf(sheetContext).height * 0.72)
-                .clamp(360.0, 640.0)
-                .toDouble();
+        final sheetHeight = (MediaQuery.sizeOf(sheetContext).height * 0.72)
+            .clamp(360.0, 640.0)
+            .toDouble();
 
         return SafeArea(
           child: SizedBox(
@@ -370,9 +369,8 @@ class _HeroIngredientCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           reason,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: colors.onPrimaryContainer,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: colors.onPrimaryContainer),
                         ),
                       ),
                     ],
@@ -398,10 +396,7 @@ class _HeroIngredientCard extends StatelessWidget {
 }
 
 class _MoreRecipesSection extends StatelessWidget {
-  const _MoreRecipesSection({
-    required this.matches,
-    required this.onOpen,
-  });
+  const _MoreRecipesSection({required this.matches, required this.onOpen});
 
   final List<RecipeMatch> matches;
   final ValueChanged<RecipeMatch> onOpen;

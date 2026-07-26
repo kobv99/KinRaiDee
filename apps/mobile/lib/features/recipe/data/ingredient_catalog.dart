@@ -17,9 +17,7 @@ class IngredientCatalog {
 
     return decoded
         .map(
-          (item) => Ingredient.fromJson(
-            Map<String, dynamic>.from(item as Map),
-          ),
+          (item) => Ingredient.fromJson(Map<String, dynamic>.from(item as Map)),
         )
         .toList(growable: false);
   }

@@ -8,10 +8,7 @@ import '../../domain/services/pantry_deduction_planner.dart';
 import '../../domain/services/recipe_serving_calculator.dart';
 
 class RecipeDetailPage extends ConsumerStatefulWidget {
-  const RecipeDetailPage({
-    super.key,
-    required this.recipe,
-  });
+  const RecipeDetailPage({super.key, required this.recipe});
 
   final Recipe recipe;
 
@@ -35,7 +32,9 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
   @override
   void initState() {
     super.initState();
-    final baseServings = widget.recipe.servings > 0 ? widget.recipe.servings : 2;
+    final baseServings = widget.recipe.servings > 0
+        ? widget.recipe.servings
+        : 2;
     _selectedServings = baseServings.clamp(1, 12).toInt();
   }
 
@@ -138,7 +137,7 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
         return;
       }
 
-      await ref
+      final committedTransaction = await ref
           .read(pantryProvider.notifier)
           .applyQuantityTransaction(transaction);
       if (!mounted) {
@@ -155,12 +154,12 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
       messenger.showSnackBar(
         SnackBar(
           content: Text(
-            'หักวัตถุดิบ ${transaction.changedIngredientCount} รายการจาก Pantry แล้ว',
+            'หักวัตถุดิบ ${committedTransaction.changedIngredientCount} รายการจาก Pantry แล้ว',
           ),
           duration: const Duration(seconds: 8),
           action: SnackBarAction(
             label: 'ย้อนกลับ',
-            onPressed: () => _undoTransaction(transaction),
+            onPressed: () => _undoTransaction(committedTransaction),
           ),
         ),
       );
@@ -475,9 +474,7 @@ class _DeductionConfirmationSheetState
       child: Padding(
         padding: EdgeInsets.only(bottom: mediaQuery.viewInsets.bottom),
         child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxHeight: mediaQuery.size.height * 0.82,
-          ),
+          constraints: BoxConstraints(maxHeight: mediaQuery.size.height * 0.82),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -670,10 +667,7 @@ class _InfoBox extends StatelessWidget {
           Icon(icon, size: 20, color: colors.onSurfaceVariant),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              text,
-              style: TextStyle(color: colors.onSurfaceVariant),
-            ),
+            child: Text(text, style: TextStyle(color: colors.onSurfaceVariant)),
           ),
         ],
       ),
@@ -833,10 +827,7 @@ class _SectionTitle extends StatelessWidget {
 }
 
 class _ServingSelector extends StatelessWidget {
-  const _ServingSelector({
-    required this.servings,
-    required this.onChanged,
-  });
+  const _ServingSelector({required this.servings, required this.onChanged});
 
   final int servings;
   final ValueChanged<int> onChanged;
@@ -891,9 +882,8 @@ class _ServingSelector extends StatelessWidget {
                   children: [
                     Text(
                       '$servings คน',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     Text(
                       'ปรับได้ 1–12 คน',
@@ -1049,10 +1039,7 @@ class _RecipeSteps extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CircleAvatar(
-                    radius: 16,
-                    child: Text('${entry.$1 + 1}'),
-                  ),
+                  CircleAvatar(radius: 16, child: Text('${entry.$1 + 1}')),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Padding(

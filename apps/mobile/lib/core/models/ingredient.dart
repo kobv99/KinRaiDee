@@ -1,3 +1,5 @@
+import '../time/app_clock.dart';
+
 class Ingredient {
   final String id;
 
@@ -67,28 +69,67 @@ class Ingredient {
     );
   }
 
-  bool get isExpired {
+  bool get isExpired => isExpiredAt(systemAppClock.now());
+
+  bool isExpiredAt(DateTime now) {
     final expiry = expiryDate;
     if (expiry == null) {
       return false;
     }
 
-    final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final expiryDay = DateTime(expiry.year, expiry.month, expiry.day);
     return expiryDay.isBefore(today);
   }
 
-  int? get daysUntilExpiry {
+  int? get daysUntilExpiry => daysUntilExpiryAt(systemAppClock.now());
+
+  int? daysUntilExpiryAt(DateTime now) {
     final expiry = expiryDate;
     if (expiry == null) {
       return null;
     }
 
-    final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final expiryDay = DateTime(expiry.year, expiry.month, expiry.day);
     return expiryDay.difference(today).inDays;
+  }
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'id': id,
+      'name': name,
+      'category': category,
+      'emoji': emoji,
+      'quantity': quantity,
+      'unit': unit,
+      'expiryDate': expiryDate?.toUtc().toIso8601String(),
+      'createdAt': createdAt.toUtc().toIso8601String(),
+      'updatedAt': updatedAt.toUtc().toIso8601String(),
+      'isFavorite': isFavorite,
+    };
+  }
+
+  factory Ingredient.fromJson(Map<String, dynamic> json) {
+    final createdAt =
+        DateTime.tryParse(json['createdAt']?.toString() ?? '')?.toUtc() ??
+        DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+    return Ingredient(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      category: json['category']?.toString() ?? '',
+      emoji: json['emoji']?.toString() ?? '',
+      quantity: _parseDouble(json['quantity']),
+      unit: json['unit']?.toString() ?? '',
+      expiryDate: DateTime.tryParse(
+        json['expiryDate']?.toString() ?? '',
+      )?.toUtc(),
+      createdAt: createdAt,
+      updatedAt:
+          DateTime.tryParse(json['updatedAt']?.toString() ?? '')?.toUtc() ??
+          createdAt,
+      isFavorite: _parseBool(json['isFavorite']),
+    );
   }
 
   @override
@@ -117,4 +158,18 @@ Ingredient(
 
   @override
   int get hashCode => id.hashCode;
+}
+
+double _parseDouble(dynamic value) {
+  if (value is num) {
+    return value.toDouble();
+  }
+  return double.tryParse(value?.toString() ?? '') ?? double.nan;
+}
+
+bool _parseBool(dynamic value) {
+  if (value is bool) {
+    return value;
+  }
+  return value?.toString().toLowerCase() == 'true';
 }

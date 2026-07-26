@@ -2,8 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/pantry/domain/models/pantry_quantity_transaction.dart';
 
-class CookingCompletionNotifier
-    extends Notifier<PantryQuantityTransaction?> {
+class CookingCompletionNotifier extends Notifier<PantryQuantityTransaction?> {
   @override
   PantryQuantityTransaction? build() => null;
 
@@ -17,7 +16,6 @@ class CookingCompletionNotifier
 }
 
 final cookingCompletionProvider =
-    NotifierProvider<
-      CookingCompletionNotifier,
-      PantryQuantityTransaction?
-    >(CookingCompletionNotifier.new);
+    NotifierProvider<CookingCompletionNotifier, PantryQuantityTransaction?>(
+      CookingCompletionNotifier.new,
+    );

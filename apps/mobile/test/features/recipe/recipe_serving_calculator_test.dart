@@ -96,57 +96,52 @@ void main() {
       );
     });
 
-    test('uses ingredient family aliases such as pork neck for pork recipes', () {
-      const recipe = Recipe(
-        id: 'pork_grill',
-        name: 'หมูย่าง',
-        category: 'อาหารไทย',
-        servings: 2,
-        ingredients: <RecipeIngredient>[
-          RecipeIngredient(
-            id: 'pork',
-            name: 'หมู',
-            quantity: 300,
-            unit: 'กรัม',
-            aliases: <String>['เนื้อหมู', 'หมูสด'],
-          ),
-        ],
-        steps: <String>['ย่างหมูให้สุก'],
-      );
-      final plan = const RecipeServingCalculator().calculate(
-        recipe: recipe,
-        pantry: <pantry_model.Ingredient>[
-          _pantryIngredient(
-            id: 'pork-neck',
-            name: 'สันคอหมู',
-            quantity: 1,
-            unit: 'กิโลกรัม',
-          ),
-        ],
-        servings: 4,
-      );
+    test(
+      'uses ingredient family aliases such as pork neck for pork recipes',
+      () {
+        const recipe = Recipe(
+          id: 'pork_grill',
+          name: 'หมูย่าง',
+          category: 'อาหารไทย',
+          servings: 2,
+          ingredients: <RecipeIngredient>[
+            RecipeIngredient(
+              id: 'pork',
+              name: 'หมู',
+              quantity: 300,
+              unit: 'กรัม',
+              aliases: <String>['เนื้อหมู', 'หมูสด'],
+            ),
+          ],
+          steps: <String>['ย่างหมูให้สุก'],
+        );
+        final plan = const RecipeServingCalculator().calculate(
+          recipe: recipe,
+          pantry: <pantry_model.Ingredient>[
+            _pantryIngredient(
+              id: 'pork-neck',
+              name: 'สันคอหมู',
+              quantity: 1,
+              unit: 'กิโลกรัม',
+            ),
+          ],
+          servings: 4,
+        );
 
-      expect(plan.ingredients.single.status, PantryQuantityStatus.enough);
-      expect(plan.ingredients.single.requiredQuantity, 600);
-    });
+        expect(plan.ingredients.single.status, PantryQuantityStatus.enough);
+        expect(plan.ingredients.single.requiredQuantity, 600);
+      },
+    );
   });
 
   group('RecipeUnitConverter', () {
     test('converts liters and tablespoons to compatible recipe units', () {
       expect(
-        RecipeUnitConverter.convert(
-          1,
-          fromUnit: 'ลิตร',
-          toUnit: 'มิลลิลิตร',
-        ),
+        RecipeUnitConverter.convert(1, fromUnit: 'ลิตร', toUnit: 'มิลลิลิตร'),
         1000,
       );
       expect(
-        RecipeUnitConverter.convert(
-          2,
-          fromUnit: 'ช้อนโต๊ะ',
-          toUnit: 'ช้อนชา',
-        ),
+        RecipeUnitConverter.convert(2, fromUnit: 'ช้อนโต๊ะ', toUnit: 'ช้อนชา'),
         6,
       );
     });

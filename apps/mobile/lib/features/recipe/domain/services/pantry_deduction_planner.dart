@@ -1,4 +1,5 @@
 import '../../../../core/models/ingredient.dart' as pantry_model;
+import '../../../../core/time/app_clock.dart';
 import '../../../pantry/domain/models/pantry_quantity_transaction.dart';
 import '../entities/recipe_ingredient.dart';
 import 'ingredient_name_matcher.dart';
@@ -59,7 +60,9 @@ class PantryDeductionPlan {
 }
 
 class PantryDeductionPlanner {
-  const PantryDeductionPlanner();
+  const PantryDeductionPlanner({this.clock = systemAppClock});
+
+  final AppClock clock;
 
   static const Set<String> _stapleIngredientIds = <String>{
     'fish_sauce',
@@ -82,7 +85,7 @@ class PantryDeductionPlanner {
     required List<pantry_model.Ingredient> pantry,
   }) {
     final availablePantry = pantry
-        .where((item) => item.quantity > 0 && !item.isExpired)
+        .where((item) => item.quantity > 0 && !item.isExpiredAt(clock.now()))
         .toList(growable: false);
     final lines = <PantryDeductionLine>[];
     var skippedStapleCount = 0;
@@ -95,12 +98,14 @@ class PantryDeductionPlanner {
         continue;
       }
 
-      final matching = availablePantry
-          .where(
-            (item) => recipeIngredientMatchesPantryName(ingredient, item.name),
-          )
-          .toList(growable: false)
-        ..sort(_comparePantryLots);
+      final matching =
+          availablePantry
+              .where(
+                (item) =>
+                    recipeIngredientMatchesPantryName(ingredient, item.name),
+              )
+              .toList(growable: false)
+            ..sort(_comparePantryLots);
 
       final allocations = <PantryDeductionAllocation>[];
       var remainingRecipeQuantity = scaled.requiredQuantity;
@@ -119,7 +124,8 @@ class PantryDeductionPlanner {
           continue;
         }
 
-        final recipeQuantityToUse = availableInRecipeUnit < remainingRecipeQuantity
+        final recipeQuantityToUse =
+            availableInRecipeUnit < remainingRecipeQuantity
             ? availableInRecipeUnit
             : remainingRecipeQuantity;
         final pantryQuantityToUse = RecipeUnitConverter.convert(
@@ -158,7 +164,9 @@ class PantryDeductionPlanner {
           ingredient: ingredient,
           targetQuantity: scaled.requiredQuantity,
           deductibleQuantity: deductibleQuantity,
-          allocations: List<PantryDeductionAllocation>.unmodifiable(allocations),
+          allocations: List<PantryDeductionAllocation>.unmodifiable(
+            allocations,
+          ),
           defaultSelected: ingredient.required,
         ),
       );
@@ -204,7 +212,8 @@ class PantryDeductionPlanner {
         continue;
       }
 
-      final requested = quantitiesByLineKey[line.key] ?? line.deductibleQuantity;
+      final requested =
+          quantitiesByLineKey[line.key] ?? line.deductibleQuantity;
       var remainingRecipeQuantity = requested
           .clamp(0, line.deductibleQuantity)
           .toDouble();
@@ -225,7 +234,8 @@ class PantryDeductionPlanner {
                   allocation.recipeUnitQuantity;
         final pantryId = allocation.pantryIngredientId;
         final currentPantryQuantity = afterByPantryId[pantryId] ?? 0;
-        final actualPantryQuantity = plannedPantryQuantity < currentPantryQuantity
+        final actualPantryQuantity =
+            plannedPantryQuantity < currentPantryQuantity
             ? plannedPantryQuantity
             : currentPantryQuantity;
 
@@ -260,7 +270,7 @@ class PantryDeductionPlanner {
       recipeName: plan.servingPlan.recipe.name,
       servings: plan.servingPlan.servings,
       changes: List<PantryQuantityChange>.unmodifiable(changes),
-      createdAt: createdAt ?? DateTime.now(),
+      createdAt: createdAt ?? clock.now(),
     );
   }
 

@@ -31,10 +31,11 @@ class PantryExpiryPriority {
     DateTime? now,
     int? limit,
   }) {
-    final sorted = ingredients
-        .where((ingredient) => shouldUseSoon(ingredient, now: now))
-        .toList(growable: false)
-      ..sort((first, second) => compare(first, second, now: now));
+    final sorted =
+        ingredients
+            .where((ingredient) => shouldUseSoon(ingredient, now: now))
+            .toList(growable: false)
+          ..sort((first, second) => compare(first, second, now: now));
 
     if (limit == null || limit >= sorted.length) {
       return List<Ingredient>.unmodifiable(sorted);
@@ -43,11 +44,7 @@ class PantryExpiryPriority {
     return List<Ingredient>.unmodifiable(sorted.take(limit));
   }
 
-  static int compare(
-    Ingredient first,
-    Ingredient second, {
-    DateTime? now,
-  }) {
+  static int compare(Ingredient first, Ingredient second, {DateTime? now}) {
     final firstGroup = _priorityGroup(first, now: now);
     final secondGroup = _priorityGroup(second, now: now);
     final groupComparison = firstGroup.compareTo(secondGroup);

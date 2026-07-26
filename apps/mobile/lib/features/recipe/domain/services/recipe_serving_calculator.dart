@@ -3,12 +3,7 @@ import '../entities/recipe.dart';
 import '../entities/recipe_ingredient.dart';
 import 'ingredient_name_matcher.dart';
 
-enum PantryQuantityStatus {
-  enough,
-  insufficient,
-  missing,
-  incompatibleUnit,
-}
+enum PantryQuantityStatus { enough, insufficient, missing, incompatibleUnit }
 
 class ScaledRecipeIngredient {
   const ScaledRecipeIngredient({
@@ -96,9 +91,7 @@ class RecipeServingCalculator {
       recipe: recipe,
       servings: servings,
       scaleFactor: scaleFactor,
-      ingredients: List<ScaledRecipeIngredient>.unmodifiable(
-        scaledIngredients,
-      ),
+      ingredients: List<ScaledRecipeIngredient>.unmodifiable(scaledIngredients),
     );
   }
 
@@ -193,18 +186,30 @@ class RecipeUnitConverter {
         .replaceAll(RegExp(r'\s+'), '');
 
     return switch (normalized) {
-      'กรัม' || 'g' || 'gram' || 'grams' =>
-        const _UnitDefinition('กรัม', 'mass', 1),
-      'กิโลกรัม' || 'kg' || 'kilogram' || 'kilograms' =>
-        const _UnitDefinition('กิโลกรัม', 'mass', 1000),
-      'มิลลิลิตร' || 'ml' || 'milliliter' || 'milliliters' =>
-        const _UnitDefinition('มิลลิลิตร', 'volume', 1),
-      'ลิตร' || 'l' || 'liter' || 'liters' =>
-        const _UnitDefinition('ลิตร', 'volume', 1000),
-      'ช้อนชา' || 'tsp' || 'teaspoon' || 'teaspoons' =>
-        const _UnitDefinition('ช้อนชา', 'spoon', 1),
-      'ช้อนโต๊ะ' || 'tbsp' || 'tablespoon' || 'tablespoons' =>
-        const _UnitDefinition('ช้อนโต๊ะ', 'spoon', 3),
+      'กรัม' ||
+      'g' ||
+      'gram' ||
+      'grams' => const _UnitDefinition('กรัม', 'mass', 1),
+      'กิโลกรัม' ||
+      'kg' ||
+      'kilogram' ||
+      'kilograms' => const _UnitDefinition('กิโลกรัม', 'mass', 1000),
+      'มิลลิลิตร' ||
+      'ml' ||
+      'milliliter' ||
+      'milliliters' => const _UnitDefinition('มิลลิลิตร', 'volume', 1),
+      'ลิตร' ||
+      'l' ||
+      'liter' ||
+      'liters' => const _UnitDefinition('ลิตร', 'volume', 1000),
+      'ช้อนชา' ||
+      'tsp' ||
+      'teaspoon' ||
+      'teaspoons' => const _UnitDefinition('ช้อนชา', 'spoon', 1),
+      'ช้อนโต๊ะ' ||
+      'tbsp' ||
+      'tablespoon' ||
+      'tablespoons' => const _UnitDefinition('ช้อนโต๊ะ', 'spoon', 3),
       _ => _UnitDefinition(normalized, null, 1),
     };
   }

@@ -2,10 +2,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/core/models/ingredient.dart';
 import 'package:mobile/core/providers/pantry_provider.dart';
+import 'package:mobile/core/time/app_clock.dart';
+import 'package:mobile/features/pantry/application/inventory_transaction_providers.dart';
+import 'package:mobile/features/pantry/data/repositories/hive_inventory_commit_repository.dart';
 import 'package:mobile/features/pantry/domain/models/cooking_history_entry.dart';
 import 'package:mobile/features/pantry/domain/models/pantry_quantity_transaction.dart';
 import 'package:mobile/features/pantry/domain/repositories/pantry_repository.dart';
 import 'package:mobile/features/pantry/presentation/providers/cooking_history_provider.dart';
+
+import '../../support/inventory_test_support.dart';
 
 void main() {
   test('frequent ingredient survives delete, refresh, and re-add', () async {
@@ -21,9 +26,8 @@ void main() {
       updatedAt: now,
     );
     final repository = _FakePantryRepository(<Ingredient>[original]);
-    final firstContainer = ProviderContainer(
-      overrides: [pantryRepositoryProvider.overrideWithValue(repository)],
-    );
+    final firstHarness = await _createContainer(repository, now);
+    final firstContainer = firstHarness.container;
 
     final firstNotifier = firstContainer.read(pantryProvider.notifier);
     await firstNotifier.toggleFavorite(original.id);
@@ -44,9 +48,16 @@ void main() {
     expect(repository.favoriteNames, contains('หมูสับ'));
     firstContainer.dispose();
 
-    final refreshedContainer = ProviderContainer(
-      overrides: [pantryRepositoryProvider.overrideWithValue(repository)],
+    repository.replaceIngredients(
+      (await firstHarness.inventory.loadConsistentSnapshot()).pantry,
     );
+    final refreshedHarness = await _createContainer(
+      repository,
+      now,
+      inventory: firstHarness.inventory,
+      generator: firstHarness.generator,
+    );
+    final refreshedContainer = refreshedHarness.container;
     addTearDown(refreshedContainer.dispose);
 
     expect(refreshedContainer.read(pantryProvider), isEmpty);
@@ -86,9 +97,8 @@ void main() {
       <Ingredient>[ingredient],
       favoriteNames: <String>{'ไข่ไก่'},
     );
-    final container = ProviderContainer(
-      overrides: [pantryRepositoryProvider.overrideWithValue(repository)],
-    );
+    final harness = await _createContainer(repository, now);
+    final container = harness.container;
     addTearDown(container.dispose);
 
     await container
@@ -113,9 +123,8 @@ void main() {
       updatedAt: now,
     );
     final repository = _FakePantryRepository(<Ingredient>[ingredient]);
-    final container = ProviderContainer(
-      overrides: [pantryRepositoryProvider.overrideWithValue(repository)],
-    );
+    final harness = await _createContainer(repository, now);
+    final container = harness.container;
     addTearDown(container.dispose);
     final notifier = container.read(pantryProvider.notifier);
     final transaction = PantryQuantityTransaction(
@@ -134,20 +143,26 @@ void main() {
       createdAt: now,
     );
 
-    await notifier.applyQuantityTransaction(transaction);
+    final committed = await notifier.applyQuantityTransaction(transaction);
 
     expect(container.read(pantryProvider).single.quantity, 6);
-    expect(repository.getIngredients().single.quantity, 6);
+    expect(
+      (await harness.inventory.loadConsistentSnapshot()).pantry.single.quantity,
+      6,
+    );
     expect(
       container.read(cookingHistoryProvider).single.status,
       CookingHistoryStatus.completed,
     );
 
-    final restored = await notifier.undoQuantityTransaction(transaction);
+    final restored = await notifier.undoQuantityTransaction(committed);
 
     expect(restored, 1);
     expect(container.read(pantryProvider).single.quantity, 10);
-    expect(repository.getIngredients().single.quantity, 10);
+    expect(
+      (await harness.inventory.loadConsistentSnapshot()).pantry.single.quantity,
+      10,
+    );
     expect(
       container.read(cookingHistoryProvider).single.status,
       CookingHistoryStatus.cancelled,
@@ -167,9 +182,8 @@ void main() {
       updatedAt: now,
     );
     final repository = _FakePantryRepository(<Ingredient>[ingredient]);
-    final container = ProviderContainer(
-      overrides: [pantryRepositoryProvider.overrideWithValue(repository)],
-    );
+    final harness = await _createContainer(repository, now);
+    final container = harness.container;
     addTearDown(container.dispose);
     final notifier = container.read(pantryProvider.notifier);
     final transaction = PantryQuantityTransaction(
@@ -188,11 +202,11 @@ void main() {
       createdAt: now,
     );
 
-    await notifier.applyQuantityTransaction(transaction);
+    final committed = await notifier.applyQuantityTransaction(transaction);
     await notifier.updateIngredient(
       container.read(pantryProvider).single.copyWith(quantity: 250),
     );
-    final restored = await notifier.undoQuantityTransaction(transaction);
+    final restored = await notifier.undoQuantityTransaction(committed);
 
     expect(restored, 0);
     expect(container.read(pantryProvider).single.quantity, 250);
@@ -213,9 +227,8 @@ class _FakePantryRepository implements PantryRepository {
   List<Ingredient> _ingredients;
   Set<String> favoriteNames;
 
-  @override
-  Future<void> clearIngredients() async {
-    _ingredients = <Ingredient>[];
+  void replaceIngredients(List<Ingredient> ingredients) {
+    _ingredients = List<Ingredient>.of(ingredients);
   }
 
   @override
@@ -232,9 +245,39 @@ class _FakePantryRepository implements PantryRepository {
   Future<void> saveFavoriteIngredientNames(Set<String> names) async {
     favoriteNames = Set<String>.of(names);
   }
+}
 
-  @override
-  Future<void> saveIngredients(List<Ingredient> ingredients) async {
-    _ingredients = List<Ingredient>.of(ingredients);
-  }
+Future<
+  ({
+    ProviderContainer container,
+    HiveInventoryCommitRepository inventory,
+    SequenceTransactionIdGenerator generator,
+  })
+>
+_createContainer(
+  _FakePantryRepository pantry,
+  DateTime now, {
+  HiveInventoryCommitRepository? inventory,
+  SequenceTransactionIdGenerator? generator,
+}) async {
+  final resolvedInventory =
+      inventory ??
+      HiveInventoryCommitRepository(
+        store: InMemoryInventoryStore(legacyPantry: pantry.getIngredients()),
+        clock: FixedAppClock(now),
+      );
+  await resolvedInventory.recoverPendingTransactions();
+  final resolvedGenerator = generator ?? SequenceTransactionIdGenerator();
+  return (
+    inventory: resolvedInventory,
+    generator: resolvedGenerator,
+    container: ProviderContainer(
+      overrides: [
+        pantryRepositoryProvider.overrideWithValue(pantry),
+        inventoryCommitRepositoryProvider.overrideWithValue(resolvedInventory),
+        appClockProvider.overrideWithValue(FixedAppClock(now)),
+        transactionIdGeneratorProvider.overrideWithValue(resolvedGenerator),
+      ],
+    ),
+  );
 }

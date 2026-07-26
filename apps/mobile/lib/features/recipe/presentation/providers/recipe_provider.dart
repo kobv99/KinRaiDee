@@ -27,10 +27,7 @@ final recipeMatchesProvider = FutureProvider<List<RecipeMatch>>((ref) async {
 });
 
 class RecommendationSessionState {
-  const RecommendationSessionState({
-    this.pageIndex = 0,
-    this.shuffleSeed = 0,
-  });
+  const RecommendationSessionState({this.pageIndex = 0, this.shuffleSeed = 0});
 
   final int pageIndex;
   final int shuffleSeed;
@@ -134,10 +131,7 @@ class HeroSelectionNotifier extends Notifier<HeroSelectionState> {
   }
 
   Future<void> pin(String key) async {
-    state = HeroSelectionState(
-      mode: HeroSelectionMode.pinned,
-      key: key,
-    );
+    state = HeroSelectionState(mode: HeroSelectionMode.pinned, key: key);
     try {
       await StorageService.savePinnedHeroIngredientKey(key);
     } on StateError {

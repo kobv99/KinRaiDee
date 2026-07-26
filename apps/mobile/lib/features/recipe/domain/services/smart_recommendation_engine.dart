@@ -6,11 +6,9 @@ import '../entities/smart_recommendation.dart';
 import 'ingredient_name_matcher.dart';
 
 class SmartRecommendationEngine {
-  const SmartRecommendationEngine({
-    this.pageSize = 5,
-    this.moreLimit = 8,
-  }) : assert(pageSize > 0),
-       assert(moreLimit >= 0);
+  const SmartRecommendationEngine({this.pageSize = 5, this.moreLimit = 8})
+    : assert(pageSize > 0),
+      assert(moreLimit >= 0);
 
   final int pageSize;
   final int moreLimit;
@@ -32,13 +30,15 @@ class SmartRecommendationEngine {
         .map((candidate) => candidate.option)
         .toList(growable: false);
     final selectedKey = _normalize(selectedHeroKey ?? '');
-    final requestedMode = selectionMode ??
+    final requestedMode =
+        selectionMode ??
         (selectedKey.isEmpty
             ? HeroSelectionMode.automatic
             : HeroSelectionMode.manual);
 
     _HeroCandidate? requestedCandidate;
-    if (requestedMode != HeroSelectionMode.automatic && selectedKey.isNotEmpty) {
+    if (requestedMode != HeroSelectionMode.automatic &&
+        selectedKey.isNotEmpty) {
       for (final candidate in optionCandidates) {
         if (candidate.option.key == selectedKey) {
           requestedCandidate = candidate;
@@ -50,17 +50,19 @@ class SmartRecommendationEngine {
     final requestedSelectionAvailable =
         requestedMode == HeroSelectionMode.automatic ||
         requestedCandidate != null;
-    final selectedCandidate = requestedCandidate ??
+    final selectedCandidate =
+        requestedCandidate ??
         (optionCandidates.isEmpty ? null : optionCandidates.first);
     final resolvedMode = requestedCandidate == null
         ? HeroSelectionMode.automatic
         : requestedMode;
 
     if (selectedCandidate == null) {
-      final fallbackMatches = matches
-          .where((match) => match.matchedIngredients.isNotEmpty)
-          .toList(growable: false)
-        ..sort(_compareDisplayRank);
+      final fallbackMatches =
+          matches
+              .where((match) => match.matchedIngredients.isNotEmpty)
+              .toList(growable: false)
+            ..sort(_compareDisplayRank);
 
       return SmartRecommendation(
         heroOptions: heroOptions,
@@ -74,42 +76,45 @@ class SmartRecommendationEngine {
     }
 
     final heroPantryIngredient = selectedCandidate.ingredient;
-    final heroPool = matches
-        .where(
-          (match) => _recipeHeroMatchesPantry(
-            match.recipe,
-            heroPantryIngredient.name,
-          ),
-        )
-        .toList(growable: false)
-      ..sort(
-        (first, second) => _comparePoolOrder(first, second, shuffleSeed),
-      );
+    final heroPool =
+        matches
+            .where(
+              (match) => _recipeHeroMatchesPantry(
+                match.recipe,
+                heroPantryIngredient.name,
+              ),
+            )
+            .toList(growable: false)
+          ..sort(
+            (first, second) => _comparePoolOrder(first, second, shuffleSeed),
+          );
 
-    final pageCount = heroPool.isEmpty ? 0 : (heroPool.length / pageSize).ceil();
+    final pageCount = heroPool.isEmpty
+        ? 0
+        : (heroPool.length / pageSize).ceil();
     final safePageIndex = pageCount == 0
         ? 0
         : pageIndex.clamp(0, pageCount - 1).toInt();
     final start = safePageIndex * pageSize;
     final end = (start + pageSize).clamp(0, heroPool.length).toInt();
-    final primary = start >= heroPool.length
-        ? <RecipeMatch>[]
-        : heroPool.sublist(start, end)
-      ..sort(_compareDisplayRank);
+    final primary =
+        start >= heroPool.length
+              ? <RecipeMatch>[]
+              : heroPool.sublist(start, end)
+          ..sort(_compareDisplayRank);
     final heroRecipeIds = heroPool.map((match) => match.recipe.id).toSet();
-    final more = matches
-        .where(
-          (match) =>
-              !heroRecipeIds.contains(match.recipe.id) &&
-              availablePantry.any(
-                (ingredient) => _recipeHeroMatchesPantry(
-                  match.recipe,
-                  ingredient.name,
-                ),
-              ),
-        )
-        .toList(growable: false)
-      ..sort(_compareDisplayRank);
+    final more =
+        matches
+            .where(
+              (match) =>
+                  !heroRecipeIds.contains(match.recipe.id) &&
+                  availablePantry.any(
+                    (ingredient) =>
+                        _recipeHeroMatchesPantry(match.recipe, ingredient.name),
+                  ),
+            )
+            .toList(growable: false)
+          ..sort(_compareDisplayRank);
 
     return SmartRecommendation(
       hero: selectedCandidate.option,
@@ -138,10 +143,8 @@ class SmartRecommendationEngine {
     for (final pantryIngredient in pantry) {
       final matchingRecipes = matches
           .where(
-            (match) => _recipeHeroMatchesPantry(
-              match.recipe,
-              pantryIngredient.name,
-            ),
+            (match) =>
+                _recipeHeroMatchesPantry(match.recipe, pantryIngredient.name),
           )
           .toList(growable: false);
       if (matchingRecipes.isEmpty) {
@@ -194,9 +197,9 @@ class SmartRecommendationEngine {
   }
 
   int _compareHeroCandidates(_HeroCandidate first, _HeroCandidate second) {
-    final priorityComparison = _autoPriority(second).compareTo(
-      _autoPriority(first),
-    );
+    final priorityComparison = _autoPriority(
+      second,
+    ).compareTo(_autoPriority(first));
     if (priorityComparison != 0) {
       return priorityComparison;
     }

@@ -79,10 +79,7 @@ class PantryUseSoonSection extends ConsumerWidget {
                   color: colors.surface.withValues(alpha: 0.8),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  Icons.schedule_rounded,
-                  color: colors.error,
-                ),
+                child: Icon(Icons.schedule_rounded, color: colors.error),
               ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
@@ -134,9 +131,7 @@ class PantryUseSoonSection extends ConsumerWidget {
                               ingredient.name,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyLarge
+                              style: Theme.of(context).textTheme.bodyLarge
                                   ?.copyWith(fontWeight: FontWeight.w600),
                             ),
                             const SizedBox(height: 2),

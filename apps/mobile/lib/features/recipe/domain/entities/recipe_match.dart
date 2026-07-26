@@ -14,17 +14,15 @@ class RecipeMatch {
   final List<RecipeIngredient> missingIngredients;
   final double score;
 
-  List<RecipeIngredient> get matchedRequiredIngredients => matchedIngredients
-      .where((item) => item.required)
-      .toList(growable: false);
+  List<RecipeIngredient> get matchedRequiredIngredients =>
+      matchedIngredients.where((item) => item.required).toList(growable: false);
 
   List<RecipeIngredient> get matchedOptionalIngredients => matchedIngredients
       .where((item) => !item.required)
       .toList(growable: false);
 
-  List<RecipeIngredient> get missingRequiredIngredients => missingIngredients
-      .where((item) => item.required)
-      .toList(growable: false);
+  List<RecipeIngredient> get missingRequiredIngredients =>
+      missingIngredients.where((item) => item.required).toList(growable: false);
 
   List<RecipeIngredient> get missingOptionalIngredients => missingIngredients
       .where((item) => !item.required)

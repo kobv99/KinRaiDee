@@ -1,6 +1,7 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../features/pantry/domain/models/cooking_history_entry.dart';
+import '../../features/pantry/domain/models/inventory_state_envelope.dart';
 import '../models/ingredient.dart';
 
 class StorageService {
@@ -11,6 +12,7 @@ class StorageService {
   static const String favoriteIngredientNamesKey = 'favorite_ingredient_names';
   static const String pinnedHeroIngredientKey = 'pinned_hero_ingredient_key';
   static const String cookingHistoryKey = 'cooking_history';
+  static const String inventoryEnvelopeKey = 'inventory_state_envelope_v1';
 
   static Future<void> init() async {
     await Hive.initFlutter();
@@ -28,15 +30,11 @@ class StorageService {
     return Hive.box<dynamic>(pantryBoxName);
   }
 
-  static Future<void> saveIngredients(List<Ingredient> ingredients) async {
-    final data = ingredients
-        .map<Map<String, dynamic>>(_ingredientToMap)
-        .toList(growable: false);
-
-    await _pantryBox.put(ingredientsKey, data);
-  }
-
   static List<Ingredient> loadIngredients() {
+    final envelope = loadInventoryEnvelope();
+    if (envelope != null) {
+      return envelope.pantry;
+    }
     final rawData = _pantryBox.get(ingredientsKey, defaultValue: <dynamic>[]);
 
     if (rawData is! List) {
@@ -104,6 +102,10 @@ class StorageService {
   }
 
   static List<CookingHistoryEntry> loadCookingHistory() {
+    final envelope = loadInventoryEnvelope();
+    if (envelope != null) {
+      return envelope.history;
+    }
     final rawData = _pantryBox.get(
       cookingHistoryKey,
       defaultValue: <dynamic>[],
@@ -132,40 +134,31 @@ class StorageService {
       }
     }
 
-    entries.sort((first, second) => second.createdAt.compareTo(first.createdAt));
+    entries.sort(
+      (first, second) => second.createdAt.compareTo(first.createdAt),
+    );
     return List<CookingHistoryEntry>.unmodifiable(entries);
   }
 
-  static Future<void> saveCookingHistory(
-    List<CookingHistoryEntry> entries,
-  ) async {
-    final data = entries
-        .map<Map<String, dynamic>>((entry) => entry.toJson())
-        .toList(growable: false);
-    await _pantryBox.put(cookingHistoryKey, data);
+  static InventoryStateEnvelope? loadInventoryEnvelope() {
+    final raw = _pantryBox.get(inventoryEnvelopeKey);
+    if (raw == null) {
+      return null;
+    }
+    if (raw is! Map) {
+      throw const FormatException('Inventory envelope is not a map.');
+    }
+    final envelope = InventoryStateEnvelope.fromJson(
+      Map<String, dynamic>.from(raw),
+    );
+    if (!envelope.hasValidChecksum) {
+      throw const FormatException('Inventory envelope checksum is invalid.');
+    }
+    return envelope;
   }
 
   static String normalizeIngredientName(String value) {
     return value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
-  }
-
-  static Future<void> clearIngredients() async {
-    await _pantryBox.delete(ingredientsKey);
-  }
-
-  static Map<String, dynamic> _ingredientToMap(Ingredient ingredient) {
-    return <String, dynamic>{
-      'id': ingredient.id,
-      'name': ingredient.name,
-      'category': ingredient.category,
-      'emoji': ingredient.emoji,
-      'quantity': ingredient.quantity,
-      'unit': ingredient.unit,
-      'expiryDate': ingredient.expiryDate?.toIso8601String(),
-      'createdAt': ingredient.createdAt.toIso8601String(),
-      'updatedAt': ingredient.updatedAt.toIso8601String(),
-      'isFavorite': ingredient.isFavorite,
-    };
   }
 
   static Ingredient? _ingredientFromDynamic(dynamic rawItem) {
@@ -176,7 +169,9 @@ class StorageService {
     try {
       final map = Map<String, dynamic>.from(rawItem);
 
-      final createdAt = _parseDateTime(map['createdAt']) ?? DateTime.now();
+      final createdAt =
+          _parseDateTime(map['createdAt']) ??
+          DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
       final updatedAt = _parseDateTime(map['updatedAt']) ?? createdAt;
 
       return Ingredient(

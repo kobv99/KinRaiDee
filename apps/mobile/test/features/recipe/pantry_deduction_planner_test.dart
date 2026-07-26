@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/core/models/ingredient.dart' as pantry_model;
+import 'package:mobile/core/time/app_clock.dart';
 import 'package:mobile/features/recipe/domain/entities/recipe.dart';
 import 'package:mobile/features/recipe/domain/entities/recipe_ingredient.dart';
 import 'package:mobile/features/recipe/domain/services/pantry_deduction_planner.dart';
@@ -43,7 +44,7 @@ void main() {
         pantry: pantry,
         servings: 2,
       );
-      const planner = PantryDeductionPlanner();
+      final planner = PantryDeductionPlanner(clock: FixedAppClock(now));
       final plan = planner.build(servingPlan: servingPlan, pantry: pantry);
       final line = plan.lines.single;
       final transaction = planner.createTransaction(
@@ -100,65 +101,79 @@ void main() {
 
       expect(transaction.changes.single.beforeQuantity, 1);
       expect(transaction.changes.single.afterQuantity, closeTo(0.85, 0.000001));
-      expect(transaction.changes.single.consumedQuantity, closeTo(0.15, 0.000001));
+      expect(
+        transaction.changes.single.consumedQuantity,
+        closeTo(0.15, 0.000001),
+      );
     });
 
-    test('does not auto deduct seasonings and leaves optional items unchecked', () {
-      final recipe = _recipe(
-        ingredients: const <RecipeIngredient>[
-          RecipeIngredient(
-            id: 'egg',
-            name: 'ไข่ไก่',
-            quantity: 2,
-            unit: 'ฟอง',
-          ),
-          RecipeIngredient(
-            id: 'spring_onion',
-            name: 'ต้นหอม',
-            quantity: 1,
-            unit: 'ต้น',
-            required: false,
-          ),
-          RecipeIngredient(
-            id: 'fish_sauce',
+    test(
+      'does not auto deduct seasonings and leaves optional items unchecked',
+      () {
+        final recipe = _recipe(
+          ingredients: const <RecipeIngredient>[
+            RecipeIngredient(
+              id: 'egg',
+              name: 'ไข่ไก่',
+              quantity: 2,
+              unit: 'ฟอง',
+            ),
+            RecipeIngredient(
+              id: 'spring_onion',
+              name: 'ต้นหอม',
+              quantity: 1,
+              unit: 'ต้น',
+              required: false,
+            ),
+            RecipeIngredient(
+              id: 'fish_sauce',
+              name: 'น้ำปลา',
+              quantity: 1,
+              unit: 'ช้อนโต๊ะ',
+            ),
+          ],
+        );
+        final pantry = <pantry_model.Ingredient>[
+          _pantry(id: 'egg', name: 'ไข่ไก่', quantity: 10, unit: 'ฟอง'),
+          _pantry(id: 'onion', name: 'ต้นหอม', quantity: 3, unit: 'ต้น'),
+          _pantry(
+            id: 'fish-sauce',
             name: 'น้ำปลา',
-            quantity: 1,
+            quantity: 10,
             unit: 'ช้อนโต๊ะ',
           ),
-        ],
-      );
-      final pantry = <pantry_model.Ingredient>[
-        _pantry(id: 'egg', name: 'ไข่ไก่', quantity: 10, unit: 'ฟอง'),
-        _pantry(id: 'onion', name: 'ต้นหอม', quantity: 3, unit: 'ต้น'),
-        _pantry(
-          id: 'fish-sauce',
-          name: 'น้ำปลา',
-          quantity: 10,
-          unit: 'ช้อนโต๊ะ',
-        ),
-      ];
-      final servingPlan = const RecipeServingCalculator().calculate(
-        recipe: recipe,
-        pantry: pantry,
-        servings: 2,
-      );
-      final plan = const PantryDeductionPlanner().build(
-        servingPlan: servingPlan,
-        pantry: pantry,
-      );
+        ];
+        final servingPlan = const RecipeServingCalculator().calculate(
+          recipe: recipe,
+          pantry: pantry,
+          servings: 2,
+        );
+        final plan = const PantryDeductionPlanner().build(
+          servingPlan: servingPlan,
+          pantry: pantry,
+        );
 
-      expect(plan.lines.map((line) => line.key), containsAll(<String>['egg', 'spring_onion']));
-      expect(plan.lines.map((line) => line.key), isNot(contains('fish_sauce')));
-      expect(plan.skippedStapleCount, 1);
-      expect(
-        plan.lines.firstWhere((line) => line.key == 'egg').defaultSelected,
-        isTrue,
-      );
-      expect(
-        plan.lines.firstWhere((line) => line.key == 'spring_onion').defaultSelected,
-        isFalse,
-      );
-    });
+        expect(
+          plan.lines.map((line) => line.key),
+          containsAll(<String>['egg', 'spring_onion']),
+        );
+        expect(
+          plan.lines.map((line) => line.key),
+          isNot(contains('fish_sauce')),
+        );
+        expect(plan.skippedStapleCount, 1);
+        expect(
+          plan.lines.firstWhere((line) => line.key == 'egg').defaultSelected,
+          isTrue,
+        );
+        expect(
+          plan.lines
+              .firstWhere((line) => line.key == 'spring_onion')
+              .defaultSelected,
+          isFalse,
+        );
+      },
+    );
 
     test('partial Pantry stock is capped at the recorded available amount', () {
       final recipe = _recipe(
@@ -173,12 +188,7 @@ void main() {
         ],
       );
       final pantry = <pantry_model.Ingredient>[
-        _pantry(
-          id: 'fish-lot',
-          name: 'ปลากะพง',
-          quantity: 120,
-          unit: 'กรัม',
-        ),
+        _pantry(id: 'fish-lot', name: 'ปลากะพง', quantity: 120, unit: 'กรัม'),
       ];
       final servingPlan = const RecipeServingCalculator().calculate(
         recipe: recipe,

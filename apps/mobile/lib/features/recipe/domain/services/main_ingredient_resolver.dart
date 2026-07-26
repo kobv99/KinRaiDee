@@ -47,9 +47,6 @@ class MainIngredientResolver {
       return null;
     }
 
-    return MainIngredientResolution(
-      key: resolvedKey,
-      recipeCount: recipeCount,
-    );
+    return MainIngredientResolution(key: resolvedKey, recipeCount: recipeCount);
   }
 }

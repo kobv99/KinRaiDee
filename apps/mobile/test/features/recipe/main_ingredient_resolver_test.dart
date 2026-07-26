@@ -40,23 +40,13 @@ void main() {
             id: 'fish_steam',
             heroId: 'fish',
             heroName: 'ปลา',
-            aliases: const <String>[
-              'ปลาสด',
-              'เนื้อปลา',
-              'ปลากะพง',
-              'ปลานิล',
-            ],
+            aliases: const <String>['ปลาสด', 'เนื้อปลา', 'ปลากะพง', 'ปลานิล'],
           ),
           _recipe(
             id: 'fish_fry',
             heroId: 'fish',
             heroName: 'ปลา',
-            aliases: const <String>[
-              'ปลาสด',
-              'เนื้อปลา',
-              'ปลากะพง',
-              'ปลานิล',
-            ],
+            aliases: const <String>['ปลาสด', 'เนื้อปลา', 'ปลากะพง', 'ปลานิล'],
           ),
         ],
       );
@@ -157,10 +147,7 @@ void main() {
     );
 
     expect(result.hero?.key, 'pork');
-    expect(
-      result.heroReason,
-      'เลือกจาก Pantry เพราะ สันคอหมู หมดอายุพรุ่งนี้',
-    );
+    expect(result.heroReason, 'เลือกจาก Pantry เพราะ สันคอหมู หมดอายุพรุ่งนี้');
   });
 }
 

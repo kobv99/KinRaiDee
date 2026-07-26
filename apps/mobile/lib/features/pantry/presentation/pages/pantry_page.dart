@@ -128,7 +128,9 @@ class _PantryPageState extends ConsumerState<PantryPage> {
       }
 
       final urgency = PantryExpiryPriority.urgencyLabel(ingredient);
-      await ref.read(heroSelectionProvider.notifier).selectForSession(
+      await ref
+          .read(heroSelectionProvider.notifier)
+          .selectForSession(
             resolution.key,
             reason: 'เลือกจาก Pantry เพราะ ${ingredient.name} $urgency',
           );
@@ -139,9 +141,9 @@ class _PantryPageState extends ConsumerState<PantryPage> {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('เปิดเมนูไม่สำเร็จ: $error')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('เปิดเมนูไม่สำเร็จ: $error')));
     } finally {
       if (mounted) {
         setState(() {
@@ -291,7 +293,9 @@ class _PantryContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final expiringCount = PantryExpiryPriority.useSoonItems(allIngredients).length;
+    final expiringCount = PantryExpiryPriority.useSoonItems(
+      allIngredients,
+    ).length;
     final searchQuery = filter.searchQuery.trim();
     final suggestions = _catalogSuggestions;
     final useSoonIngredients = _useSoonIngredients;

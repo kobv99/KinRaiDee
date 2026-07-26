@@ -68,21 +68,24 @@ void main() {
       expect(plan.updatedEntry.changes.single.consumedQuantity, 3);
     });
 
-    test('blocks extra deduction when current Pantry stock is insufficient', () {
-      final entry = _entry(before: 10, after: 6);
-      final pantry = <Ingredient>[_pantry(quantity: 0)];
+    test(
+      'blocks extra deduction when current Pantry stock is insufficient',
+      () {
+        final entry = _entry(before: 10, after: 6);
+        final pantry = <Ingredient>[_pantry(quantity: 0)];
 
-      expect(
-        () => const CookingHistoryAdjustmentPlanner().adjust(
-          entry: entry,
-          pantry: pantry,
-          consumedQuantityByIngredientId: const <String, double>{
-            'egg-lot': 5,
-          },
-        ),
-        throwsA(isA<CookingHistoryAdjustmentException>()),
-      );
-    });
+        expect(
+          () => const CookingHistoryAdjustmentPlanner().adjust(
+            entry: entry,
+            pantry: pantry,
+            consumedQuantityByIngredientId: const <String, double>{
+              'egg-lot': 5,
+            },
+          ),
+          throwsA(isA<CookingHistoryAdjustmentException>()),
+        );
+      },
+    );
 
     test('unchanged quantity does not create another Pantry transaction', () {
       final entry = _entry(before: 10, after: 6);
@@ -101,10 +104,7 @@ void main() {
   });
 }
 
-CookingHistoryEntry _entry({
-  required double before,
-  required double after,
-}) {
+CookingHistoryEntry _entry({required double before, required double after}) {
   final time = DateTime(2026, 7, 24, 18, 30);
   return CookingHistoryEntry.fromTransaction(
     PantryQuantityTransaction(

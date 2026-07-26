@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/providers/pantry_provider.dart';
 import '../../domain/models/cooking_history_entry.dart';
+import '../../domain/models/pantry_quantity_transaction.dart';
 import '../../domain/services/cooking_history_adjustment_planner.dart';
 import '../providers/cooking_history_provider.dart';
 
@@ -10,8 +11,7 @@ class CookingHistoryPage extends ConsumerStatefulWidget {
   const CookingHistoryPage({super.key});
 
   @override
-  ConsumerState<CookingHistoryPage> createState() =>
-      _CookingHistoryPageState();
+  ConsumerState<CookingHistoryPage> createState() => _CookingHistoryPageState();
 }
 
 class _CookingHistoryPageState extends ConsumerState<CookingHistoryPage> {
@@ -31,6 +31,7 @@ class _CookingHistoryPageState extends ConsumerState<CookingHistoryPage> {
     await _applyAdjustment(
       entry: entry,
       consumedQuantities: quantities,
+      kind: InventoryTransactionKind.adjustCookingHistory,
       successMessage: 'แก้ไขปริมาณที่ใช้จริงแล้ว',
     );
   }
@@ -65,6 +66,7 @@ class _CookingHistoryPageState extends ConsumerState<CookingHistoryPage> {
     await _applyAdjustment(
       entry: entry,
       consumedQuantities: zeroQuantities,
+      kind: InventoryTransactionKind.cancelCookingHistory,
       successMessage: 'ยกเลิกรายการและคืนวัตถุดิบเข้า Pantry แล้ว',
     );
   }
@@ -72,6 +74,7 @@ class _CookingHistoryPageState extends ConsumerState<CookingHistoryPage> {
   Future<void> _applyAdjustment({
     required CookingHistoryEntry entry,
     required Map<String, double> consumedQuantities,
+    required InventoryTransactionKind kind,
     required String successMessage,
   }) async {
     setState(() {
@@ -86,16 +89,9 @@ class _CookingHistoryPageState extends ConsumerState<CookingHistoryPage> {
         consumedQuantityByIngredientId: consumedQuantities,
       );
 
-      if (plan.transaction.hasChanges) {
-        await ref.read(pantryProvider.notifier).applyQuantityTransaction(
-              plan.transaction,
-              recordHistory: false,
-              publishCompletion: false,
-            );
-      }
       await ref
-          .read(cookingHistoryProvider.notifier)
-          .replaceEntry(plan.updatedEntry);
+          .read(pantryProvider.notifier)
+          .applyHistoryAdjustment(plan: plan, kind: kind);
 
       if (!mounted) {
         return;
@@ -116,6 +112,17 @@ class _CookingHistoryPageState extends ConsumerState<CookingHistoryPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(error.message),
+          duration: const Duration(seconds: 6),
+          showCloseIcon: true,
+        ),
+      );
+    } on InventoryTransactionException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('ไม่สามารถบันทึกการเปลี่ยนแปลงได้ (${error.code})'),
           duration: const Duration(seconds: 6),
           showCloseIcon: true,
         ),
@@ -199,16 +206,15 @@ class _HistoryCard extends StatelessWidget {
                     children: [
                       Text(
                         entry.recipeName,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 3),
                       Text(
                         '${_formatDateTime(entry.createdAt)} · ${entry.servings} คน',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: colors.onSurfaceVariant,
-                            ),
+                          color: colors.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
@@ -242,9 +248,9 @@ class _HistoryCard extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 'แก้ไขล่าสุด ${_formatDateTime(entry.updatedAt)}',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: colors.onSurfaceVariant,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
               ),
             ],
             if (entry.canEdit) ...[
@@ -292,23 +298,23 @@ class _HistoryStatusChip extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final (label, icon, background, foreground) = switch (status) {
       CookingHistoryStatus.completed => (
-          'สำเร็จ',
-          Icons.check_circle_outline,
-          colors.primaryContainer,
-          colors.onPrimaryContainer,
-        ),
+        'สำเร็จ',
+        Icons.check_circle_outline,
+        colors.primaryContainer,
+        colors.onPrimaryContainer,
+      ),
       CookingHistoryStatus.adjusted => (
-          'แก้ไขแล้ว',
-          Icons.tune_rounded,
-          colors.tertiaryContainer,
-          colors.onTertiaryContainer,
-        ),
+        'แก้ไขแล้ว',
+        Icons.tune_rounded,
+        colors.tertiaryContainer,
+        colors.onTertiaryContainer,
+      ),
       CookingHistoryStatus.cancelled => (
-          'ยกเลิกแล้ว',
-          Icons.undo_rounded,
-          colors.surfaceContainerHighest,
-          colors.onSurfaceVariant,
-        ),
+        'ยกเลิกแล้ว',
+        Icons.undo_rounded,
+        colors.surfaceContainerHighest,
+        colors.onSurfaceVariant,
+      ),
     };
 
     return Container(
@@ -325,9 +331,9 @@ class _HistoryStatusChip extends StatelessWidget {
           Text(
             label,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: foreground,
-                  fontWeight: FontWeight.w600,
-                ),
+              color: foreground,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
@@ -411,15 +417,15 @@ class _EditConsumedQuantitySheetState
                     Text(
                       'แก้ไขปริมาณที่ใช้จริง',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       '${widget.entry.recipeName} · ${widget.entry.servings} คน',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: colors.onSurfaceVariant,
-                          ),
+                        color: colors.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -510,9 +516,9 @@ class _EmptyHistoryView extends StatelessWidget {
             const SizedBox(height: 14),
             Text(
               'ยังไม่มีประวัติการทำอาหาร',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 6),
             const Text(

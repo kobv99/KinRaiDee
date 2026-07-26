@@ -18,10 +18,7 @@ const Map<String, String> _ingredientFamilyAliases = <String, String>{
 };
 
 String normalizeRecipeIngredientName(String value) {
-  var normalized = value
-      .trim()
-      .toLowerCase()
-      .replaceAll(RegExp(r'\s+'), '');
+  var normalized = value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '');
 
   for (final suffix in const <String>['สด', 'ซอย', 'สับ']) {
     if (normalized.length > suffix.length && normalized.endsWith(suffix)) {
