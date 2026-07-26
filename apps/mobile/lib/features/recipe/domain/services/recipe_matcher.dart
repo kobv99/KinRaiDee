@@ -1,41 +1,42 @@
 import '../../../../core/models/ingredient.dart';
+import '../../../../core/domain/ingredients/canonical_ingredient_registry.dart';
 import '../entities/recipe.dart';
 import '../entities/recipe_ingredient.dart';
 import '../entities/recipe_match.dart';
 import 'ingredient_name_matcher.dart';
 
 class RecipeMatcher {
-  const RecipeMatcher({this.requiredWeight = 0.8, this.optionalWeight = 0.2})
-    : assert(requiredWeight >= 0),
-      assert(optionalWeight >= 0),
-      assert(requiredWeight + optionalWeight > 0);
+  const RecipeMatcher({
+    this.requiredWeight = 0.8,
+    this.optionalWeight = 0.2,
+    this.registry,
+  }) : assert(requiredWeight >= 0),
+       assert(optionalWeight >= 0),
+       assert(requiredWeight + optionalWeight > 0);
 
   final double requiredWeight;
   final double optionalWeight;
+  final CanonicalIngredientRegistry? registry;
 
   List<RecipeMatch> match({
     required List<Recipe> recipes,
     required List<Ingredient> pantry,
   }) {
-    final pantryNames = pantry
-        .where(_isAvailable)
-        .map((item) => normalizeRecipeIngredientName(item.name))
-        .where((name) => name.isNotEmpty)
-        .toSet();
+    final availablePantry = pantry.where(_isAvailable).toList(growable: false);
 
     final results = recipes
-        .map((recipe) => _matchRecipe(recipe, pantryNames))
+        .map((recipe) => _matchRecipe(recipe, availablePantry))
         .toList(growable: false);
 
     return [...results]..sort(_compareMatches);
   }
 
-  RecipeMatch _matchRecipe(Recipe recipe, Set<String> pantryNames) {
+  RecipeMatch _matchRecipe(Recipe recipe, List<Ingredient> pantry) {
     final matched = <RecipeIngredient>[];
     final missing = <RecipeIngredient>[];
 
     for (final ingredient in recipe.ingredients) {
-      if (_hasIngredient(ingredient, pantryNames)) {
+      if (_hasIngredient(ingredient, pantry)) {
         matched.add(ingredient);
       } else {
         missing.add(ingredient);
@@ -57,9 +58,10 @@ class RecipeMatcher {
     return ingredient.quantity > 0 && !ingredient.isExpired;
   }
 
-  bool _hasIngredient(RecipeIngredient ingredient, Set<String> pantryNames) {
-    return pantryNames.any(
-      (pantryName) => recipeIngredientMatchesPantryName(ingredient, pantryName),
+  bool _hasIngredient(RecipeIngredient ingredient, List<Ingredient> pantry) {
+    return pantry.any(
+      (item) =>
+          recipeIngredientMatchesPantry(ingredient, item, registry: registry),
     );
   }
 

@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/navigation/app_navigation_provider.dart';
 import '../../app/navigation/cooking_completion_provider.dart';
+import '../../app/providers/canonical_ingredient_providers.dart';
+import '../../features/pantry/application/canonical_ingredient_migration.dart';
 import '../../features/pantry/application/inventory_transaction_coordinator.dart';
 import '../../features/pantry/application/inventory_transaction_providers.dart';
 import '../../features/pantry/data/repositories/hive_pantry_repository.dart';
@@ -124,8 +126,8 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
 
   Future<void> addIngredient(Ingredient ingredient) async {
     final normalizedName = normalizePantryIngredientName(ingredient.name);
-    final ingredientToAdd = ingredient.copyWith(
-      isFavorite: _favoriteNames.contains(normalizedName),
+    final ingredientToAdd = _canonicalize(
+      ingredient.copyWith(isFavorite: _favoriteNames.contains(normalizedName)),
     );
     final updatedIngredients = <Ingredient>[...state, ingredientToAdd];
     await _commitPantryMutation(updatedIngredients, source: 'addIngredient');
@@ -134,9 +136,11 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
   Future<void> updateIngredient(Ingredient ingredient) async {
     final originalIngredient = _findIngredientById(ingredient.id);
     final wasFavorite = originalIngredient?.isFavorite ?? ingredient.isFavorite;
-    final updatedIngredient = ingredient.copyWith(
-      isFavorite: wasFavorite,
-      updatedAt: ref.read(appClockProvider).now(),
+    final updatedIngredient = _canonicalize(
+      ingredient.copyWith(
+        isFavorite: wasFavorite,
+        updatedAt: ref.read(appClockProvider).now(),
+      ),
     );
     final updatedIngredients = state
         .map((currentIngredient) {
@@ -156,6 +160,17 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
         updatedIngredient.name,
       );
     }
+  }
+
+  Ingredient _canonicalize(Ingredient ingredient) {
+    final registry = ref.read(canonicalIngredientRegistryProvider);
+    if (registry == null) {
+      return ingredient;
+    }
+    return CanonicalIngredientMigration(
+      registry: registry,
+      unitEngine: ref.read(unitConversionEngineProvider),
+    ).migratePantryIngredient(ingredient);
   }
 
   Future<void> toggleFavorite(String id) async {

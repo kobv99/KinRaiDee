@@ -1,3 +1,4 @@
+import '../../../../core/domain/ingredients/canonical_ingredient_registry.dart';
 import '../entities/recipe.dart';
 import 'ingredient_name_matcher.dart';
 
@@ -17,14 +18,25 @@ class MainIngredientResolver {
   MainIngredientResolution? resolve({
     required String pantryIngredientName,
     required Iterable<Recipe> recipes,
+    String canonicalIngredientId = '',
+    CanonicalIngredientRegistry? registry,
   }) {
     String? resolvedKey;
     var recipeCount = 0;
 
     for (final recipe in recipes) {
       final hero = recipe.heroIngredient;
-      if (hero == null ||
-          !recipeIngredientMatchesPantryName(hero, pantryIngredientName)) {
+      final canonicalMatch =
+          canonicalIngredientId.isNotEmpty &&
+          (hero?.id == canonicalIngredientId ||
+              (hero != null &&
+                  registry?.areCompatibleIds(hero.id, canonicalIngredientId) ==
+                      true));
+      if (hero == null && !canonicalMatch) {
+        continue;
+      }
+      if (!canonicalMatch &&
+          !recipeIngredientMatchesPantryName(hero!, pantryIngredientName)) {
         continue;
       }
 

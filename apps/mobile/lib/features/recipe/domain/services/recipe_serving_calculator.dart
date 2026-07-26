@@ -1,4 +1,6 @@
 import '../../../../core/models/ingredient.dart' as pantry_model;
+import '../../../../core/domain/ingredients/canonical_ingredient_registry.dart';
+import '../../../../core/domain/units/unit_contract.dart';
 import '../entities/recipe.dart';
 import '../entities/recipe_ingredient.dart';
 import 'ingredient_name_matcher.dart';
@@ -66,6 +68,7 @@ class RecipeServingCalculator {
     required Recipe recipe,
     required List<pantry_model.Ingredient> pantry,
     required int servings,
+    CanonicalIngredientRegistry? registry,
   }) {
     if (servings <= 0) {
       throw ArgumentError.value(servings, 'servings', 'must be greater than 0');
@@ -83,6 +86,7 @@ class RecipeServingCalculator {
             ingredient: ingredient,
             scaleFactor: scaleFactor,
             pantry: availablePantry,
+            registry: registry,
           ),
         )
         .toList(growable: false);
@@ -99,11 +103,16 @@ class RecipeServingCalculator {
     required RecipeIngredient ingredient,
     required double scaleFactor,
     required List<pantry_model.Ingredient> pantry,
+    CanonicalIngredientRegistry? registry,
   }) {
     final requiredQuantity = ingredient.quantity * scaleFactor;
     final matchingPantry = pantry
         .where(
-          (item) => recipeIngredientMatchesPantryName(ingredient, item.name),
+          (item) => recipeIngredientMatchesPantry(
+            ingredient,
+            item,
+            registry: registry,
+          ),
         )
         .toList(growable: false);
 
@@ -160,65 +169,13 @@ class RecipeServingCalculator {
 class RecipeUnitConverter {
   RecipeUnitConverter._();
 
+  static final UnitConversionEngine _engine = UnitConversionEngine.standard();
+
   static double? convert(
     double quantity, {
     required String fromUnit,
     required String toUnit,
   }) {
-    final from = _unitDefinition(fromUnit);
-    final to = _unitDefinition(toUnit);
-
-    if (from.normalized == to.normalized) {
-      return quantity;
-    }
-    if (from.dimension == null || from.dimension != to.dimension) {
-      return null;
-    }
-
-    return quantity * from.factorToBase / to.factorToBase;
+    return _engine.convertOrNull(quantity, fromUnit: fromUnit, toUnit: toUnit);
   }
-
-  static _UnitDefinition _unitDefinition(String value) {
-    final normalized = value
-        .trim()
-        .toLowerCase()
-        .replaceAll('.', '')
-        .replaceAll(RegExp(r'\s+'), '');
-
-    return switch (normalized) {
-      'กรัม' ||
-      'g' ||
-      'gram' ||
-      'grams' => const _UnitDefinition('กรัม', 'mass', 1),
-      'กิโลกรัม' ||
-      'kg' ||
-      'kilogram' ||
-      'kilograms' => const _UnitDefinition('กิโลกรัม', 'mass', 1000),
-      'มิลลิลิตร' ||
-      'ml' ||
-      'milliliter' ||
-      'milliliters' => const _UnitDefinition('มิลลิลิตร', 'volume', 1),
-      'ลิตร' ||
-      'l' ||
-      'liter' ||
-      'liters' => const _UnitDefinition('ลิตร', 'volume', 1000),
-      'ช้อนชา' ||
-      'tsp' ||
-      'teaspoon' ||
-      'teaspoons' => const _UnitDefinition('ช้อนชา', 'spoon', 1),
-      'ช้อนโต๊ะ' ||
-      'tbsp' ||
-      'tablespoon' ||
-      'tablespoons' => const _UnitDefinition('ช้อนโต๊ะ', 'spoon', 3),
-      _ => _UnitDefinition(normalized, null, 1),
-    };
-  }
-}
-
-class _UnitDefinition {
-  const _UnitDefinition(this.normalized, this.dimension, this.factorToBase);
-
-  final String normalized;
-  final String? dimension;
-  final double factorToBase;
 }

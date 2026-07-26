@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/navigation/app_navigation_provider.dart';
+import '../../../../app/providers/canonical_ingredient_providers.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../core/models/ingredient.dart';
@@ -109,6 +110,8 @@ class _PantryPageState extends ConsumerState<PantryPage> {
       final recipes = await ref.read(recipesProvider.future);
       final resolution = const MainIngredientResolver().resolve(
         pantryIngredientName: ingredient.name,
+        canonicalIngredientId: ingredient.canonicalIngredientId,
+        registry: ref.read(canonicalIngredientRegistryProvider),
         recipes: recipes,
       );
 

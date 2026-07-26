@@ -188,6 +188,8 @@ class InventoryTransactionCoordinator {
                 unit: change.unit,
                 beforeQuantity: change.afterQuantity,
                 afterQuantity: change.beforeQuantity,
+                canonicalIngredientId: change.canonicalIngredientId,
+                canonicalUnitId: change.canonicalUnitId,
               ),
             )
             .toList(growable: false),
@@ -355,6 +357,71 @@ class InventoryTransactionCoordinator {
         now,
         pantry: pantry,
         history: before.history,
+      );
+      return _commit(transaction, checksum, before, after);
+    });
+  }
+
+  /// Persists the canonical identity projection through the same durable
+  /// journal as cooking transactions, before Riverpod publishes the state.
+  Future<InventoryTransactionResult> migrateCanonicalIngredients({
+    required List<Ingredient> pantry,
+    required List<CookingHistoryEntry> history,
+    required int targetSchemaVersion,
+  }) {
+    return _serialized(() async {
+      final before = await _repository.loadConsistentSnapshot();
+      final unchanged =
+          calculateChecksum(<String, dynamic>{
+            'pantry': before.pantry.map((item) => item.toJson()).toList(),
+            'history': before.history.map((item) => item.toJson()).toList(),
+          }) ==
+          calculateChecksum(<String, dynamic>{
+            'pantry': pantry.map((item) => item.toJson()).toList(),
+            'history': history.map((item) => item.toJson()).toList(),
+          });
+      final now = _clock.now();
+      final transaction = PantryQuantityTransaction(
+        transactionId: _transactionIdGenerator.generate(),
+        schemaVersion: targetSchemaVersion,
+        expectedRevision: before.revision,
+        kind: InventoryTransactionKind.canonicalIngredientMigration,
+        recipeId: 'canonical_ingredient_migration_v$targetSchemaVersion',
+        recipeName: 'Canonical ingredient migration',
+        servings: 1,
+        changes: const <PantryQuantityChange>[],
+        createdAt: now,
+      );
+      if (unchanged) {
+        return InventoryTransactionResult(
+          outcome: InventoryTransactionOutcome.alreadyCommitted,
+          code: 'canonical_migration_not_required',
+          snapshot: before,
+          transaction: transaction,
+        );
+      }
+
+      final validation = _validateCanonicalMigration(pantry, history);
+      if (validation != null) {
+        return _failure(
+          InventoryTransactionOutcome.validationFailure,
+          validation,
+          before,
+          transaction,
+        );
+      }
+      final checksum = calculateChecksum(<String, dynamic>{
+        'transaction': transaction.toJson(),
+        'targetSchemaVersion': targetSchemaVersion,
+        'pantry': pantry.map((item) => item.toJson()).toList(growable: false),
+        'history': history.map((item) => item.toJson()).toList(growable: false),
+      });
+      final after = _targetEnvelope(
+        before,
+        transaction.transactionId,
+        now,
+        pantry: pantry,
+        history: history,
       );
       return _commit(transaction, checksum, before, after);
     });
@@ -528,6 +595,38 @@ class InventoryTransactionCoordinator {
       if (!ingredient.quantity.isFinite || ingredient.quantity < 0) {
         return 'invalid_quantity';
       }
+    }
+    return null;
+  }
+
+  String? _validateCanonicalMigration(
+    List<Ingredient> pantry,
+    List<CookingHistoryEntry> history,
+  ) {
+    final pantryError = _validateCompletePantry(pantry);
+    if (pantryError != null) {
+      return pantryError;
+    }
+    if (pantry.any(
+      (item) =>
+          item.schemaVersion < 2 ||
+          item.canonicalIngredientId.isEmpty ||
+          item.canonicalUnitId.isEmpty ||
+          item.canonicalMappingStatus == CanonicalMappingStatus.legacy,
+    )) {
+      return 'incomplete_canonical_pantry_mapping';
+    }
+    if (history.any(
+      (entry) =>
+          entry.schemaVersion < 2 ||
+          entry.changes.any(
+            (change) =>
+                change.canonicalIngredientId.isEmpty ||
+                change.canonicalUnitId.isEmpty ||
+                change.canonicalMappingStatus == CanonicalMappingStatus.legacy,
+          ),
+    )) {
+      return 'incomplete_canonical_history_mapping';
     }
     return null;
   }
