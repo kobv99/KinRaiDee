@@ -16,7 +16,6 @@ import '../../../recipe/presentation/providers/recipe_provider.dart';
 import '../../application/shopping_providers.dart';
 import '../../domain/entities/shopping_category.dart';
 import '../../domain/entities/shopping_item.dart';
-import '../../domain/entities/shopping_item_status.dart';
 import '../../domain/entities/shopping_list.dart';
 import '../../domain/models/shopping_mutation.dart';
 import '../providers/shopping_view_provider.dart';
@@ -35,7 +34,6 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
   String? _selectedListId;
   String? _busyItemId;
   bool _isMutating = false;
-  _UndoAction? _lastUndo;
 
   @override
   void dispose() {
@@ -50,14 +48,6 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
       appBar: AppBar(
         title: const Text('รายการซื้อของ'),
         actions: [
-          IconButton(
-            key: const ValueKey<String>('shopping-undo-action'),
-            tooltip: 'ย้อนกลับรายการล่าสุด',
-            onPressed: _lastUndo == null || _isMutating
-                ? null
-                : () => _undo(_lastUndo!),
-            icon: const Icon(Icons.undo),
-          ),
           IconButton(
             key: const ValueKey<String>('shopping-generate-action'),
             tooltip: 'สร้างรายการจากเมนู',
@@ -104,6 +94,17 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
     }
 
     final list = _selectedList(lists)!;
+    if (list.items.isEmpty) {
+      return EmptyState(
+        key: const ValueKey<String>('shopping-complete-empty-state'),
+        icon: Icons.celebration_outlined,
+        title: '🎉 ไม่มีรายการที่ต้องซื้อแล้ว',
+        description: 'พร้อมทำอาหารได้เลย',
+        actionLabel: 'สร้างรายการใหม่',
+        onActionPressed: () => _openGenerator(list),
+      );
+    }
+
     final view = ref.watch(shoppingViewProvider);
     final recipes = ref.watch(recipesProvider).value ?? const <Recipe>[];
     final recipeNames = <String, String>{
@@ -120,12 +121,6 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
     );
     final pantry = ref.watch(pantryProvider);
     final at = ref.watch(appClockProvider).now().toUtc();
-    final purchasedCount = list.items
-        .where((item) => item.status == ShoppingItemStatus.purchased)
-        .length;
-    final archivedCount = list.items
-        .where((item) => item.status == ShoppingItemStatus.archived)
-        .length;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -164,7 +159,6 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
                 ),
                 sliver: SliverToBoxAdapter(
                   child: _ShoppingControls(
-                    list: list,
                     view: view,
                     recipeNames: recipeNames,
                     searchController: _searchController,
@@ -187,73 +181,22 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
                   ),
                 )
               else ...[
-                if (projection.active.isNotEmpty)
-                  SliverPadding(
-                    padding: EdgeInsets.fromLTRB(
-                      horizontal,
-                      AppSpacing.lg,
-                      horizontal,
-                      AppSpacing.sm,
-                    ),
-                    sliver: SliverToBoxAdapter(
-                      child: _SectionTitle(
-                        title: 'รายการที่ต้องซื้อ',
-                        count: projection.active.length,
-                      ),
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                    horizontal,
+                    AppSpacing.lg,
+                    horizontal,
+                    AppSpacing.sm,
+                  ),
+                  sliver: SliverToBoxAdapter(
+                    child: _SectionTitle(
+                      title: 'รายการที่ต้องซื้อ',
+                      count: projection.items.length,
                     ),
                   ),
-                _itemSliver(
-                  projection.active,
-                  list,
-                  projector,
-                  pantry,
-                  at,
-                  recipeNames,
-                  horizontal,
                 ),
-                if (projection.completed.isNotEmpty)
-                  SliverPadding(
-                    padding: EdgeInsets.fromLTRB(
-                      horizontal,
-                      AppSpacing.lg,
-                      horizontal,
-                      AppSpacing.sm,
-                    ),
-                    sliver: SliverToBoxAdapter(
-                      child: _SectionTitle(
-                        title: 'รายการที่เสร็จแล้ว',
-                        count: projection.completed.length,
-                        action: purchasedCount > 0
-                            ? TextButton.icon(
-                                key: const ValueKey<String>(
-                                  'shopping-archive-completed',
-                                ),
-                                onPressed: _isMutating
-                                    ? null
-                                    : () => _archiveCompleted(list),
-                                icon: const Icon(
-                                  Icons.inventory_2_outlined,
-                                  size: 18,
-                                ),
-                                label: const Text('เก็บรายการที่เสร็จแล้ว'),
-                              )
-                            : archivedCount > 0
-                            ? TextButton.icon(
-                                key: const ValueKey<String>(
-                                  'shopping-restore-archived',
-                                ),
-                                onPressed: _isMutating
-                                    ? null
-                                    : () => _restoreArchived(list),
-                                icon: const Icon(Icons.restore, size: 18),
-                                label: const Text('กู้คืนรายการที่เก็บไว้'),
-                              )
-                            : null,
-                      ),
-                    ),
-                  ),
                 _itemSliver(
-                  projection.completed,
+                  projection.items,
                   list,
                   projector,
                   pantry,
@@ -279,9 +222,6 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
     Map<String, String> recipeNames,
     double horizontal,
   ) {
-    if (items.isEmpty) {
-      return const SliverToBoxAdapter(child: SizedBox.shrink());
-    }
     return SliverPadding(
       padding: EdgeInsets.symmetric(horizontal: horizontal),
       sliver: SliverList.separated(
@@ -299,10 +239,9 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
             ),
             recipeNames: recipeNames,
             isBusy: _isMutating || _busyItemId == item.id,
-            onToggle: () => _toggle(list, item),
+            onComplete: () => _completeItem(list, item),
             onEdit: () => _editQuantity(list, item),
             onDelete: () => _deleteItem(list, item),
-            onRestore: () => _restoreArchived(list),
           );
         },
       ),
@@ -334,52 +273,74 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
     _showMessage('สร้างรายการซื้อของแล้ว โดยไม่มีรายการซ้ำ');
   }
 
-  Future<void> _toggle(ShoppingList list, ShoppingItem item) async {
-    final now = ref.read(appClockProvider).now();
-    if (item.status == ShoppingItemStatus.active) {
-      await _execute(
-        label: 'ซื้อ ${item.displayName} และเพิ่มเข้า Pantry แล้ว',
-        itemId: item.id,
-        command: ShoppingMutation.markPurchased(
-          listId: list.id,
-          expectedListRevision: list.revision,
-          itemId: item.id,
-          createdAt: now,
-        ),
-        undo: _UndoAction(
-          label: 'ยกเลิกการซื้อแล้ว',
-          listId: list.id,
-          build: (current, createdAt) => ShoppingMutation.markUnpurchased(
-            listId: current.id,
-            expectedListRevision: current.revision,
+  Future<void> _completeItem(ShoppingList list, ShoppingItem item) async {
+    setState(() {
+      _isMutating = true;
+      _busyItemId = item.id;
+    });
+    try {
+      final result = await ref
+          .read(shoppingCompletionControllerProvider)
+          .complete(
+            listId: list.id,
+            expectedListRevision: list.revision,
             itemId: item.id,
-            createdAt: createdAt,
-          ),
-        ),
+            createdAt: ref.read(appClockProvider).now(),
+          );
+      if (!mounted) {
+        return;
+      }
+      if (!result.isSuccess) {
+        _showError(_friendlyTransactionError(result));
+        return;
+      }
+      final purchaseTransactionId = result.transaction?.transactionId;
+      _showMessage(
+        '✓ เพิ่มเข้าตู้แล้ว',
+        duration: const Duration(seconds: 7),
+        onUndo: purchaseTransactionId == null || purchaseTransactionId.isEmpty
+            ? null
+            : () => _undoCompletion(purchaseTransactionId),
       );
-      return;
+    } on Object {
+      if (mounted) {
+        _showError('ทำรายการไม่สำเร็จ ข้อมูลเดิมยังคงปลอดภัย');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isMutating = false;
+          _busyItemId = null;
+        });
+      }
     }
-    if (item.status == ShoppingItemStatus.purchased) {
-      await _execute(
-        label: 'ย้าย ${item.displayName} กลับไปรายการที่ต้องซื้อแล้ว',
-        itemId: item.id,
-        command: ShoppingMutation.markUnpurchased(
-          listId: list.id,
-          expectedListRevision: list.revision,
-          itemId: item.id,
-          createdAt: now,
-        ),
-        undo: _UndoAction(
-          label: 'ทำเครื่องหมายว่าซื้อแล้วอีกครั้ง',
-          listId: list.id,
-          build: (current, createdAt) => ShoppingMutation.markPurchased(
-            listId: current.id,
-            expectedListRevision: current.revision,
-            itemId: item.id,
-            createdAt: createdAt,
-          ),
-        ),
-      );
+  }
+
+  Future<void> _undoCompletion(String purchaseTransactionId) async {
+    setState(() => _isMutating = true);
+    try {
+      final result = await ref
+          .read(shoppingCompletionControllerProvider)
+          .undo(
+            purchaseTransactionId: purchaseTransactionId,
+            createdAt: ref.read(appClockProvider).now(),
+          );
+      if (!mounted) {
+        return;
+      }
+      if (!result.isSuccess) {
+        _showError(_friendlyTransactionError(result));
+        return;
+      }
+      _showMessage('คืนรายการและจำนวนใน Pantry แล้ว');
+    } on Object {
+      if (mounted) {
+        _showError('ไม่สามารถย้อนกลับรายการได้อย่างปลอดภัย');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isMutating = false);
+      }
     }
   }
 
@@ -391,7 +352,7 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
     if (quantity == null || quantity == item.quantity || !mounted) {
       return;
     }
-    await _execute(
+    await _executeMutation(
       label: 'แก้ไขจำนวน ${item.displayName} แล้ว',
       itemId: item.id,
       command: ShoppingMutation.updateQuantity(
@@ -443,7 +404,7 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
     if (confirmed != true || !mounted) {
       return;
     }
-    await _execute(
+    await _executeMutation(
       label: 'ลบ ${item.displayName} แล้ว',
       itemId: item.id,
       command: ShoppingMutation.removeItem(
@@ -465,29 +426,7 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
     );
   }
 
-  Future<void> _archiveCompleted(ShoppingList list) async {
-    await _execute(
-      label: 'เก็บรายการที่เสร็จแล้ว',
-      command: ShoppingMutation.archiveCompleted(
-        listId: list.id,
-        expectedListRevision: list.revision,
-        createdAt: ref.read(appClockProvider).now(),
-      ),
-    );
-  }
-
-  Future<void> _restoreArchived(ShoppingList list) async {
-    await _execute(
-      label: 'กู้คืนรายการที่เก็บไว้แล้ว',
-      command: ShoppingMutation.restoreArchived(
-        listId: list.id,
-        expectedListRevision: list.revision,
-        createdAt: ref.read(appClockProvider).now(),
-      ),
-    );
-  }
-
-  Future<void> _execute({
+  Future<void> _executeMutation({
     required String label,
     required ShoppingMutation command,
     String? itemId,
@@ -508,8 +447,10 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
         _showError(_friendlyTransactionError(result));
         return;
       }
-      setState(() => _lastUndo = undo);
-      _showMessage(label, undo: undo);
+      _showMessage(
+        label,
+        onUndo: undo == null ? null : () => _undoMutation(undo),
+      );
     } on Object {
       if (mounted) {
         _showError('ทำรายการไม่สำเร็จ ข้อมูลเดิมยังคงปลอดภัย');
@@ -524,14 +465,14 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
     }
   }
 
-  Future<void> _undo(_UndoAction undo) async {
+  Future<void> _undoMutation(_UndoAction undo) async {
     setState(() => _isMutating = true);
     try {
       final lists = await ref.read(shoppingListsProvider.future);
       final current = lists.where((list) => list.id == undo.listId).firstOrNull;
       if (current == null) {
         if (mounted) {
-          _showError('This list no longer exists, so the action cannot undo.');
+          _showError('รายการนี้ไม่มีอยู่แล้ว จึงไม่สามารถย้อนกลับได้');
         }
         return;
       }
@@ -545,7 +486,6 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
         _showError(_friendlyTransactionError(result));
         return;
       }
-      setState(() => _lastUndo = null);
       _showMessage(undo.label);
     } on Object {
       if (mounted) {
@@ -563,15 +503,20 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
     ref.read(shoppingViewProvider.notifier).clear();
   }
 
-  void _showMessage(String message, {_UndoAction? undo}) {
+  void _showMessage(
+    String message, {
+    VoidCallback? onUndo,
+    Duration duration = const Duration(seconds: 4),
+  }) {
     final messenger = ScaffoldMessenger.of(context);
     messenger.clearSnackBars();
     messenger.showSnackBar(
       SnackBar(
         content: Text(message),
-        action: undo == null
+        duration: duration,
+        action: onUndo == null
             ? null
-            : SnackBarAction(label: 'ย้อนกลับ', onPressed: () => _undo(undo)),
+            : SnackBarAction(label: 'ย้อนกลับ', onPressed: onUndo),
       ),
     );
   }
@@ -587,6 +532,18 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
       ),
     );
   }
+}
+
+class _UndoAction {
+  const _UndoAction({
+    required this.label,
+    required this.listId,
+    required this.build,
+  });
+
+  final String label;
+  final String listId;
+  final ShoppingMutation Function(ShoppingList list, DateTime createdAt) build;
 }
 
 class _QuantityDialog extends StatefulWidget {
@@ -667,81 +624,61 @@ class _ShoppingOverview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final active = list.items
-        .where((item) => item.status == ShoppingItemStatus.active)
-        .length;
-    final completed = list.items.length - active;
-    final progress = list.items.isEmpty ? 0.0 : completed / list.items.length;
     return AppCard(
       backgroundColor: AppColors.shopping.withValues(alpha: 0.08),
       borderColor: AppColors.shopping.withValues(alpha: 0.2),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: const BoxDecoration(
-                  color: AppColors.shopping,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.shopping_basket_outlined,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: lists.length == 1
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(list.name, style: AppTextStyles.titleLarge),
-                          Text(
-                            'ต้องซื้อ $active • เสร็จแล้ว $completed',
-                            style: AppTextStyles.bodyMedium,
-                          ),
-                        ],
-                      )
-                    : DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: selectedListId,
-                          isExpanded: true,
-                          items: lists
-                              .map(
-                                (value) => DropdownMenuItem<String>(
-                                  value: value.id,
-                                  child: Text(value.name),
-                                ),
-                              )
-                              .toList(growable: false),
-                          onChanged: (value) {
-                            if (value != null) {
-                              onListChanged(value);
-                            }
-                          },
-                        ),
-                      ),
-              ),
-              FilledButton.icon(
-                key: const ValueKey<String>('shopping-generate-button'),
-                onPressed: onGenerate,
-                icon: const Icon(Icons.auto_awesome_outlined, size: 18),
-                label: const Text('สร้างรายการ'),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(99),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 8,
-              backgroundColor: AppColors.surface,
-              color: AppColors.success,
+          Container(
+            width: 48,
+            height: 48,
+            decoration: const BoxDecoration(
+              color: AppColors.shopping,
+              shape: BoxShape.circle,
             ),
+            child: const Icon(
+              Icons.shopping_basket_outlined,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: lists.length == 1
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(list.name, style: AppTextStyles.titleLarge),
+                      Text(
+                        'ต้องซื้อ ${list.items.length} รายการ',
+                        style: AppTextStyles.bodyMedium,
+                      ),
+                    ],
+                  )
+                : DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: selectedListId,
+                      isExpanded: true,
+                      items: lists
+                          .map(
+                            (value) => DropdownMenuItem<String>(
+                              value: value.id,
+                              child: Text(value.name),
+                            ),
+                          )
+                          .toList(growable: false),
+                      onChanged: (value) {
+                        if (value != null) {
+                          onListChanged(value);
+                        }
+                      },
+                    ),
+                  ),
+          ),
+          FilledButton.icon(
+            key: const ValueKey<String>('shopping-generate-button'),
+            onPressed: onGenerate,
+            icon: const Icon(Icons.auto_awesome_outlined, size: 18),
+            label: const Text('สร้างรายการ'),
           ),
         ],
       ),
@@ -751,199 +688,156 @@ class _ShoppingOverview extends StatelessWidget {
 
 class _ShoppingControls extends ConsumerWidget {
   const _ShoppingControls({
-    required this.list,
     required this.view,
     required this.recipeNames,
     required this.searchController,
   });
 
-  final ShoppingList list;
   final ShoppingViewState view;
   final Map<String, String> recipeNames;
   final TextEditingController searchController;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final viewNotifier = ref.read(shoppingViewProvider.notifier);
-    final categories = list.items.map((item) => item.category).toSet().toList()
-      ..sort((first, second) => first.index.compareTo(second.index));
-    final recipeIds =
-        list.items.expand((item) => item.sourceReferenceIds).toSet().toList()
-          ..sort(
-            (first, second) => (recipeNames[first] ?? first).compareTo(
-              recipeNames[second] ?? second,
+    final notifier = ref.read(shoppingViewProvider.notifier);
+    final recipes = recipeNames.entries.toList()
+      ..sort((first, second) => first.value.compareTo(second.value));
+    return AppCard(
+      child: Column(
+        children: [
+          TextField(
+            key: const ValueKey<String>('shopping-search-field'),
+            controller: searchController,
+            onChanged: notifier.setQuery,
+            decoration: InputDecoration(
+              labelText: 'ค้นหารายการ',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: view.query.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: 'ล้างคำค้น',
+                      onPressed: () {
+                        searchController.clear();
+                        notifier.setQuery('');
+                      },
+                      icon: const Icon(Icons.clear),
+                    ),
             ),
-          );
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TextField(
-          key: const ValueKey<String>('shopping-search-field'),
-          controller: searchController,
-          onChanged: viewNotifier.setQuery,
-          textInputAction: TextInputAction.search,
-          decoration: InputDecoration(
-            hintText: 'ค้นหาวัตถุดิบ ชื่อเรียกอื่น หรือชื่อท้องถิ่น',
-            prefixIcon: const Icon(Icons.search),
-            suffixIcon: view.query.isEmpty
-                ? null
-                : IconButton(
-                    tooltip: 'ล้างคำค้น',
-                    onPressed: () {
-                      searchController.clear();
-                      viewNotifier.setQuery('');
-                    },
-                    icon: const Icon(Icons.close),
-                  ),
           ),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        LayoutBuilder(
-          builder: (context, constraints) => SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minWidth: constraints.maxWidth),
-              child: SegmentedButton<ShoppingCompletionFilter>(
-                key: const ValueKey<String>('shopping-completion-filter'),
-                segments: const [
-                  ButtonSegment(
-                    value: ShoppingCompletionFilter.all,
-                    label: Text('ทั้งหมด', maxLines: 1, softWrap: false),
-                  ),
-                  ButtonSegment(
-                    value: ShoppingCompletionFilter.active,
-                    label: Text('ต้องซื้อ', maxLines: 1, softWrap: false),
-                  ),
-                  ButtonSegment(
-                    value: ShoppingCompletionFilter.completed,
-                    label: Text('เสร็จแล้ว', maxLines: 1, softWrap: false),
-                  ),
-                ],
-                selected: <ShoppingCompletionFilter>{view.completion},
-                onSelectionChanged: (values) =>
-                    viewNotifier.setCompletion(values.single),
-                showSelectedIcon: false,
+          const SizedBox(height: AppSpacing.sm),
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: [
+              SizedBox(
+                width: 210,
+                child: DropdownButtonFormField<ShoppingCategory?>(
+                  key: const ValueKey<String>('shopping-category-filter'),
+                  initialValue: view.category,
+                  decoration: const InputDecoration(labelText: 'หมวดหมู่'),
+                  items: <DropdownMenuItem<ShoppingCategory?>>[
+                    const DropdownMenuItem(value: null, child: Text('ทั้งหมด')),
+                    ...ShoppingCategory.values.map(
+                      (category) => DropdownMenuItem(
+                        value: category,
+                        child: Text(shoppingCategoryLabel(category)),
+                      ),
+                    ),
+                  ],
+                  onChanged: notifier.setCategory,
+                ),
               ),
-            ),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.sm,
-          children: [
-            _FilterDropdown<ShoppingCategory?>(
-              key: const ValueKey<String>('shopping-category-filter'),
-              value: view.category,
-              hint: 'ทุกหมวดหมู่',
-              items: <DropdownMenuItem<ShoppingCategory?>>[
-                const DropdownMenuItem(value: null, child: Text('ทุกหมวดหมู่')),
-                ...categories.map(
-                  (category) => DropdownMenuItem(
-                    value: category,
-                    child: Text(shoppingCategoryLabel(category)),
+              if (recipes.isNotEmpty)
+                SizedBox(
+                  width: 240,
+                  child: DropdownButtonFormField<String?>(
+                    key: const ValueKey<String>('shopping-recipe-filter'),
+                    initialValue: view.recipeId,
+                    decoration: const InputDecoration(labelText: 'จากเมนู'),
+                    items: <DropdownMenuItem<String?>>[
+                      const DropdownMenuItem(
+                        value: null,
+                        child: Text('ทุกเมนู'),
+                      ),
+                      ...recipes.map(
+                        (entry) => DropdownMenuItem(
+                          value: entry.key,
+                          child: Text(entry.value),
+                        ),
+                      ),
+                    ],
+                    onChanged: notifier.setRecipe,
                   ),
                 ),
-              ],
-              onChanged: viewNotifier.setCategory,
-            ),
-            _FilterDropdown<String?>(
-              key: const ValueKey<String>('shopping-recipe-filter'),
-              value: view.recipeId,
-              hint: 'ทุกเมนู',
-              items: <DropdownMenuItem<String?>>[
-                const DropdownMenuItem(value: null, child: Text('ทุกเมนู')),
-                ...recipeIds.map(
-                  (id) => DropdownMenuItem(
-                    value: id,
-                    child: Text(recipeNames[id] ?? id),
-                  ),
+              SizedBox(
+                width: 210,
+                child: DropdownButtonFormField<ShoppingSortOption>(
+                  key: const ValueKey<String>('shopping-sort-filter'),
+                  initialValue: view.sort,
+                  decoration: const InputDecoration(labelText: 'เรียงตาม'),
+                  items: const [
+                    DropdownMenuItem(
+                      value: ShoppingSortOption.category,
+                      child: Text('หมวดหมู่'),
+                    ),
+                    DropdownMenuItem(
+                      value: ShoppingSortOption.alphabetical,
+                      child: Text('ชื่อ'),
+                    ),
+                    DropdownMenuItem(
+                      value: ShoppingSortOption.recipeSource,
+                      child: Text('เมนูต้นทาง'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      notifier.setSort(value);
+                    }
+                  },
                 ),
-              ],
-              onChanged: viewNotifier.setRecipe,
-            ),
-            _FilterDropdown<ShoppingSortOption>(
-              key: const ValueKey<String>('shopping-sort'),
-              value: view.sort,
-              hint: 'เรียงตาม',
-              items: const [
-                DropdownMenuItem(
-                  value: ShoppingSortOption.category,
-                  child: Text('หมวดหมู่'),
-                ),
-                DropdownMenuItem(
-                  value: ShoppingSortOption.alphabetical,
-                  child: Text('ชื่อวัตถุดิบ'),
-                ),
-                DropdownMenuItem(
-                  value: ShoppingSortOption.recipeSource,
-                  child: Text('เมนูต้นทาง'),
-                ),
-              ],
-              onChanged: (value) {
-                if (value != null) {
-                  viewNotifier.setSort(value);
-                }
-              },
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _FilterDropdown<T> extends StatelessWidget {
-  const _FilterDropdown({
-    required this.value,
-    required this.hint,
-    required this.items,
-    required this.onChanged,
-    super.key,
-  });
-
-  final T value;
-  final String hint;
-  final List<DropdownMenuItem<T>> items;
-  final ValueChanged<T?> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 180,
-      child: DropdownButtonFormField<T>(
-        initialValue: value,
-        isExpanded: true,
-        decoration: const InputDecoration(
-          contentPadding: EdgeInsets.symmetric(
-            horizontal: AppSpacing.sm,
-            vertical: AppSpacing.xs,
+              ),
+            ],
           ),
-        ),
-        hint: Text(hint),
-        items: items,
-        onChanged: onChanged,
+        ],
       ),
     );
   }
 }
 
 class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.title, required this.count, this.action});
+  const _SectionTitle({required this.title, required this.count});
 
   final String title;
   final int count;
-  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(
-          child: Text('$title  $count', style: AppTextStyles.titleLarge),
-        ),
-        ?action,
+        Expanded(child: Text(title, style: AppTextStyles.titleLarge)),
+        Text('$count รายการ', style: AppTextStyles.bodyMedium),
       ],
+    );
+  }
+}
+
+class _NoMatchingItems extends StatelessWidget {
+  const _NoMatchingItems({
+    required this.hasFilters,
+    required this.onClear,
+  });
+
+  final bool hasFilters;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return EmptyState(
+      icon: Icons.filter_alt_off_outlined,
+      title: 'ไม่พบรายการตามตัวกรอง',
+      description: 'ลองเปลี่ยนคำค้น หมวดหมู่ หรือเมนูต้นทาง',
+      actionLabel: hasFilters ? 'ล้างตัวกรอง' : null,
+      onActionPressed: hasFilters ? onClear : null,
     );
   }
 }
@@ -954,15 +848,8 @@ class _ShoppingLoadingState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Center(
-      child: Column(
-        key: ValueKey<String>('shopping-loading-state'),
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          CircularProgressIndicator(),
-          SizedBox(height: AppSpacing.md),
-          Text('กำลังโหลดรายการซื้อของในเครื่อง…'),
-        ],
-      ),
+      key: ValueKey<String>('shopping-loading-state'),
+      child: CircularProgressIndicator(),
     );
   }
 }
@@ -974,80 +861,29 @@ class _ShoppingErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(
-          key: const ValueKey<String>('shopping-error-state'),
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 52, color: AppColors.error),
-            const SizedBox(height: AppSpacing.sm),
-            Text('ไม่สามารถโหลดรายการซื้อของ', style: AppTextStyles.titleLarge),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              'ข้อมูลในเครื่องไม่ถูกเปลี่ยนแปลง กรุณาลองโหลดอีกครั้ง',
-              textAlign: TextAlign.center,
-              style: AppTextStyles.bodyMedium,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            FilledButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: const Text('ลองอีกครั้ง'),
-            ),
-          ],
-        ),
-      ),
+    return EmptyState(
+      key: const ValueKey<String>('shopping-error-state'),
+      icon: Icons.cloud_off_outlined,
+      title: 'เปิดรายการซื้อของไม่ได้',
+      description: 'ข้อมูลในเครื่องยังคงปลอดภัย กรุณาลองโหลดอีกครั้ง',
+      actionLabel: 'ลองอีกครั้ง',
+      onActionPressed: onRetry,
     );
   }
-}
-
-class _NoMatchingItems extends StatelessWidget {
-  const _NoMatchingItems({required this.hasFilters, required this.onClear});
-
-  final bool hasFilters;
-  final VoidCallback onClear;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        const Icon(Icons.search_off, size: 48, color: AppColors.textMuted),
-        const SizedBox(height: AppSpacing.sm),
-        Text(
-          hasFilters ? 'ไม่พบรายการตามตัวกรอง' : 'ไม่มีรายการที่จะแสดง',
-          style: AppTextStyles.titleMedium,
-        ),
-        if (hasFilters)
-          TextButton(onPressed: onClear, child: const Text('ล้างตัวกรอง')),
-      ],
-    );
-  }
-}
-
-class _UndoAction {
-  const _UndoAction({
-    required this.label,
-    required this.listId,
-    required this.build,
-  });
-
-  final String label;
-  final String listId;
-  final ShoppingMutation Function(ShoppingList, DateTime) build;
 }
 
 String _friendlyTransactionError(InventoryTransactionResult result) {
   return switch (result.code) {
-    'stale_inventory_revision' || 'stale_shopping_list_revision' =>
-      'รายการมีการเปลี่ยนแปลง กรุณาโหลดใหม่แล้วลองอีกครั้ง',
-    'shopping_undo_panry_conflict' || 'shopping_undo_pantry_conflict' =>
-      'Pantry เปลี่ยนแปลงหลังการซื้อ จึงหยุดการย้อนกลับเพื่อป้องกันข้อมูล',
-    'invalid_shopping_quantity' => 'กรุณากรอกจำนวนที่มากกว่าศูนย์',
-    'recovery_required' =>
-      'ต้องกู้คืนข้อมูลในเครื่องให้เสร็จก่อนแก้ไขรายการซื้อของ',
-    _ =>
-      'ทำรายการไม่สำเร็จอย่างปลอดภัย (${result.code}) และไม่มีข้อมูลบางส่วนถูกแสดง',
+    'shopping_unit_conversion_required' =>
+      'หน่วยของรายการนี้ยังรวมกับ Pantry ไม่ได้ กรุณาแปลงหน่วยก่อน',
+    'unknown_canonical_shopping_ingredient' =>
+      'ไม่พบวัตถุดิบมาตรฐานของรายการนี้ จึงยังเก็บเข้าตู้ไม่ได้',
+    'stale_shopping_list_revision' || 'stale_inventory_revision' =>
+      'รายการมีการเปลี่ยนแปลง กรุณาลองใหม่อีกครั้ง',
+    'purchase_pantry_state_changed' =>
+      'Pantry ถูกแก้ไขหลังการซื้อ จึงย้อนกลับอัตโนมัติไม่ได้',
+    'shopping_item_already_recreated' =>
+      'รายการนี้ถูกสร้างขึ้นใหม่แล้ว จึงย้อนกลับซ้ำไม่ได้',
+    _ => 'ทำรายการไม่สำเร็จอย่างปลอดภัย (${result.code})',
   };
 }
