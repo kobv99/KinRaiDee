@@ -20,10 +20,20 @@ void main() {
   });
 
   tearDownAll(() async {
+    stdout.writeln('[widget_test] tearDownAll: before Hive.close');
     await Hive.close();
-    if (await tempDirectory.exists()) {
+    stdout.writeln('[widget_test] tearDownAll: after Hive.close');
+
+    final exists = await tempDirectory.exists();
+    stdout.writeln(
+      '[widget_test] tearDownAll: temp directory exists = $exists',
+    );
+    if (exists) {
+      stdout.writeln('[widget_test] tearDownAll: before directory delete');
       await tempDirectory.delete(recursive: true);
+      stdout.writeln('[widget_test] tearDownAll: after directory delete');
     }
+    stdout.writeln('[widget_test] tearDownAll: complete');
   });
 
   testWidgets('KinRaiDee app loads and releases owned resources', (
@@ -35,9 +45,6 @@ void main() {
     expect(find.byType(KinRaiDeeApp), findsOneWidget);
     expect(tester.takeException(), isNull);
 
-    // Unmount the application while the test binding is still active. This
-    // disposes ProviderScope and the app-owned GoRouter before Hive is closed
-    // by tearDownAll.
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
 
