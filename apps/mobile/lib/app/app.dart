@@ -5,7 +5,9 @@ import 'router/app_router.dart';
 import 'theme/app_theme.dart';
 
 class KinRaiDeeApp extends StatefulWidget {
-  const KinRaiDeeApp({super.key});
+  const KinRaiDeeApp({super.key, this.theme});
+
+  final ThemeData? theme;
 
   @override
   State<KinRaiDeeApp> createState() => _KinRaiDeeAppState();
@@ -31,7 +33,7 @@ class _KinRaiDeeAppState extends State<KinRaiDeeApp> {
     return MaterialApp.router(
       title: 'KinRaiDee',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
+      theme: widget.theme ?? AppTheme.light,
       routerConfig: _router,
     );
   }
