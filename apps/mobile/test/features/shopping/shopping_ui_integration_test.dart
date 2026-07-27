@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/core/time/app_clock.dart';
 import 'package:mobile/features/pantry/data/repositories/hive_inventory_commit_repository.dart';
-import 'package:mobile/features/shopping/domain/entities/shopping_item_status.dart';
+import 'package:mobile/features/shopping/data/repositories/local_shopping_repository.dart';
 
 import '../../support/shopping_ui_test_support.dart';
 
 void main() {
   testWidgets(
-    'purchase UI persists Shopping and Pantry together across restart',
+    'completion UI persists Pantry, Shopping removal, and history across restart',
     (tester) async {
       final now = DateTime.utc(2026, 7, 26, 10);
       final harness = await ShoppingUiHarness.create(
@@ -32,7 +32,7 @@ void main() {
       await harness.pump(tester);
 
       await tester.tap(
-        find.byKey(const ValueKey<String>('shopping-check-egg-item')),
+        find.byKey(const ValueKey<String>('shopping-complete-egg-item')),
       );
       await tester.pumpAndSettle();
 
@@ -43,21 +43,25 @@ void main() {
       final recovery = await restartedRepository.recoverPendingTransactions();
       expect(recovery.allowsMutation, isTrue);
       expect(recovery.snapshot.pantry.single.quantity, 6);
+      expect(recovery.snapshot.shoppingLists.single.items, isEmpty);
       expect(
-        recovery.snapshot.shoppingLists.single.items.single.status,
-        ShoppingItemStatus.purchased,
+        await LocalShoppingRepository(
+          restartedRepository,
+        ).getPurchaseHistory(),
+        hasLength(1),
       );
 
-      await tester.tap(
-        find.byKey(const ValueKey<String>('shopping-check-egg-item')),
-      );
+      await tester.tap(find.byType(SnackBarAction));
       await tester.pumpAndSettle();
 
       final afterUndo = await restartedRepository.recoverPendingTransactions();
       expect(afterUndo.snapshot.pantry, isEmpty);
+      expect(afterUndo.snapshot.shoppingLists.single.items.single.id, 'egg-item');
       expect(
-        afterUndo.snapshot.shoppingLists.single.items.single.status,
-        ShoppingItemStatus.active,
+        await LocalShoppingRepository(
+          restartedRepository,
+        ).getPurchaseHistory(),
+        isEmpty,
       );
     },
   );
