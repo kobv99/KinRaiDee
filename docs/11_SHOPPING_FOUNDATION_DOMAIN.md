@@ -225,5 +225,6 @@ Shopping-specific Hive box.
 ## Deferred Work
 
 Package-size rounding, retailer/catalog identity, pricing, barcode input,
-Shopping UI, cloud synchronization, and cross-device conflict resolution remain
-out of scope.
+cloud synchronization, and cross-device conflict resolution remain out of
+scope. The SF-003 presentation workflow is documented in
+[Shopping UI](12_SHOPPING_UI.md).

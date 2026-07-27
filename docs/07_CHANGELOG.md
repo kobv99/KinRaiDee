@@ -4,6 +4,16 @@
 
 ### Added
 
+- SF-003 Shopping screen with overview, active/completed sections, loading,
+  error, and empty states.
+- Multi-Recipe selection and duplicate-safe generation preview before durable
+  confirmation.
+- Shopping check/uncheck, quantity edit, delete confirmation, archive, restore,
+  and recent-action undo controls.
+- Canonical/alias/localized search, category/status/Recipe filters,
+  deterministic sorting, and Pantry availability display.
+- Shopping widget, interaction, projection, multi-Recipe, undo, failure, and
+  restart integration tests.
 - SF-002 `ShoppingEngine` for deterministic multi-Recipe aggregation, Pantry
   subtraction, canonical alias resolution, unit conversion, and merging
   existing Shopping demand.
@@ -38,6 +48,10 @@
 
 ### Changed
 
+- Canonical unknown-ID hashing now uses web-compatible `BigInt` arithmetic while
+  preserving the existing 64-bit FNV output exactly.
+- Shopping presentation publishes no optimistic durable state; controls wait
+  for `InventoryTransactionCoordinator` success before refresh.
 - `ShoppingItem` metadata version 2 adds active/purchased/archived state,
   multiple Recipe source references, and optional purchase receipt.
 - Inventory reader version 3 adds capability `shopping.engine.v1`; reader-v2
@@ -62,11 +76,14 @@
 
 ### Quality
 
-- `dart format --output=none --set-exit-if-changed .`: 135 files pass
+- `dart format --output=none --set-exit-if-changed .`: 142 files pass
   without changes.
 - `flutter analyze`: pass, no issues.
-- `flutter test --coverage`: 138 tests pass.
-- Line coverage: 82.54% (5,078/6,152).
+- All 153 tests reach successful completion. On this Windows environment,
+  `flutter test --coverage` hangs after completion in the coverage finalizer;
+  the completed five-shard fallback covers 152 tests, while the remaining
+  widget test separately reaches `+1` before reproducing the finalizer hang.
+- Merged line coverage: 82.58% (5,765/6,981).
 - Focused Shopping Engine suite: 30 tests pass.
 - Focused Transaction Engine regression: 23 tests pass.
 

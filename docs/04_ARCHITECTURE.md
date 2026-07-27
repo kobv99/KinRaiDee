@@ -127,10 +127,10 @@ See [Canonical Ingredient Domain](09_CANONICAL_INGREDIENT_DOMAIN.md) and
 
 ---
 
-## Shopping Foundation and Engine
+## Shopping Foundation, Engine, and UI
 
 SF-001 adds the local Shopping aggregate. SF-002 adds generation and inventory
-synchronization without implementing Shopping UI:
+synchronization. SF-003 adds the user-facing offline workflow:
 
 1. `ShoppingList` owns versioned `ShoppingItem` records.
 2. Every item references a valid canonical ingredient ID and canonical unit ID.
@@ -148,8 +148,17 @@ synchronization without implementing Shopping UI:
    idempotency, rollback, and restart recovery.
 8. `ShoppingMutationController` publishes Pantry and invalidates Shopping only
    after the repository confirms a durable commit.
+9. `ShoppingPage` consumes only Riverpod projections and sends every user
+   action through `ShoppingMutationController`; presentation has no persistence
+   import or optimistic durable state.
+10. `ShoppingViewProjector` performs alias/localized search, category/status/
+    Recipe filtering, deterministic sorting, and Pantry availability
+    conversion as a pure in-memory projection.
+11. `ShoppingGenerationSheet` selects multiple Recipes, previews
+    `ShoppingEngine.generate`, and commits only after confirmation.
 
 The transaction envelope remains the only Hive persistence path. There is no
 Shopping-specific Hive box or direct storage access from presentation.
 
-See [Shopping Foundation Domain Model](11_SHOPPING_FOUNDATION_DOMAIN.md).
+See [Shopping Foundation Domain Model](11_SHOPPING_FOUNDATION_DOMAIN.md) and
+[Shopping UI](12_SHOPPING_UI.md).

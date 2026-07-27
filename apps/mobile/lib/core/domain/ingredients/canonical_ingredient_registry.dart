@@ -304,13 +304,14 @@ String normalizeCanonicalIngredientId(String value) {
       .replaceAll(RegExp(r'^_|_$'), '');
 }
 
-int _fnv1a64(String value) {
-  const offset = 0xcbf29ce484222325;
-  const prime = 0x100000001b3;
+BigInt _fnv1a64(String value) {
+  final offset = BigInt.parse('cbf29ce484222325', radix: 16);
+  final prime = BigInt.parse('100000001b3', radix: 16);
+  final mask = (BigInt.one << 64) - BigInt.one;
   var hash = offset;
   for (final codeUnit in value.codeUnits) {
-    hash ^= codeUnit;
-    hash = (hash * prime) & 0xFFFFFFFFFFFFFFFF;
+    hash ^= BigInt.from(codeUnit);
+    hash = (hash * prime) & mask;
   }
   return hash;
 }
