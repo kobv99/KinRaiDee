@@ -69,19 +69,19 @@ class ShoppingEngine {
     }
 
     final pantryByCanonical = _pantryQuantities(pantry, requirements, at: at);
-    final completedItems = <ShoppingItem>[];
     final activeByCanonical = <String, List<ShoppingItem>>{};
     for (final item in existingList?.items ?? const <ShoppingItem>[]) {
+      // Shopping is an actionable task list. Legacy completed/archived records
+      // are intentionally not carried into regenerated lists.
+      if (item.status != ShoppingItemStatus.active) {
+        continue;
+      }
       final canonicalId = registry.canonicalIdFor(item.canonicalIngredientId);
       if (canonicalId == null) {
         throw ShoppingDomainException(
           'unknown_existing_shopping_ingredient',
           'Existing Shopping item ${item.id} has an unknown canonical ID.',
         );
-      }
-      if (item.status != ShoppingItemStatus.active) {
-        completedItems.add(item);
-        continue;
       }
       activeByCanonical
           .putIfAbsent(canonicalId, () => <ShoppingItem>[])
@@ -153,14 +153,13 @@ class ShoppingEngine {
       );
     }
 
-    final allItems = <ShoppingItem>[...activeItems, ...completedItems]
-      ..sort(_compareItems);
+    activeItems.sort(_compareItems);
     final list =
-        existingList?.copyWith(items: allItems, updatedAt: at) ??
+        existingList?.copyWith(items: activeItems, updatedAt: at) ??
         ShoppingList(
           id: normalizedListId,
           name: name.trim(),
-          items: allItems,
+          items: activeItems,
           createdAt: at,
           updatedAt: at,
         );
@@ -345,10 +344,6 @@ List<String> _references(List<ShoppingItem> items) {
 double _positive(double value) => value > 0 ? value : 0;
 
 int _compareItems(ShoppingItem first, ShoppingItem second) {
-  final status = first.status.index.compareTo(second.status.index);
-  if (status != 0) {
-    return status;
-  }
   final ingredient = first.canonicalIngredientId.compareTo(
     second.canonicalIngredientId,
   );
