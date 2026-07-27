@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/app/providers/canonical_ingredient_providers.dart';
-import 'package:mobile/app/theme/app_theme.dart';
 import 'package:mobile/core/domain/ingredients/canonical_ingredient.dart';
 import 'package:mobile/core/domain/ingredients/canonical_ingredient_registry.dart';
 import 'package:mobile/core/domain/units/unit_contract.dart';
@@ -15,6 +14,7 @@ import 'package:mobile/features/pantry/domain/repositories/pantry_repository.dar
 import 'package:mobile/features/recipe/domain/entities/recipe.dart';
 import 'package:mobile/features/recipe/presentation/providers/recipe_provider.dart';
 import 'package:mobile/features/shopping/application/shopping_providers.dart';
+import 'package:mobile/features/shopping/domain/entities/purchase_history_entry.dart';
 import 'package:mobile/features/shopping/domain/entities/shopping_category.dart';
 import 'package:mobile/features/shopping/domain/entities/shopping_item.dart';
 import 'package:mobile/features/shopping/domain/entities/shopping_list.dart';
@@ -93,12 +93,19 @@ class ShoppingUiHarness {
     return container.read(shoppingListsProvider.future);
   }
 
+  Future<List<PurchaseHistoryEntry>> history() {
+    return container.read(purchaseHistoryProvider.future);
+  }
+
   Future<void> pump(WidgetTester tester) async {
     useShoppingSurface(tester);
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp(theme: AppTheme.light, home: const ShoppingPage()),
+        child: MaterialApp(
+          theme: ThemeData(useMaterial3: true),
+          home: const ShoppingPage(),
+        ),
       ),
     );
     await tester.pumpAndSettle();
