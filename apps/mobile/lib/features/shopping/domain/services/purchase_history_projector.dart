@@ -12,9 +12,7 @@ class PurchaseHistoryProjector {
     required InventoryStateEnvelope snapshot,
     required Iterable<InventoryTransactionRecord> records,
   }) {
-    final ordered = records
-        .where(_isCommitted)
-        .toList(growable: false)
+    final ordered = records.where(_isCommitted).toList(growable: false)
       ..sort(_compareRecords);
     final openByIdentity = <String, List<PurchaseHistoryEntry>>{};
     final projectedTransactionIds = <String>{};
@@ -28,7 +26,10 @@ class PurchaseHistoryProjector {
           }
           projectedTransactionIds.add(entry.pantryTransactionId);
           openByIdentity
-              .putIfAbsent(_identity(entry.shoppingListId, entry.shoppingItemId), () => <PurchaseHistoryEntry>[])
+              .putIfAbsent(
+                _identity(entry.shoppingListId, entry.shoppingItemId),
+                () => <PurchaseHistoryEntry>[],
+              )
               .add(entry);
         case InventoryTransactionKind.undoShoppingPurchase:
           final restored = _restoredShoppingIdentity(record);
@@ -70,7 +71,10 @@ class PurchaseHistoryProjector {
           pantryLotIds: <String>[purchase.pantryLotId],
         );
         openByIdentity
-            .putIfAbsent(_identity(list.id, item.id), () => <PurchaseHistoryEntry>[])
+            .putIfAbsent(
+              _identity(list.id, item.id),
+              () => <PurchaseHistoryEntry>[],
+            )
             .add(entry);
       }
     }
@@ -83,7 +87,9 @@ class PurchaseHistoryProjector {
     return List<PurchaseHistoryEntry>.unmodifiable(result);
   }
 
-  PurchaseHistoryEntry? _purchaseFromRecord(InventoryTransactionRecord record) {
+  PurchaseHistoryEntry? _purchaseFromRecord(
+    InventoryTransactionRecord record,
+  ) {
     final before = record.beforeEnvelope;
     final after = record.afterEnvelope;
     if (before == null || after == null) {
@@ -103,11 +109,16 @@ class PurchaseHistoryProjector {
         if (afterItem != null && afterItem.status == ShoppingItemStatus.active) {
           continue;
         }
+        final changedPantryLotIds = _changedPantryLotIds(before, after);
         return PurchaseHistoryEntry(
           id: record.transactionId,
           purchasedAt: record.createdAt,
           ingredientId: item.id,
-          canonicalIngredientId: item.canonicalIngredientId,
+          canonicalIngredientId: _resolvedCanonicalIngredientId(
+            item,
+            after,
+            changedPantryLotIds,
+          ),
           ingredientName: item.displayName,
           quantity: item.quantity,
           unitId: item.unitId,
@@ -115,11 +126,28 @@ class PurchaseHistoryProjector {
           shoppingListId: beforeList.id,
           shoppingItemId: item.id,
           pantryTransactionId: record.transactionId,
-          pantryLotIds: _changedPantryLotIds(before, after),
+          pantryLotIds: changedPantryLotIds,
         );
       }
     }
     return null;
+  }
+
+  String _resolvedCanonicalIngredientId(
+    ShoppingItem item,
+    InventoryStateEnvelope after,
+    List<String> changedPantryLotIds,
+  ) {
+    final changedIds = changedPantryLotIds.toSet();
+    final canonicalIds = after.pantry
+        .where((ingredient) => changedIds.contains(ingredient.id))
+        .map((ingredient) => ingredient.canonicalIngredientId.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet();
+    if (canonicalIds.length == 1) {
+      return canonicalIds.single;
+    }
+    return item.canonicalIngredientId;
   }
 
   (String, String)? _restoredShoppingIdentity(
@@ -152,8 +180,12 @@ class PurchaseHistoryProjector {
     InventoryStateEnvelope before,
     InventoryStateEnvelope after,
   ) {
-    final beforeById = {for (final item in before.pantry) item.id: item.toJson()};
-    final afterById = {for (final item in after.pantry) item.id: item.toJson()};
+    final beforeById = {
+      for (final item in before.pantry) item.id: item.toJson(),
+    };
+    final afterById = {
+      for (final item in after.pantry) item.id: item.toJson(),
+    };
     final ids = <String>{...beforeById.keys, ...afterById.keys};
     final changed = ids
         .where((id) => !_mapsEqual(beforeById[id], afterById[id]))
