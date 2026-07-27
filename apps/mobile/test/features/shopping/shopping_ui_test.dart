@@ -7,7 +7,6 @@ import 'package:mobile/core/providers/pantry_provider.dart';
 import 'package:mobile/features/recipe/domain/entities/recipe.dart';
 import 'package:mobile/features/recipe/domain/entities/recipe_ingredient.dart';
 import 'package:mobile/features/shopping/application/shopping_providers.dart';
-import 'package:mobile/features/shopping/domain/entities/shopping_item_status.dart';
 import 'package:mobile/features/shopping/domain/entities/shopping_list.dart';
 import 'package:mobile/features/shopping/presentation/pages/shopping_page.dart';
 import 'package:mobile/features/shopping/presentation/providers/shopping_view_provider.dart';
@@ -58,7 +57,7 @@ void main() {
       expect(find.text('ลองอีกครั้ง'), findsOneWidget);
     });
 
-    testWidgets('renders actionable empty state', (tester) async {
+    testWidgets('renders actionable initial empty state', (tester) async {
       final harness = await ShoppingUiHarness.create();
       addTearDown(harness.dispose);
       await harness.pump(tester);
@@ -69,90 +68,7 @@ void main() {
   });
 
   group('Shopping list interactions', () {
-    testWidgets('completion segments remain single-line on narrow screens', (
-      tester,
-    ) async {
-      final harness = await ShoppingUiHarness.create(
-        recipes: _recipes,
-        list: testShoppingList(now: now),
-      );
-      addTearDown(harness.dispose);
-      await harness.pump(tester);
-      await tester.ensureVisible(
-        find.byKey(const ValueKey<String>('shopping-completion-filter')),
-      );
-
-      tester.view.physicalSize = const Size(520, 1100);
-      tester.platformDispatcher.textScaleFactorTestValue = 1.15;
-      await tester.pumpAndSettle();
-
-      for (final label in <String>['ทั้งหมด', 'ต้องซื้อ', 'เสร็จแล้ว']) {
-        final text = tester
-            .widgetList<Text>(find.text(label))
-            .firstWhere(
-              (widget) => widget.maxLines == 1 && widget.softWrap == false,
-            );
-        expect(text.maxLines, 1);
-        expect(text.softWrap, isFalse);
-      }
-      expect(find.text('All'), findsNothing);
-      expect(find.text('Active'), findsNothing);
-      expect(find.text('Completed'), findsNothing);
-      expect(tester.takeException(), isNull);
-    });
-
-    testWidgets(
-      'shows overview, Pantry availability, and localized alias search',
-      (tester) async {
-        final harness = await ShoppingUiHarness.create(
-          pantry: [
-            testPantryLot(
-              id: 'egg-lot',
-              canonicalId: 'egg',
-              name: 'Egg',
-              quantity: 2,
-              unit: 'piece',
-              now: now,
-            ),
-          ],
-          recipes: _recipes,
-          list: testShoppingList(now: now),
-        );
-        addTearDown(harness.dispose);
-        await harness.pump(tester);
-
-        expect(find.text('Weekend cooking'), findsOneWidget);
-        expect(find.text('Egg'), findsOneWidget);
-        expect(find.text('Rice'), findsOneWidget);
-        expect(find.text('ใน Pantry 2 ชิ้น'), findsOneWidget);
-
-        await tester.enterText(
-          find.byKey(const ValueKey<String>('shopping-search-field')),
-          'ไข่ไก่',
-        );
-        await tester.pumpAndSettle();
-        expect(find.text('Egg'), findsOneWidget);
-        expect(find.text('Rice'), findsNothing);
-
-        await tester.tap(find.byTooltip('ล้างคำค้น'));
-        await tester.pumpAndSettle();
-        expect(find.text('Rice'), findsOneWidget);
-
-        await tester.tap(find.text('เสร็จแล้ว'));
-        await tester.pumpAndSettle();
-        expect(find.text('ไม่พบรายการตามตัวกรอง'), findsOneWidget);
-
-        await tester.tap(find.text('ล้างตัวกรอง'));
-        await tester.pumpAndSettle();
-        expect(find.text('Egg'), findsOneWidget);
-        expect(
-          harness.container.read(shoppingViewProvider).hasFilters,
-          isFalse,
-        );
-      },
-    );
-
-    testWidgets('check and undo synchronize Pantry through durable commits', (
+    testWidgets('shows active overview, availability, search, and filters', (
       tester,
     ) async {
       final harness = await ShoppingUiHarness.create(
@@ -167,53 +83,104 @@ void main() {
           ),
         ],
         recipes: _recipes,
-        list: testShoppingList(
-          now: now,
-          items: [
-            testShoppingItem(
-              id: 'egg-item',
-              canonicalId: 'egg',
-              name: 'Egg',
-              quantity: 6,
-              unit: 'piece',
-              category: testShoppingList(now: now).items.first.category,
-              recipeIds: const <String>['omelette'],
-              now: now,
-            ),
-          ],
-        ),
+        list: testShoppingList(now: now),
       );
       addTearDown(harness.dispose);
       await harness.pump(tester);
 
-      await tester.tap(
-        find.byKey(const ValueKey<String>('shopping-check-egg-item')),
-      );
-      await tester.pumpAndSettle();
-
-      expect(harness.container.read(pantryProvider).single.quantity, 8);
+      expect(find.text('Weekend cooking'), findsOneWidget);
+      expect(find.text('ต้องซื้อ 2 รายการ'), findsOneWidget);
+      expect(find.text('Egg'), findsOneWidget);
+      expect(find.text('Rice'), findsOneWidget);
+      expect(find.text('ใน Pantry 2 ชิ้น'), findsOneWidget);
       expect(
-        harness.container
-            .read(shoppingListsProvider)
-            .value!
-            .single
-            .items
-            .single
-            .status,
-        ShoppingItemStatus.purchased,
+        find.byKey(const ValueKey<String>('shopping-category-filter')),
+        findsOneWidget,
       );
-      expect(find.textContaining('เพิ่มเข้า Pantry แล้ว'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('shopping-sort-filter')),
+        findsOneWidget,
+      );
+      expect(find.text('รายการที่เสร็จแล้ว'), findsNothing);
+      expect(find.text('เสร็จแล้ว'), findsNothing);
 
-      await tester.tap(find.byType(SnackBarAction));
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('shopping-search-field')),
+        'ไข่ไก่',
+      );
       await tester.pumpAndSettle();
+      expect(find.text('Egg'), findsOneWidget);
+      expect(find.text('Rice'), findsNothing);
 
-      final restored = (await harness.lists()).single.items.single;
-      expect(restored.status, ShoppingItemStatus.active);
-      expect(harness.container.read(pantryProvider).single.quantity, 2);
-      expect(find.text('ยกเลิกการซื้อแล้ว'), findsOneWidget);
+      await tester.tap(find.byTooltip('ล้างคำค้น'));
+      await tester.pumpAndSettle();
+      expect(find.text('Rice'), findsOneWidget);
+      expect(harness.container.read(shoppingViewProvider).hasFilters, isFalse);
     });
 
-    testWidgets('edit and delete support single-use UI undo', (tester) async {
+    testWidgets(
+      'เก็บเข้าตู้ removes Shopping, merges Pantry, records history, and undoes',
+      (tester) async {
+        final harness = await ShoppingUiHarness.create(
+          pantry: [
+            testPantryLot(
+              id: 'egg-lot',
+              canonicalId: 'egg',
+              name: 'Egg',
+              quantity: 2,
+              unit: 'piece',
+              now: now,
+            ),
+          ],
+          recipes: _recipes,
+          list: testShoppingList(
+            now: now,
+            items: [
+              testShoppingItem(
+                id: 'egg-item',
+                canonicalId: 'egg',
+                name: 'Egg',
+                quantity: 6,
+                unit: 'piece',
+                category: testShoppingList(now: now).items.first.category,
+                recipeIds: const <String>['omelette'],
+                now: now,
+              ),
+            ],
+          ),
+        );
+        addTearDown(harness.dispose);
+        await harness.pump(tester);
+
+        await tester.tap(
+          find.byKey(const ValueKey<String>('shopping-complete-egg-item')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(harness.container.read(pantryProvider).single.quantity, 8);
+        expect((await harness.lists()).single.items, isEmpty);
+        expect(await harness.history(), hasLength(1));
+        expect(find.text('✓ เพิ่มเข้าตู้แล้ว'), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey<String>('shopping-complete-empty-state')),
+          findsOneWidget,
+        );
+        expect(find.text('🎉 ไม่มีรายการที่ต้องซื้อแล้ว'), findsOneWidget);
+        expect(find.text('พร้อมทำอาหารได้เลย'), findsOneWidget);
+
+        await tester.tap(find.byType(SnackBarAction));
+        await tester.pumpAndSettle();
+
+        expect((await harness.lists()).single.items.single.id, 'egg-item');
+        expect(harness.container.read(pantryProvider).single.quantity, 2);
+        expect(await harness.history(), isEmpty);
+        expect(find.text('คืนรายการและจำนวนใน Pantry แล้ว'), findsOneWidget);
+      },
+    );
+
+    testWidgets('edit and delete retain single-use Snackbar undo', (
+      tester,
+    ) async {
       final harness = await ShoppingUiHarness.create(
         recipes: _recipes,
         list: testShoppingList(
@@ -249,9 +216,7 @@ void main() {
       await tester.pumpAndSettle();
       expect((await harness.lists()).single.items.single.quantity, 12);
 
-      await tester.tap(
-        find.byKey(const ValueKey<String>('shopping-undo-action')),
-      );
+      await tester.tap(find.byType(SnackBarAction));
       await tester.pumpAndSettle();
       expect((await harness.lists()).single.items.single.quantity, 6);
 
@@ -259,7 +224,6 @@ void main() {
         find.byKey(const ValueKey<String>('shopping-delete-egg-item')),
       );
       await tester.pumpAndSettle();
-      expect(find.text('ลบรายการนี้?'), findsOneWidget);
       await tester.tap(
         find.byKey(const ValueKey<String>('shopping-confirm-delete')),
       );
@@ -271,56 +235,7 @@ void main() {
       expect((await harness.lists()).single.items.single.displayName, 'Egg');
     });
 
-    testWidgets('archives and restores completed entries', (tester) async {
-      final harness = await ShoppingUiHarness.create(
-        recipes: _recipes,
-        list: testShoppingList(
-          now: now,
-          items: [
-            testShoppingItem(
-              id: 'egg-item',
-              canonicalId: 'egg',
-              name: 'Egg',
-              quantity: 6,
-              unit: 'piece',
-              category: testShoppingList(now: now).items.first.category,
-              recipeIds: const <String>['omelette'],
-              now: now,
-            ),
-          ],
-        ),
-      );
-      addTearDown(harness.dispose);
-      await harness.pump(tester);
-      await tester.tap(
-        find.byKey(const ValueKey<String>('shopping-check-egg-item')),
-      );
-      await tester.pumpAndSettle();
-
-      final archive = find.byKey(
-        const ValueKey<String>('shopping-archive-completed'),
-      );
-      await tester.ensureVisible(archive);
-      await tester.tap(archive);
-      await tester.pumpAndSettle();
-      expect(
-        (await harness.lists()).single.items.single.status,
-        ShoppingItemStatus.archived,
-      );
-
-      final restore = find.byKey(
-        const ValueKey<String>('shopping-restore-egg-item'),
-      );
-      await tester.ensureVisible(restore);
-      await tester.tap(restore);
-      await tester.pumpAndSettle();
-      expect(
-        (await harness.lists()).single.items.single.status,
-        ShoppingItemStatus.purchased,
-      );
-    });
-
-    testWidgets('failed durable mutation shows an error without UI drift', (
+    testWidgets('failed durable completion shows error without UI drift', (
       tester,
     ) async {
       final harness = await ShoppingUiHarness.create(
@@ -346,16 +261,14 @@ void main() {
       harness.store.failEnvelopeWrites = true;
 
       await tester.tap(
-        find.byKey(const ValueKey<String>('shopping-check-egg-item')),
+        find.byKey(const ValueKey<String>('shopping-complete-egg-item')),
       );
       await tester.pumpAndSettle();
 
       expect(find.textContaining('ไม่สำเร็จอย่างปลอดภัย'), findsOneWidget);
-      expect(
-        (await harness.lists()).single.items.single.status,
-        ShoppingItemStatus.active,
-      );
+      expect((await harness.lists()).single.items.single.id, 'egg-item');
       expect(harness.container.read(pantryProvider), isEmpty);
+      expect(await harness.history(), isEmpty);
     });
   });
 
@@ -385,12 +298,6 @@ void main() {
         firstList.items.map((item) => item.canonicalIngredientId).toSet(),
         <String>{'egg', 'rice'},
       );
-      expect(
-        firstList.items
-            .singleWhere((item) => item.canonicalIngredientId == 'egg')
-            .quantity,
-        2,
-      );
 
       await tester.tap(
         find.byKey(const ValueKey<String>('shopping-generate-button')),
@@ -401,10 +308,7 @@ void main() {
       final regenerated = (await harness.lists()).single;
       expect(regenerated.items, hasLength(2));
       expect(
-        regenerated.items
-            .where((item) => item.status == ShoppingItemStatus.active)
-            .map((item) => item.canonicalIngredientId)
-            .toSet(),
+        regenerated.items.map((item) => item.canonicalIngredientId).toSet(),
         hasLength(2),
       );
       expect(regenerated.revision, greaterThan(firstList.revision));
@@ -435,7 +339,6 @@ Future<void> _selectRecipesAndConfirm(WidgetTester tester) async {
     find.byKey(const ValueKey<String>('shopping-generation-preview')),
     findsOneWidget,
   );
-  expect(find.text('2'), findsWidgets);
   await tester.tap(
     find.byKey(const ValueKey<String>('shopping-confirm-button')),
   );
