@@ -163,6 +163,15 @@ synchronization. SF-003 adds the user-facing offline workflow:
     conversion as a pure in-memory projection.
 11. `ShoppingGenerationSheet` selects multiple Recipes, previews
     `ShoppingEngine.generate`, and commits only after confirmation.
+12. Shopping-to-Pantry creation resolves canonical metadata before constructing
+    a Pantry lot. Artwork comes from the canonical registry and persisted
+    display units come from the Unit Contract.
+13. `UnitPresentation` is the shared display boundary for Pantry, Recipe,
+    Shopping, cooking, and cooking-history quantities. Known canonical IDs and
+    aliases are localized centrally; unknown legacy values remain readable.
+14. Cooking-history retention uses journaled
+    `deleteCookingHistory`/`clearCookingHistory` transactions. These commits
+    change only History and publish Riverpod state after durable success.
 
 The transaction envelope remains the only Hive persistence path. There is no
 Shopping-specific Hive box or direct storage access from presentation.

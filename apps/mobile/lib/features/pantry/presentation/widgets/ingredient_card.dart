@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/providers/canonical_ingredient_providers.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radius.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/models/ingredient.dart';
+import '../../../../core/presentation/ingredient_presentation.dart';
+import '../../../../core/presentation/unit_presentation.dart';
 import '../../../../shared/widgets/app_card.dart';
 import '../../domain/services/pantry_search_engine.dart';
 import 'search_highlight_text.dart';
 
-class IngredientCard extends StatelessWidget {
+class IngredientCard extends ConsumerWidget {
   const IngredientCard({
     required this.ingredient,
     required this.onEdit,
@@ -28,7 +32,7 @@ class IngredientCard extends StatelessWidget {
   final String searchQuery;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final expiryStatus = _ExpiryStatus.fromIngredient(ingredient);
     final searchMatch = PantrySearchEngine.matchIngredient(
       ingredient,
@@ -44,7 +48,12 @@ class IngredientCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          _IngredientEmoji(emoji: ingredient.emoji),
+          _IngredientEmoji(
+            emoji: IngredientPresentation.emoji(
+              ingredient,
+              ref.watch(canonicalIngredientRegistryProvider),
+            ),
+          ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
@@ -107,8 +116,13 @@ class IngredientCard extends StatelessWidget {
                   children: [
                     _IngredientDetail(
                       icon: Icons.inventory_2_outlined,
-                      text:
-                          '${_formatQuantity(ingredient.quantity)} ${ingredient.unit}',
+                      text: UnitPresentation.quantity(
+                        ingredient.quantity,
+                        ingredient.canonicalUnitId.isEmpty
+                            ? ingredient.unit
+                            : ingredient.canonicalUnitId,
+                        maximumFractionDigits: 1,
+                      ),
                     ),
                     if (ingredient.expiryDate != null)
                       _IngredientDetail(
@@ -163,14 +177,6 @@ class IngredientCard extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  static String _formatQuantity(double quantity) {
-    if (quantity == quantity.roundToDouble()) {
-      return quantity.toInt().toString();
-    }
-
-    return quantity.toStringAsFixed(1);
   }
 
   static String _formatDate(DateTime date) {

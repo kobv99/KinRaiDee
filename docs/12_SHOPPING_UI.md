@@ -23,6 +23,10 @@ Each Shopping item displays its canonical display name, quantity and unit,
 category, Recipe sources, compatible non-expired Pantry availability, and
 active/purchased/archived status.
 
+All Shopping screen copy is Thai. Known unit IDs are resolved through the
+shared `UnitPresentation` formatter, so canonical storage values such as
+`egg`, `kilogram`, and `liter` are never rendered directly.
+
 ## User Flow
 
 ### Generate from Recipes
@@ -84,12 +88,21 @@ Undo control. Archive and restore use the approved batch mutations.
 ## Responsive and Offline Behavior
 
 - The screen constrains content on wide displays and uses mobile-first controls.
+- The completion selector uses single-line Thai labels in a horizontally
+  scrollable constraint, preventing the completed label from clipping at
+  narrow widths or increased text scale.
 - `CustomScrollView` and `SliverList` avoid eagerly building long lists.
 - Filtering and sorting are in-memory and deterministic.
 - Recipe generation and every mutation work against local providers and the
   existing durable envelope; the screen has no storage or network dependency.
 - Destructive item deletion requires explicit confirmation.
 - Failed transactions show a message and retain the last durable UI state.
+
+When a purchase creates a new Pantry lot, the coordinator resolves the
+canonical ingredient first and persists its artwork plus the Unit Contract
+display label. Existing Pantry records with blank artwork remain compatible:
+presentation resolves artwork from canonical metadata without silently
+rewriting saved data.
 
 ## Test Evidence
 
@@ -104,16 +117,14 @@ regeneration; and restart persistence of Shopping plus Pantry.
 
 ## Validation Results
 
-- `dart format --output=none --set-exit-if-changed .`: 142 files, no changes.
-- `flutter analyze`: no issues.
-- `flutter test --coverage`: all 153 test cases reached successful completion,
-  but the Windows Flutter coverage finalizer did not exit and the command was
-  terminated after 240 seconds.
-- Coverage fallback: 37 test files (152 tests) completed in five coverage
-  shards; `test/widget_test.dart` separately reached `+1` and then reproduced
-  the same finalizer hang.
-- Merged line coverage from the five completed shards: 82.58%
-  (5,765/6,981).
+- `dart format --output=none --set-exit-if-changed apps/mobile`: 149 files,
+  no changes.
+- `flutter analyze --no-pub`: no issues.
+- Coverage run excluding the known Windows root-widget finalizer:
+  167 tests passed.
+- `test/widget_test.dart` reached `+1` and `tearDownAll`, then the Flutter tool
+  did not exit within 90 seconds. No test assertion failed.
+- Line coverage: 83.26% (6,085/7,308).
 - `git diff --check`: pass.
 
 ## Browser Verification

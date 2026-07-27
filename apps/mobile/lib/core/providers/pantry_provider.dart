@@ -266,6 +266,18 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
     return result;
   }
 
+  Future<InventoryTransactionResult> deleteHistoryEntry(String entryId) async {
+    final result = await _coordinator.deleteCookingHistory(entryId);
+    await _publishCommitted(result);
+    return result;
+  }
+
+  Future<InventoryTransactionResult> clearCookingHistory() async {
+    final result = await _coordinator.clearCookingHistory();
+    await _publishCommitted(result);
+    return result;
+  }
+
   Future<void> removeIngredient(String id) async {
     final updatedIngredients = state
         .where((ingredient) => ingredient.id != id)

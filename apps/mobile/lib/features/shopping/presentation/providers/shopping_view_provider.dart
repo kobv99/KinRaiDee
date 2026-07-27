@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/domain/ingredients/canonical_ingredient_registry.dart';
 import '../../../../core/domain/units/unit_contract.dart';
 import '../../../../core/models/ingredient.dart';
+import '../../../../core/presentation/unit_presentation.dart';
 import '../../domain/entities/shopping_category.dart';
 import '../../domain/entities/shopping_item.dart';
 import '../../domain/entities/shopping_item_status.dart';
@@ -216,30 +217,21 @@ String formatShoppingQuantity(double value) {
 }
 
 String shoppingUnitLabel(String unitId) {
-  return switch (unitId) {
-    'gram' => 'g',
-    'kilogram' => 'kg',
-    'milliliter' => 'ml',
-    'liter' => 'L',
-    'teaspoon' => 'tsp',
-    'tablespoon' => 'tbsp',
-    'piece' => 'pc',
-    _ => unitId,
-  };
+  return UnitPresentation.label(unitId);
 }
 
 String shoppingCategoryLabel(ShoppingCategory category) {
   return switch (category) {
-    ShoppingCategory.produce => 'Produce',
-    ShoppingCategory.protein => 'Protein',
-    ShoppingCategory.seafood => 'Seafood',
-    ShoppingCategory.dairyAndEggs => 'Dairy & eggs',
-    ShoppingCategory.grains => 'Grains',
-    ShoppingCategory.seasonings => 'Seasonings',
-    ShoppingCategory.beverages => 'Beverages',
-    ShoppingCategory.frozen => 'Frozen',
-    ShoppingCategory.household => 'Household',
-    ShoppingCategory.other => 'Other',
+    ShoppingCategory.produce => 'ผักและผลไม้',
+    ShoppingCategory.protein => 'โปรตีน',
+    ShoppingCategory.seafood => 'อาหารทะเล',
+    ShoppingCategory.dairyAndEggs => 'นมและไข่',
+    ShoppingCategory.grains => 'ข้าวและธัญพืช',
+    ShoppingCategory.seasonings => 'เครื่องปรุง',
+    ShoppingCategory.beverages => 'เครื่องดื่ม',
+    ShoppingCategory.frozen => 'อาหารแช่แข็ง',
+    ShoppingCategory.household => 'ของใช้ในบ้าน',
+    ShoppingCategory.other => 'อื่น ๆ',
   };
 }
 

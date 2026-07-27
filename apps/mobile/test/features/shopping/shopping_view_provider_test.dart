@@ -124,8 +124,10 @@ void main() {
       closeTo(0.75, 0.000001),
     );
     expect(formatShoppingQuantity(2.500), '2.5');
-    expect(shoppingUnitLabel('kilogram'), 'kg');
-    expect(shoppingCategoryLabel(ShoppingCategory.grains), 'Grains');
+    expect(shoppingUnitLabel('kilogram'), 'กิโลกรัม');
+    expect(shoppingUnitLabel('liter'), 'ลิตร');
+    expect(shoppingUnitLabel('egg'), 'ฟอง');
+    expect(shoppingCategoryLabel(ShoppingCategory.grains), 'ข้าวและธัญพืช');
   });
 
   test('view notifier updates and clears every filter', () {

@@ -117,7 +117,7 @@ class ShoppingItemCard extends StatelessWidget {
                     _Pill(
                       icon: Icons.kitchen_outlined,
                       label:
-                          'Pantry ${formatShoppingQuantity(pantryAvailability)} '
+                          'ใน Pantry ${formatShoppingQuantity(pantryAvailability)} '
                           '${shoppingUnitLabel(item.unitId)}',
                       foreground: AppColors.textSecondary,
                       background: AppColors.surfaceVariant,
@@ -127,7 +127,7 @@ class ShoppingItemCard extends StatelessWidget {
                 if (sourceNames.isNotEmpty) ...[
                   const SizedBox(height: AppSpacing.xs),
                   Text(
-                    'From ${sourceNames.join(', ')}',
+                    'จากเมนู ${sourceNames.join(', ')}',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: AppTextStyles.bodySmall.copyWith(
@@ -143,13 +143,13 @@ class ShoppingItemCard extends StatelessWidget {
                         key: ValueKey<String>('shopping-edit-${item.id}'),
                         onPressed: isBusy ? null : onEdit,
                         icon: const Icon(Icons.edit_outlined, size: 18),
-                        label: const Text('Edit'),
+                        label: const Text('แก้ไข'),
                       ),
                       TextButton.icon(
                         key: ValueKey<String>('shopping-delete-${item.id}'),
                         onPressed: isBusy ? null : onDelete,
                         icon: const Icon(Icons.delete_outline, size: 18),
-                        label: const Text('Delete'),
+                        label: const Text('ลบ'),
                         style: TextButton.styleFrom(
                           foregroundColor: AppColors.error,
                         ),
@@ -159,11 +159,11 @@ class ShoppingItemCard extends StatelessWidget {
                         key: ValueKey<String>('shopping-restore-${item.id}'),
                         onPressed: isBusy ? null : onRestore,
                         icon: const Icon(Icons.restore, size: 18),
-                        label: const Text('Restore archived'),
+                        label: const Text('กู้คืน'),
                       )
                     else
                       Text(
-                        'Tap the check to move this item back to active.',
+                        'แตะเครื่องหมายเพื่อย้ายกลับไปรายการที่ต้องซื้อ',
                         style: AppTextStyles.bodySmall,
                       ),
                   ],
@@ -248,9 +248,9 @@ Color _categoryColor(ShoppingCategory category) {
 
 String _statusLabel(ShoppingItemStatus status) {
   return switch (status) {
-    ShoppingItemStatus.active => 'Active',
-    ShoppingItemStatus.purchased => 'Purchased',
-    ShoppingItemStatus.archived => 'Archived',
+    ShoppingItemStatus.active => 'ต้องซื้อ',
+    ShoppingItemStatus.purchased => 'ซื้อแล้ว',
+    ShoppingItemStatus.archived => 'เก็บแล้ว',
   };
 }
 

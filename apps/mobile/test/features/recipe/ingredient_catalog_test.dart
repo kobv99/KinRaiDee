@@ -71,6 +71,7 @@ void main() {
         expect(ids.toSet(), hasLength(ids.length));
         for (final definition in definitions) {
           expect(definition.canonicalName, isNotEmpty);
+          expect(definition.emoji, isNotEmpty);
           expect(definition.defaultPurchaseUnitId, isNotEmpty);
           expect(definition.defaultInventoryUnitId, isNotEmpty);
           expect(definition.preferredUnitId, isNotEmpty);

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../../../core/domain/ingredients/canonical_ingredient.dart';
 import '../../../core/domain/ingredients/canonical_ingredient_registry.dart';
+import '../../../core/domain/ingredients/ingredient_artwork_policy.dart';
 import '../../../core/domain/units/ingredient_unit_policy.dart';
 import '../../../core/domain/units/unit_contract.dart';
 
@@ -12,15 +13,19 @@ class IngredientCatalog {
     AssetBundle? bundle,
     UnitConversionEngine? unitConversionEngine,
     IngredientUnitPolicy? ingredientUnitPolicy,
+    IngredientArtworkPolicy? ingredientArtworkPolicy,
   }) : _bundle = bundle ?? rootBundle,
        _unitConversionEngine =
            unitConversionEngine ?? UnitConversionEngine.standard(),
        _ingredientUnitPolicy =
-           ingredientUnitPolicy ?? const IngredientUnitPolicy();
+           ingredientUnitPolicy ?? const IngredientUnitPolicy(),
+       _ingredientArtworkPolicy =
+           ingredientArtworkPolicy ?? const IngredientArtworkPolicy();
 
   final AssetBundle _bundle;
   final UnitConversionEngine _unitConversionEngine;
   final IngredientUnitPolicy _ingredientUnitPolicy;
+  final IngredientArtworkPolicy _ingredientArtworkPolicy;
 
   Future<List<CanonicalIngredient>> load({
     String assetPath = 'assets/ingredients/thai_ingredients.json',
@@ -120,6 +125,13 @@ class IngredientCatalog {
     final unitFamily =
         _unitFamily(json['unitFamily']?.toString()) ??
         policyRecommendation.family;
+    final configuredEmoji = json['emoji']?.toString().trim() ?? '';
+    final emoji = configuredEmoji.isEmpty
+        ? _ingredientArtworkPolicy.forDefinition(
+            canonicalId: id,
+            category: category,
+          )
+        : configuredEmoji;
 
     return CanonicalIngredient(
       id: id,
@@ -137,6 +149,7 @@ class IngredientCatalog {
       ),
       defaultPurchaseUnitId: purchaseUnitId,
       defaultInventoryUnitId: inventoryUnitId,
+      emoji: emoji,
       preferredUnitId: preferredUnitId,
       recommendedUnitIds: recommendedUnitIds,
       unitFamily: unitFamily,

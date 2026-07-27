@@ -4,6 +4,14 @@
 
 ### Added
 
+- Transaction-safe single-entry deletion and clear-all retention controls for
+  Cooking History, both protected by confirmation dialogs.
+- Shared `UnitPresentation` localization coverage for Pantry, Recipe,
+  Shopping, cooking, and Cooking History.
+- Canonical artwork metadata and backward-compatible artwork fallback for
+  Pantry lots previously created by Shopping.
+- Regression coverage for Shopping-to-Pantry metadata, localized units,
+  Cooking History retention, and narrow completion filters.
 - Ingredient-aware Unit Policy with preferred units, recommended units, and
   optional unit families on every canonical ingredient.
 - Compact Pantry unit selector plus an on-demand `Other unit…` path that
@@ -54,6 +62,10 @@
 
 ### Changed
 
+- Shopping-to-Pantry commits now retain canonical artwork and localized display
+  units while preserving canonical unit IDs for calculations.
+- Shopping UI copy and filters now use Thai consistently; completion segments
+  remain single-line and horizontally scroll when space is constrained.
 - Pantry unit choices now refresh from canonical metadata/domain policy when
   the selected ingredient changes; invalid selections switch to the new
   preferred unit.

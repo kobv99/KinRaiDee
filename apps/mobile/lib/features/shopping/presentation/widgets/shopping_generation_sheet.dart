@@ -65,22 +65,21 @@ class _ShoppingGenerationSheetState
                     children: [
                       Text(
                         _preview == null
-                            ? 'Choose recipes'
-                            : 'Preview your list',
+                            ? 'เลือกเมนู'
+                            : 'ตรวจสอบรายการก่อนบันทึก',
                         style: AppTextStyles.headlineMedium,
                       ),
                       Text(
                         _preview == null
-                            ? 'Select one or more meals. Pantry stock is '
-                                  'deducted automatically.'
-                            : 'Review the durable changes before confirming.',
+                            ? 'เลือกหนึ่งเมนูขึ้นไป ระบบจะหักจำนวนที่มีใน Pantry อัตโนมัติ'
+                            : 'ตรวจสอบการเปลี่ยนแปลงก่อนยืนยันบันทึก',
                         style: AppTextStyles.bodyMedium,
                       ),
                     ],
                   ),
                 ),
                 IconButton(
-                  tooltip: 'Close',
+                  tooltip: 'ปิด',
                   onPressed: _isSaving
                       ? null
                       : () => Navigator.of(context).pop(false),
@@ -116,9 +115,8 @@ class _ShoppingGenerationSheetState
                 icon: const Icon(Icons.visibility_outlined),
                 label: Text(
                   _servings.isEmpty
-                      ? 'Select recipes to preview'
-                      : 'Preview ${_servings.length} '
-                            '${_servings.length == 1 ? 'recipe' : 'recipes'}',
+                      ? 'เลือกเมนูเพื่อดูตัวอย่าง'
+                      : 'ดูตัวอย่าง ${_servings.length} เมนู',
                 ),
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(52),
@@ -138,7 +136,7 @@ class _ShoppingGenerationSheetState
                               _preview = null;
                               _error = null;
                             }),
-                      child: const Text('Back'),
+                      child: const Text('ย้อนกลับ'),
                     ),
                   ),
                   const SizedBox(width: AppSpacing.sm),
@@ -157,7 +155,7 @@ class _ShoppingGenerationSheetState
                             )
                           : const Icon(Icons.check),
                       label: Text(
-                        _isSaving ? 'Saving…' : 'Confirm shopping list',
+                        _isSaving ? 'กำลังบันทึก…' : 'ยืนยันรายการซื้อของ',
                       ),
                     ),
                   ),
@@ -171,9 +169,7 @@ class _ShoppingGenerationSheetState
 
   Widget _buildRecipeSelection(List<Recipe> recipes) {
     if (recipes.isEmpty) {
-      return const Center(
-        child: Text('No recipes are available on this device.'),
-      );
+      return const Center(child: Text('ไม่มีข้อมูลเมนูในอุปกรณ์นี้'));
     }
     return ListView.separated(
       key: const ValueKey<String>('shopping-recipe-selection'),
@@ -203,7 +199,7 @@ class _ShoppingGenerationSheetState
           },
           title: Text(recipe.name, style: AppTextStyles.titleMedium),
           subtitle: Text(
-            '${recipe.cookTimeMinutes} min • ${recipe.category}',
+            '${recipe.cookTimeMinutes} นาที • ${recipe.category}',
             style: AppTextStyles.bodySmall,
           ),
           secondary: selected
@@ -243,14 +239,14 @@ class _ShoppingGenerationSheetState
             spacing: AppSpacing.md,
             runSpacing: AppSpacing.sm,
             children: [
-              _PreviewMetric(value: '${preview.recipeCount}', label: 'Recipes'),
+              _PreviewMetric(value: '${preview.recipeCount}', label: 'เมนู'),
               _PreviewMetric(
                 value: '${preview.aggregatedIngredientCount}',
-                label: 'Ingredients',
+                label: 'วัตถุดิบ',
               ),
               _PreviewMetric(
                 value: '${preview.missingIngredientCount}',
-                label: 'Need to buy',
+                label: 'ต้องซื้อ',
               ),
             ],
           ),
@@ -268,7 +264,7 @@ class _ShoppingGenerationSheetState
                         color: AppColors.success,
                       ),
                       SizedBox(height: AppSpacing.sm),
-                      Text('Your Pantry already covers these recipes.'),
+                      Text('วัตถุดิบใน Pantry เพียงพอสำหรับเมนูเหล่านี้แล้ว'),
                     ],
                   ),
                 )
@@ -319,7 +315,7 @@ class _ShoppingGenerationSheetState
   void _createPreview() {
     final engine = ref.read(shoppingEngineProvider);
     if (engine == null) {
-      setState(() => _error = 'Ingredient data is still loading. Try again.');
+      setState(() => _error = 'กำลังโหลดข้อมูลวัตถุดิบ กรุณาลองอีกครั้ง');
       return;
     }
     final recipes = ref.read(recipesProvider).value ?? const <Recipe>[];
@@ -331,7 +327,7 @@ class _ShoppingGenerationSheetState
       final existing = widget.existingList;
       final preview = engine.generate(
         listId: existing?.id ?? 'primary-shopping-list',
-        name: existing?.name ?? 'My Shopping List',
+        name: existing?.name ?? 'รายการซื้อของของฉัน',
         recipes: _servings.entries
             .map(
               (entry) => ShoppingRecipeRequest(
@@ -388,7 +384,7 @@ class _ShoppingGenerationSheetState
       if (mounted) {
         setState(() {
           _isSaving = false;
-          _error = 'The list could not be saved. Your data was not changed.';
+          _error = 'ไม่สามารถบันทึกรายการได้ ข้อมูลเดิมไม่ถูกเปลี่ยนแปลง';
         });
       }
     }
@@ -404,20 +400,20 @@ class _ShoppingGenerationSheetState
         .firstOrNull;
     if (existing == null) {
       return const _PreviewChange(
-        label: 'Add',
+        label: 'เพิ่ม',
         icon: Icons.add,
         color: AppColors.success,
       );
     }
     if (existing.quantity == item.quantity && existing.unitId == item.unitId) {
       return const _PreviewChange(
-        label: 'Keep',
+        label: 'คงเดิม',
         icon: Icons.check,
         color: AppColors.info,
       );
     }
     return const _PreviewChange(
-      label: 'Update',
+      label: 'อัปเดต',
       icon: Icons.sync,
       color: AppColors.warning,
     );
@@ -436,14 +432,14 @@ class _ServingStepper extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
-          tooltip: 'Fewer servings',
+          tooltip: 'ลดจำนวนที่เสิร์ฟ',
           visualDensity: VisualDensity.compact,
           onPressed: value <= 1 ? null : () => onChanged(value - 1),
           icon: const Icon(Icons.remove_circle_outline),
         ),
         Text('$value', style: AppTextStyles.labelLarge),
         IconButton(
-          tooltip: 'More servings',
+          tooltip: 'เพิ่มจำนวนที่เสิร์ฟ',
           visualDensity: VisualDensity.compact,
           onPressed: () => onChanged(value + 1),
           icon: const Icon(Icons.add_circle_outline),
@@ -513,8 +509,8 @@ class _GenerationError extends StatelessWidget {
         children: [
           const Icon(Icons.cloud_off_outlined, size: 48),
           const SizedBox(height: AppSpacing.sm),
-          const Text('Recipes could not be loaded.'),
-          TextButton(onPressed: onRetry, child: const Text('Try again')),
+          const Text('ไม่สามารถโหลดข้อมูลเมนูได้'),
+          TextButton(onPressed: onRetry, child: const Text('ลองอีกครั้ง')),
         ],
       ),
     );
@@ -536,11 +532,10 @@ class _PreviewChange {
 String _transactionError(String code) {
   return switch (code) {
     'stale_inventory_revision' || 'stale_shopping_list_revision' =>
-      'The list changed. Close this preview and try again.',
+      'รายการมีการเปลี่ยนแปลง กรุณาปิดตัวอย่างแล้วลองอีกครั้ง',
     'invalid_shopping_unit_conversion' =>
-      'One quantity cannot be converted safely.',
-    'recovery_required' =>
-      'Local recovery must finish before the list can be changed.',
-    _ => 'The list could not be saved ($code). Your data was not changed.',
+      'มีจำนวนอย่างน้อยหนึ่งรายการที่ไม่สามารถแปลงหน่วยได้อย่างปลอดภัย',
+    'recovery_required' => 'ต้องกู้คืนข้อมูลในเครื่องให้เสร็จก่อนแก้ไขรายการ',
+    _ => 'ไม่สามารถบันทึกรายการได้ ($code) ข้อมูลเดิมไม่ถูกเปลี่ยนแปลง',
   };
 }

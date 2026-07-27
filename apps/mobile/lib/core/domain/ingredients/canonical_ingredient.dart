@@ -36,6 +36,7 @@ class CanonicalIngredient {
     required this.defaultStorageType,
     required this.defaultPurchaseUnitId,
     required this.defaultInventoryUnitId,
+    this.emoji = '',
     String? preferredUnitId,
     List<String>? recommendedUnitIds,
     this.unitFamily,
@@ -59,6 +60,7 @@ class CanonicalIngredient {
   final IngredientStorageType defaultStorageType;
   final String defaultPurchaseUnitId;
   final String defaultInventoryUnitId;
+  final String emoji;
   final String preferredUnitId;
   final List<String> recommendedUnitIds;
   final IngredientUnitFamily? unitFamily;

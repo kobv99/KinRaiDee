@@ -356,6 +356,60 @@ void main() {
       },
     );
 
+    test('deletes one History entry without mutating Pantry', () async {
+      final harness = await _Harness.create(
+        now: now,
+        pantry: <Ingredient>[_ingredient('egg', 10, 'piece', now)],
+        history: <CookingHistoryEntry>[
+          _history('history-1', now),
+          _history('history-2', now),
+        ],
+      );
+
+      final deleted = await harness.coordinator.deleteCookingHistory(
+        'history-1',
+      );
+
+      expect(deleted.outcome, InventoryTransactionOutcome.committed);
+      expect(
+        deleted.transaction!.kind,
+        InventoryTransactionKind.deleteCookingHistory,
+      );
+      expect(deleted.snapshot.pantry.single.quantity, 10);
+      expect(deleted.snapshot.history.single.id, 'history-2');
+      await harness.coordinator.completePresentation(
+        deleted.transaction!.transactionId,
+      );
+
+      final duplicate = await harness.coordinator.deleteCookingHistory(
+        'history-1',
+      );
+      expect(duplicate.outcome, InventoryTransactionOutcome.alreadyCommitted);
+      expect(duplicate.code, 'history_entry_already_deleted');
+      expect(duplicate.snapshot.revision, 1);
+    });
+
+    test('clears all History without mutating Pantry', () async {
+      final harness = await _Harness.create(
+        now: now,
+        pantry: <Ingredient>[_ingredient('egg', 10, 'piece', now)],
+        history: <CookingHistoryEntry>[
+          _history('history-1', now),
+          _history('history-2', now),
+        ],
+      );
+
+      final cleared = await harness.coordinator.clearCookingHistory();
+
+      expect(cleared.outcome, InventoryTransactionOutcome.committed);
+      expect(
+        cleared.transaction!.kind,
+        InventoryTransactionKind.clearCookingHistory,
+      );
+      expect(cleared.snapshot.pantry.single.quantity, 10);
+      expect(cleared.snapshot.history, isEmpty);
+    });
+
     test('canonical migration is durable, validated, and idempotent', () async {
       final harness = await _Harness.create(
         now: now,
@@ -411,8 +465,12 @@ class _Harness {
   static Future<_Harness> create({
     required DateTime now,
     required List<Ingredient> pantry,
+    List<CookingHistoryEntry> history = const <CookingHistoryEntry>[],
   }) async {
-    final store = InMemoryInventoryStore(legacyPantry: pantry);
+    final store = InMemoryInventoryStore(
+      legacyPantry: pantry,
+      legacyHistory: history,
+    );
     final clock = FixedAppClock(now);
     final repository = HiveInventoryCommitRepository(
       store: store,
@@ -428,6 +486,32 @@ class _Harness {
       ),
     );
   }
+}
+
+CookingHistoryEntry _history(String id, DateTime now) {
+  return CookingHistoryEntry(
+    originatingTransactionId: id,
+    id: id,
+    recipeId: 'omelette',
+    recipeName: 'Omelette',
+    servings: 2,
+    changes: const <CookingHistoryChange>[
+      CookingHistoryChange(
+        ingredientId: 'egg',
+        ingredientName: 'Egg',
+        unit: 'egg',
+        beforeQuantity: 10,
+        originalAfterQuantity: 8,
+        afterQuantity: 8,
+        canonicalIngredientId: 'egg',
+        canonicalUnitId: 'egg',
+        canonicalMappingStatus: CanonicalMappingStatus.mapped,
+      ),
+    ],
+    createdAt: now,
+    updatedAt: now,
+    status: CookingHistoryStatus.completed,
+  );
 }
 
 Ingredient _ingredient(String id, double quantity, String unit, DateTime now) {

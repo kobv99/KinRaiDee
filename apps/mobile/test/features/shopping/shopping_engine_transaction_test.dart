@@ -231,7 +231,10 @@ void main() {
     () async {
       final harness = await _Harness.create(
         now,
-        list: _list(now, items: <ShoppingItem>[_item(now, quantity: 6)]),
+        list: _list(
+          now,
+          items: <ShoppingItem>[_item(now, quantity: 6, unit: 'egg')],
+        ),
       );
       final purchased = await harness.coordinator.mutateShopping(
         ShoppingMutation.markPurchased(
@@ -250,6 +253,9 @@ void main() {
         CanonicalMappingStatus.mapped,
       );
       expect(purchased.snapshot.pantry.single.canonicalIngredientId, 'egg');
+      expect(purchased.snapshot.pantry.single.emoji, '🥚');
+      expect(purchased.snapshot.pantry.single.unit, 'ฟอง');
+      expect(purchased.snapshot.pantry.single.canonicalUnitId, 'egg');
       await harness.coordinator.completePresentation(_ids[0]);
 
       final undone = await harness.coordinator.mutateShopping(
@@ -540,6 +546,7 @@ ShoppingItem _item(
   DateTime now, {
   String id = 'egg-item',
   double quantity = 6,
+  String unit = 'piece',
 }) {
   return ShoppingItemFactory(
     registry: _registry(),
@@ -548,7 +555,7 @@ ShoppingItem _item(
     id: id,
     canonicalIngredientId: 'egg',
     quantity: quantity,
-    unit: 'piece',
+    unit: unit,
     source: ShoppingSource.manual,
     createdAt: now,
   );
@@ -576,13 +583,14 @@ CanonicalIngredientRegistry _registry() {
       CanonicalIngredient(
         id: 'egg',
         canonicalName: 'Egg',
+        emoji: '🥚',
         localizedNames: const <String, String>{'th': 'Egg'},
         aliases: const <String>[],
         searchKeywords: const <String>[],
         category: 'protein',
         defaultStorageType: IngredientStorageType.refrigerated,
-        defaultPurchaseUnitId: 'piece',
-        defaultInventoryUnitId: 'piece',
+        defaultPurchaseUnitId: 'egg',
+        defaultInventoryUnitId: 'egg',
       ),
     ],
   );

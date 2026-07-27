@@ -55,7 +55,7 @@ void main() {
         find.byKey(const ValueKey<String>('shopping-error-state')),
         findsOneWidget,
       );
-      expect(find.text('Try again'), findsOneWidget);
+      expect(find.text('ลองอีกครั้ง'), findsOneWidget);
     });
 
     testWidgets('renders actionable empty state', (tester) async {
@@ -63,12 +63,44 @@ void main() {
       addTearDown(harness.dispose);
       await harness.pump(tester);
 
-      expect(find.text('Your shopping list is empty'), findsOneWidget);
-      expect(find.text('Generate from recipes'), findsOneWidget);
+      expect(find.text('ยังไม่มีรายการซื้อของ'), findsOneWidget);
+      expect(find.text('สร้างรายการจากเมนู'), findsOneWidget);
     });
   });
 
   group('Shopping list interactions', () {
+    testWidgets('completion segments remain single-line on narrow screens', (
+      tester,
+    ) async {
+      final harness = await ShoppingUiHarness.create(
+        recipes: _recipes,
+        list: testShoppingList(now: now),
+      );
+      addTearDown(harness.dispose);
+      await harness.pump(tester);
+      await tester.ensureVisible(
+        find.byKey(const ValueKey<String>('shopping-completion-filter')),
+      );
+
+      tester.view.physicalSize = const Size(520, 1100);
+      tester.platformDispatcher.textScaleFactorTestValue = 1.15;
+      await tester.pumpAndSettle();
+
+      for (final label in <String>['ทั้งหมด', 'ต้องซื้อ', 'เสร็จแล้ว']) {
+        final text = tester
+            .widgetList<Text>(find.text(label))
+            .firstWhere(
+              (widget) => widget.maxLines == 1 && widget.softWrap == false,
+            );
+        expect(text.maxLines, 1);
+        expect(text.softWrap, isFalse);
+      }
+      expect(find.text('All'), findsNothing);
+      expect(find.text('Active'), findsNothing);
+      expect(find.text('Completed'), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets(
       'shows overview, Pantry availability, and localized alias search',
       (tester) async {
@@ -92,7 +124,7 @@ void main() {
         expect(find.text('Weekend cooking'), findsOneWidget);
         expect(find.text('Egg'), findsOneWidget);
         expect(find.text('Rice'), findsOneWidget);
-        expect(find.text('Pantry 2 pc'), findsOneWidget);
+        expect(find.text('ใน Pantry 2 ชิ้น'), findsOneWidget);
 
         await tester.enterText(
           find.byKey(const ValueKey<String>('shopping-search-field')),
@@ -102,15 +134,15 @@ void main() {
         expect(find.text('Egg'), findsOneWidget);
         expect(find.text('Rice'), findsNothing);
 
-        await tester.tap(find.byTooltip('Clear search'));
+        await tester.tap(find.byTooltip('ล้างคำค้น'));
         await tester.pumpAndSettle();
         expect(find.text('Rice'), findsOneWidget);
 
-        await tester.tap(find.text('Completed'));
+        await tester.tap(find.text('เสร็จแล้ว'));
         await tester.pumpAndSettle();
-        expect(find.text('No items match these filters'), findsOneWidget);
+        expect(find.text('ไม่พบรายการตามตัวกรอง'), findsOneWidget);
 
-        await tester.tap(find.text('Clear filters'));
+        await tester.tap(find.text('ล้างตัวกรอง'));
         await tester.pumpAndSettle();
         expect(find.text('Egg'), findsOneWidget);
         expect(
@@ -170,7 +202,7 @@ void main() {
             .status,
         ShoppingItemStatus.purchased,
       );
-      expect(find.textContaining('purchased and added'), findsOneWidget);
+      expect(find.textContaining('เพิ่มเข้า Pantry แล้ว'), findsOneWidget);
 
       await tester.tap(find.byType(SnackBarAction));
       await tester.pumpAndSettle();
@@ -178,7 +210,7 @@ void main() {
       final restored = (await harness.lists()).single.items.single;
       expect(restored.status, ShoppingItemStatus.active);
       expect(harness.container.read(pantryProvider).single.quantity, 2);
-      expect(find.text('Purchase undone.'), findsOneWidget);
+      expect(find.text('ยกเลิกการซื้อแล้ว'), findsOneWidget);
     });
 
     testWidgets('edit and delete support single-use UI undo', (tester) async {
@@ -227,7 +259,7 @@ void main() {
         find.byKey(const ValueKey<String>('shopping-delete-egg-item')),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Delete shopping item?'), findsOneWidget);
+      expect(find.text('ลบรายการนี้?'), findsOneWidget);
       await tester.tap(
         find.byKey(const ValueKey<String>('shopping-confirm-delete')),
       );
@@ -318,7 +350,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('failed safely'), findsOneWidget);
+      expect(find.textContaining('ไม่สำเร็จอย่างปลอดภัย'), findsOneWidget);
       expect(
         (await harness.lists()).single.items.single.status,
         ShoppingItemStatus.active,
@@ -381,7 +413,7 @@ void main() {
 }
 
 Future<void> _generateAllRecipes(WidgetTester tester) async {
-  await tester.tap(find.text('Generate from recipes'));
+  await tester.tap(find.text('สร้างรายการจากเมนู'));
   await tester.pumpAndSettle();
   await _selectRecipesAndConfirm(tester);
 }
