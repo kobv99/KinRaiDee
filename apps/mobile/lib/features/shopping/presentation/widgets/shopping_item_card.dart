@@ -7,7 +7,6 @@ import '../../../../app/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_card.dart';
 import '../../domain/entities/shopping_category.dart';
 import '../../domain/entities/shopping_item.dart';
-import '../../domain/entities/shopping_item_status.dart';
 import '../providers/shopping_view_provider.dart';
 
 class ShoppingItemCard extends StatelessWidget {
@@ -16,10 +15,9 @@ class ShoppingItemCard extends StatelessWidget {
     required this.pantryAvailability,
     required this.recipeNames,
     required this.isBusy,
-    required this.onToggle,
+    required this.onComplete,
     required this.onEdit,
     required this.onDelete,
-    required this.onRestore,
     super.key,
   });
 
@@ -27,15 +25,12 @@ class ShoppingItemCard extends StatelessWidget {
   final double pantryAvailability;
   final Map<String, String> recipeNames;
   final bool isBusy;
-  final VoidCallback onToggle;
+  final VoidCallback onComplete;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
-  final VoidCallback onRestore;
 
   @override
   Widget build(BuildContext context) {
-    final isActive = item.status == ShoppingItemStatus.active;
-    final isArchived = item.status == ShoppingItemStatus.archived;
     final color = _categoryColor(item.category);
     final sourceNames = item.sourceReferenceIds
         .map((id) => recipeNames[id] ?? id)
@@ -43,133 +38,94 @@ class ShoppingItemCard extends StatelessWidget {
 
     return AppCard(
       key: ValueKey<String>('shopping-item-${item.id}'),
-      backgroundColor: isActive
-          ? AppColors.surface
-          : AppColors.surfaceVariant.withValues(alpha: 0.72),
       padding: const EdgeInsets.all(AppSpacing.sm),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(top: AppSpacing.xxs),
-            child: Checkbox(
-              key: ValueKey<String>('shopping-check-${item.id}'),
-              value: !isActive,
-              onChanged: isBusy || isArchived ? null : (_) => onToggle(),
-              activeColor: AppColors.success,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppRadius.xs),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  item.displayName,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.titleMedium,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Text(
+                '${formatShoppingQuantity(item.quantity)} '
+                '${shoppingUnitLabel(item.unitId)}',
+                style: AppTextStyles.labelLarge.copyWith(
+                  color: AppColors.shopping,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Wrap(
+            spacing: AppSpacing.xs,
+            runSpacing: AppSpacing.xs,
+            children: [
+              _Pill(
+                icon: _categoryIcon(item.category),
+                label: shoppingCategoryLabel(item.category),
+                foreground: color,
+                background: color.withValues(alpha: 0.1),
+              ),
+              _Pill(
+                icon: Icons.kitchen_outlined,
+                label:
+                    'ใน Pantry ${formatShoppingQuantity(pantryAvailability)} '
+                    '${shoppingUnitLabel(item.unitId)}',
+                foreground: AppColors.textSecondary,
+                background: AppColors.surfaceVariant,
+              ),
+            ],
+          ),
+          if (sourceNames.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'จากเมนู ${sourceNames.join(', ')}',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textSecondary,
               ),
             ),
-          ),
-          const SizedBox(width: AppSpacing.xs),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        item.displayName,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.titleMedium.copyWith(
-                          decoration: isActive
-                              ? null
-                              : TextDecoration.lineThrough,
-                          color: isActive
-                              ? AppColors.textPrimary
-                              : AppColors.textMuted,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.xs),
-                    Text(
-                      '${formatShoppingQuantity(item.quantity)} '
-                      '${shoppingUnitLabel(item.unitId)}',
-                      style: AppTextStyles.labelLarge.copyWith(
-                        color: AppColors.shopping,
-                      ),
-                    ),
-                  ],
+          ],
+          const SizedBox(height: AppSpacing.sm),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  key: ValueKey<String>('shopping-complete-${item.id}'),
+                  onPressed: isBusy ? null : onComplete,
+                  icon: isBusy
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.kitchen_outlined, size: 18),
+                  label: const Text('เก็บเข้าตู้'),
                 ),
-                const SizedBox(height: AppSpacing.xs),
-                Wrap(
-                  spacing: AppSpacing.xs,
-                  runSpacing: AppSpacing.xs,
-                  children: [
-                    _Pill(
-                      icon: _categoryIcon(item.category),
-                      label: shoppingCategoryLabel(item.category),
-                      foreground: color,
-                      background: color.withValues(alpha: 0.1),
-                    ),
-                    _Pill(
-                      icon: _statusIcon(item.status),
-                      label: _statusLabel(item.status),
-                      foreground: isActive ? AppColors.info : AppColors.success,
-                      background:
-                          (isActive ? AppColors.info : AppColors.success)
-                              .withValues(alpha: 0.1),
-                    ),
-                    _Pill(
-                      icon: Icons.kitchen_outlined,
-                      label:
-                          'ใน Pantry ${formatShoppingQuantity(pantryAvailability)} '
-                          '${shoppingUnitLabel(item.unitId)}',
-                      foreground: AppColors.textSecondary,
-                      background: AppColors.surfaceVariant,
-                    ),
-                  ],
-                ),
-                if (sourceNames.isNotEmpty) ...[
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    'จากเมนู ${sourceNames.join(', ')}',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: AppSpacing.xs),
-                Row(
-                  children: [
-                    if (isActive) ...[
-                      TextButton.icon(
-                        key: ValueKey<String>('shopping-edit-${item.id}'),
-                        onPressed: isBusy ? null : onEdit,
-                        icon: const Icon(Icons.edit_outlined, size: 18),
-                        label: const Text('แก้ไข'),
-                      ),
-                      TextButton.icon(
-                        key: ValueKey<String>('shopping-delete-${item.id}'),
-                        onPressed: isBusy ? null : onDelete,
-                        icon: const Icon(Icons.delete_outline, size: 18),
-                        label: const Text('ลบ'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppColors.error,
-                        ),
-                      ),
-                    ] else if (isArchived)
-                      TextButton.icon(
-                        key: ValueKey<String>('shopping-restore-${item.id}'),
-                        onPressed: isBusy ? null : onRestore,
-                        icon: const Icon(Icons.restore, size: 18),
-                        label: const Text('กู้คืน'),
-                      )
-                    else
-                      Text(
-                        'แตะเครื่องหมายเพื่อย้ายกลับไปรายการที่ต้องซื้อ',
-                        style: AppTextStyles.bodySmall,
-                      ),
-                  ],
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              IconButton(
+                key: ValueKey<String>('shopping-edit-${item.id}'),
+                tooltip: 'แก้ไข',
+                onPressed: isBusy ? null : onEdit,
+                icon: const Icon(Icons.edit_outlined),
+              ),
+              IconButton(
+                key: ValueKey<String>('shopping-delete-${item.id}'),
+                tooltip: 'ลบ',
+                onPressed: isBusy ? null : onDelete,
+                color: AppColors.error,
+                icon: const Icon(Icons.delete_outline),
+              ),
+            ],
           ),
         ],
       ),
@@ -243,21 +199,5 @@ Color _categoryColor(ShoppingCategory category) {
     ShoppingCategory.frozen => const Color(0xFF5F83B8),
     ShoppingCategory.household => AppColors.textSecondary,
     ShoppingCategory.other => AppColors.textMuted,
-  };
-}
-
-String _statusLabel(ShoppingItemStatus status) {
-  return switch (status) {
-    ShoppingItemStatus.active => 'ต้องซื้อ',
-    ShoppingItemStatus.purchased => 'ซื้อแล้ว',
-    ShoppingItemStatus.archived => 'เก็บแล้ว',
-  };
-}
-
-IconData _statusIcon(ShoppingItemStatus status) {
-  return switch (status) {
-    ShoppingItemStatus.active => Icons.radio_button_unchecked,
-    ShoppingItemStatus.purchased => Icons.check_circle_outline,
-    ShoppingItemStatus.archived => Icons.inventory_2_outlined,
   };
 }
