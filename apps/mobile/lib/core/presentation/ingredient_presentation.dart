@@ -1,22 +1,67 @@
+import '../domain/ingredients/canonical_ingredient.dart';
 import '../domain/ingredients/canonical_ingredient_registry.dart';
 import '../models/ingredient.dart';
 
 class IngredientPresentation {
   IngredientPresentation._();
 
+  static CanonicalIngredient? canonical(
+    Ingredient ingredient,
+    CanonicalIngredientRegistry? registry,
+  ) {
+    if (registry == null) {
+      return null;
+    }
+
+    final stableId = ingredient.canonicalIngredientId.trim();
+    if (stableId.isNotEmpty) {
+      final canonical = registry.byId(stableId);
+      if (canonical != null) {
+        return canonical;
+      }
+    }
+
+    return registry.resolve(ingredient.name).ingredient;
+  }
+
   static String emoji(
     Ingredient ingredient,
     CanonicalIngredientRegistry? registry,
   ) {
-    final stored = ingredient.emoji.trim();
-    if (stored.isNotEmpty) {
-      return stored;
+    final canonicalEmoji = canonical(ingredient, registry)?.emoji.trim() ?? '';
+    if (canonicalEmoji.isNotEmpty) {
+      return canonicalEmoji;
     }
-    final canonicalId = registry?.canonicalIdFor(
-      ingredient.canonicalIngredientId,
+
+    final stored = ingredient.emoji.trim();
+    return stored.isEmpty ? '🍽️' : stored;
+  }
+
+  static String category(
+    Ingredient ingredient,
+    CanonicalIngredientRegistry? registry,
+  ) {
+    final canonicalCategory = canonical(ingredient, registry)?.category.trim();
+    final storedCategory = ingredient.category.trim();
+    return localizedCategory(
+      canonicalCategory == null || canonicalCategory.isEmpty
+          ? storedCategory
+          : canonicalCategory,
     );
-    final canonical = canonicalId == null ? null : registry?.byId(canonicalId);
-    final canonicalEmoji = canonical?.emoji.trim() ?? '';
-    return canonicalEmoji.isEmpty ? '🍽️' : canonicalEmoji;
+  }
+
+  static String localizedCategory(String category) {
+    final normalized = category.trim().toLowerCase();
+    return switch (normalized) {
+      'seasoning' => 'เครื่องปรุง',
+      'protein' => 'โปรตีน',
+      'seafood' => 'อาหารทะเล',
+      'vegetable' => 'ผัก',
+      'fruit' => 'ผลไม้',
+      'dairy' => 'ผลิตภัณฑ์นม',
+      'grain' => 'ธัญพืช',
+      'staple' => 'วัตถุดิบหลัก',
+      _ => category.trim().isEmpty ? 'อื่น ๆ' : category.trim(),
+    };
   }
 }
