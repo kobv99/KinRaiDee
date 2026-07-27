@@ -166,16 +166,20 @@ class PantryCanonicalMergeService {
     total += incomingConverted.value!;
 
     final afterQuantity = _round(total, targetUnitId);
-    final allMerged = <Ingredient>[
-      ...candidates,
-      incoming,
-      if (original != null) original,
-    ];
+    final allMerged = <Ingredient>[...candidates, incoming];
     final merged = Ingredient(
       id: primary.id,
-      name: canonical.displayName(),
-      category: canonical.category,
-      emoji: canonical.emoji,
+      name: _preferredText(
+        primary.name,
+        incoming.name,
+        canonical.displayName(),
+      ),
+      category: _preferredText(
+        primary.category,
+        incoming.category,
+        canonical.category,
+      ),
+      emoji: _preferredText(primary.emoji, incoming.emoji, canonical.emoji),
       quantity: afterQuantity,
       unit: unitEngine.resolveUnit(targetUnitId)!.displayName,
       expiryDate: _mergedExpiry(allMerged, at),
@@ -196,16 +200,17 @@ class PantryCanonicalMergeService {
       removedIds: removedIds,
       replacement: merged,
     );
+    final affectedIds = <String>{...removedIds, merged.id};
     final changes = _changes(
       before: current,
       after: pantry,
-      affectedIds: <String>{...removedIds, merged.id},
+      affectedIds: affectedIds,
       canonicalId: canonicalId,
     );
     return PantryCanonicalMergeResult.success(
       pantry: pantry,
       changes: changes,
-      affectedIngredientIds: <String>{...removedIds, merged.id},
+      affectedIngredientIds: affectedIds,
       canonicalIngredientId: canonicalId,
     );
   }
@@ -233,11 +238,15 @@ class PantryCanonicalMergeService {
         'missing_pantry_ingredient_id',
       );
     }
+    if (replacementId == null &&
+        current.any((ingredient) => ingredient.id == recordId)) {
+      return PantryCanonicalMergeResult.failure('duplicate_pantry_ingredient_id');
+    }
     final stored = Ingredient(
       id: recordId,
-      name: canonical.displayName(),
-      category: canonical.category,
-      emoji: canonical.emoji,
+      name: _preferredText(incoming.name, canonical.displayName()),
+      category: _preferredText(incoming.category, canonical.category),
+      emoji: _preferredText(incoming.emoji, canonical.emoji),
       quantity: _round(incoming.quantity, incomingUnitId),
       unit: unitEngine.resolveUnit(incomingUnitId)!.displayName,
       expiryDate: incoming.expiryDate,
@@ -252,9 +261,10 @@ class PantryCanonicalMergeService {
     final pantry = replacementId == null
         ? <Ingredient>[...current, stored]
         : current
-              .map((ingredient) => ingredient.id == replacementId
-                  ? stored
-                  : ingredient)
+              .map(
+                (ingredient) =>
+                    ingredient.id == replacementId ? stored : ingredient,
+              )
               .toList(growable: false);
     final changes = _changes(
       before: current,
@@ -307,8 +317,12 @@ class PantryCanonicalMergeService {
     required Set<String> affectedIds,
     required String canonicalId,
   }) {
-    final beforeById = {for (final ingredient in before) ingredient.id: ingredient};
-    final afterById = {for (final ingredient in after) ingredient.id: ingredient};
+    final beforeById = {
+      for (final ingredient in before) ingredient.id: ingredient,
+    };
+    final afterById = {
+      for (final ingredient in after) ingredient.id: ingredient,
+    };
     final result = <PantryQuantityChange>[];
     for (final id in affectedIds.toList()..sort()) {
       final previous = beforeById[id];
@@ -325,9 +339,8 @@ class PantryCanonicalMergeService {
           beforeQuantity: previous?.quantity ?? 0,
           afterQuantity: next?.quantity ?? 0,
           canonicalIngredientId: canonicalId,
-          canonicalUnitId: next?.canonicalUnitId ??
-              previous?.canonicalUnitId ??
-              '',
+          canonicalUnitId:
+              next?.canonicalUnitId ?? previous?.canonicalUnitId ?? '',
         ),
       );
     }
@@ -338,7 +351,10 @@ class PantryCanonicalMergeService {
     if (ingredients.any((ingredient) => ingredient.isExpiredAt(at))) {
       return null;
     }
-    final expiries = ingredients.map((ingredient) => ingredient.expiryDate).toSet();
+    final expiries = ingredients
+        .map((ingredient) => ingredient.expiryDate)
+        .whereType<DateTime>()
+        .toSet();
     return expiries.length == 1 ? expiries.single : null;
   }
 
@@ -348,4 +364,13 @@ class PantryCanonicalMergeService {
       decimalPlaces: unitEngine.resolveUnit(unitId)?.decimalPlaces,
     );
   }
+}
+
+String _preferredText(String first, [String second = '', String third = '']) {
+  for (final value in <String>[first, second, third]) {
+    if (value.trim().isNotEmpty) {
+      return value;
+    }
+  }
+  return '';
 }
