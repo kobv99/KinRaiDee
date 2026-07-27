@@ -10,19 +10,27 @@ import 'package:mobile/core/services/storage_service.dart';
 
 void main() {
   late Directory tempDirectory;
+  late Box<dynamic> pantryBox;
 
   setUpAll(() async {
     tempDirectory = await Directory.systemTemp.createTemp(
       'kinraidee_widget_test_',
     );
     Hive.init(tempDirectory.path);
-    await Hive.openBox<dynamic>(StorageService.pantryBoxName);
+    pantryBox = await Hive.openBox<dynamic>(StorageService.pantryBoxName);
   });
 
   tearDownAll(() async {
-    stdout.writeln('[widget_test] tearDownAll: before Hive.close');
-    await Hive.close();
-    stdout.writeln('[widget_test] tearDownAll: after Hive.close');
+    stdout.writeln(
+      '[widget_test] tearDownAll: before pantryBox.flush '
+      '(name=${pantryBox.name}, open=${pantryBox.isOpen})',
+    );
+    await pantryBox.flush();
+    stdout.writeln('[widget_test] tearDownAll: after pantryBox.flush');
+
+    stdout.writeln('[widget_test] tearDownAll: before pantryBox.close');
+    await pantryBox.close();
+    stdout.writeln('[widget_test] tearDownAll: after pantryBox.close');
 
     final exists = await tempDirectory.exists();
     stdout.writeln(
