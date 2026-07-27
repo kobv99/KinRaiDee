@@ -8,6 +8,9 @@ import 'package:hive/hive.dart';
 
 import 'package:mobile/app/app.dart';
 import 'package:mobile/core/services/storage_service.dart';
+import 'package:mobile/features/pantry/application/inventory_transaction_providers.dart';
+import 'package:mobile/features/pantry/data/repositories/hive_inventory_commit_repository.dart';
+import 'package:mobile/features/pantry/domain/repositories/inventory_commit_repository.dart';
 
 void main() {
   testWidgets('KinRaiDee app loads and releases owned resources', (
@@ -16,6 +19,8 @@ void main() {
     late Directory tempDirectory;
     late Box<dynamic> pantryBox;
     late StreamSubscription<BoxEvent> boxEvents;
+    late HiveInventoryCommitRepository inventoryRepository;
+    late InventoryRecoveryResult startupRecovery;
 
     stdout.writeln('[widget_test] before setup runAsync');
     await tester.runAsync(() async {
@@ -35,11 +40,29 @@ void main() {
         );
       });
       stdout.writeln('[widget_test] box watcher attached');
+
+      inventoryRepository = HiveInventoryCommitRepository();
+      stdout.writeln('[widget_test] before startup recovery');
+      startupRecovery = await inventoryRepository.recoverPendingTransactions();
+      stdout.writeln(
+        '[widget_test] after startup recovery: '
+        'outcome=${startupRecovery.outcome}, code=${startupRecovery.code}',
+      );
     });
     stdout.writeln('[widget_test] after setup runAsync');
 
     stdout.writeln('[widget_test] before pumpWidget app');
-    await tester.pumpWidget(const ProviderScope(child: KinRaiDeeApp()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          inventoryCommitRepositoryProvider.overrideWithValue(
+            inventoryRepository,
+          ),
+          inventoryStartupRecoveryProvider.overrideWithValue(startupRecovery),
+        ],
+        child: const KinRaiDeeApp(),
+      ),
+    );
     stdout.writeln('[widget_test] after pumpWidget app');
 
     stdout.writeln('[widget_test] before pump app');
