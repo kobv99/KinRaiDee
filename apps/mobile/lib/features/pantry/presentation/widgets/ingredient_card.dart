@@ -41,6 +41,7 @@ class IngredientCard extends ConsumerWidget {
     final matchedAlias = searchMatch.matchedThroughAlias
         ? searchMatch.matchedAlias
         : null;
+    final canonicalRegistry = ref.watch(canonicalIngredientRegistryProvider);
 
     return AppCard(
       onTap: onTap,
@@ -51,7 +52,7 @@ class IngredientCard extends ConsumerWidget {
           _IngredientEmoji(
             emoji: IngredientPresentation.emoji(
               ingredient,
-              ref.watch(canonicalIngredientRegistryProvider),
+              canonicalRegistry,
             ),
           ),
           const SizedBox(width: AppSpacing.md),
@@ -79,7 +80,10 @@ class IngredientCard extends ConsumerWidget {
                 ),
                 const SizedBox(height: AppSpacing.xxs),
                 SearchHighlightText(
-                  text: ingredient.category,
+                  text: IngredientPresentation.category(
+                    ingredient,
+                    canonicalRegistry,
+                  ),
                   query: searchQuery,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
