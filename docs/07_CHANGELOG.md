@@ -4,6 +4,12 @@
 
 ### Added
 
+- Ingredient-aware Unit Policy with preferred units, recommended units, and
+  optional unit families on every canonical ingredient.
+- Compact Pantry unit selector plus an on-demand `Other unit…` path that
+  preserves unusual historical units.
+- Domain and widget coverage for fish, cooking oil, egg defaults, ingredient
+  changes, and legacy-unit recovery.
 - SF-003 Shopping screen with overview, active/completed sections, loading,
   error, and empty states.
 - Multi-Recipe selection and duplicate-safe generation preview before durable
@@ -48,6 +54,11 @@
 
 ### Changed
 
+- Pantry unit choices now refresh from canonical metadata/domain policy when
+  the selected ingredient changes; invalid selections switch to the new
+  preferred unit.
+- The Unit Contract now includes `bulb` and `can`, and recognizes stem aliases
+  for the existing stalk unit.
 - Canonical unknown-ID hashing now uses web-compatible `BigInt` arithmetic while
   preserving the existing 64-bit FNV output exactly.
 - Shopping presentation publishes no optimistic durable state; controls wait
@@ -76,14 +87,13 @@
 
 ### Quality
 
-- `dart format --output=none --set-exit-if-changed .`: 142 files pass
+- `dart format --output=none --set-exit-if-changed .`: 145 files pass
   without changes.
 - `flutter analyze`: pass, no issues.
-- All 153 tests reach successful completion. On this Windows environment,
-  `flutter test --coverage` hangs after completion in the coverage finalizer;
-  the completed five-shard fallback covers 152 tests, while the remaining
-  widget test separately reaches `+1` before reproducing the finalizer hang.
-- Merged line coverage: 82.58% (5,765/6,981).
+- The 39-file non-hanging regression suite passes all 160 tests, including the
+  12-test ingredient-unit/catalog target. The remaining root widget test
+  separately reaches `+1` before reproducing the known Windows finalizer hang.
+- Regression line coverage: 83.13% (5,946/7,153).
 - Focused Shopping Engine suite: 30 tests pass.
 - Focused Transaction Engine regression: 23 tests pass.
 

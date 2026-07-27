@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../app/providers/canonical_ingredient_providers.dart';
+import '../../../../core/domain/ingredients/canonical_ingredient.dart';
+import '../../../../core/domain/units/unit_contract.dart';
 import '../../../../core/models/ingredient.dart';
 import '../../domain/models/food_category.dart';
 import '../widgets/emoji_selector.dart';
 
-class AddIngredientDialog extends StatefulWidget {
+class AddIngredientDialog extends ConsumerStatefulWidget {
   const AddIngredientDialog({
     super.key,
     this.ingredient,
@@ -18,15 +22,24 @@ class AddIngredientDialog extends StatefulWidget {
   final FoodCatalogItem? initialCatalogItem;
 
   @override
-  State<AddIngredientDialog> createState() => _AddIngredientDialogState();
+  ConsumerState<AddIngredientDialog> createState() =>
+      _AddIngredientDialogState();
 }
 
-class _AddIngredientDialogState extends State<AddIngredientDialog> {
+class _AddIngredientDialogState extends ConsumerState<AddIngredientDialog> {
+  static const String _otherUnitAction = '__other_unit__';
+  static const String _legacyUnitValue = '__legacy_unit__';
+
   final _formKey = GlobalKey<FormState>();
   final TextEditingController quantityController = TextEditingController();
   final FocusNode _quantityFocusNode = FocusNode();
 
   String unit = 'ชิ้น';
+  String? _selectedUnitId;
+  String? _canonicalIngredientId;
+  List<String> _recommendedUnitIds = const <String>[];
+  bool _showOtherUnitPicker = false;
+  int _unitSelectorRevision = 0;
   String category = '';
   String name = '';
   String emoji = '';
@@ -52,6 +65,132 @@ class _AddIngredientDialogState extends State<AddIngredientDialog> {
       name = initialCatalogItem.item.name;
       emoji = initialCatalogItem.item.emoji;
     }
+
+    _initializeUnitSelection();
+  }
+
+  void _initializeUnitSelection() {
+    final ingredient = widget.ingredient;
+    final canonical = _resolveCanonicalIngredient(
+      preferredId: ingredient?.canonicalIngredientId,
+    );
+    _setRecommendations(canonical);
+
+    if (ingredient == null) {
+      _selectUnitId(_preferredUnitId(canonical));
+      return;
+    }
+
+    final engine = ref.read(unitConversionEngineProvider);
+    final savedUnitId =
+        engine.resolveUnitId(ingredient.canonicalUnitId) ??
+        engine.resolveUnitId(ingredient.unit);
+    if (savedUnitId == null) {
+      _selectedUnitId = null;
+      _showOtherUnitPicker = ingredient.unit.trim().isNotEmpty;
+      return;
+    }
+
+    _selectedUnitId = savedUnitId;
+    _showOtherUnitPicker = !_recommendedUnitIds.contains(savedUnitId);
+  }
+
+  CanonicalIngredient? _resolveCanonicalIngredient({String? preferredId}) {
+    final registry = ref.read(canonicalIngredientRegistryProvider);
+    if (registry == null) {
+      return null;
+    }
+    if (preferredId != null && preferredId.trim().isNotEmpty) {
+      final preferred = registry.byId(preferredId);
+      if (preferred != null) {
+        return preferred;
+      }
+    }
+    return registry.resolve(name).ingredient;
+  }
+
+  void _setRecommendations(CanonicalIngredient? canonical) {
+    final engine = ref.read(unitConversionEngineProvider);
+    final fallback = ref.read(ingredientUnitPolicyProvider).fallback;
+    final configured =
+        canonical?.recommendedUnitIds ?? fallback.recommendedUnitIds;
+    final valid = configured
+        .where((unitId) => engine.resolveUnit(unitId) != null)
+        .toSet()
+        .toList(growable: false);
+    _recommendedUnitIds = valid.isEmpty
+        ? fallback.recommendedUnitIds
+        : List<String>.unmodifiable(valid);
+    _canonicalIngredientId = canonical?.id;
+  }
+
+  String _preferredUnitId(CanonicalIngredient? canonical) {
+    final fallback = ref.read(ingredientUnitPolicyProvider).fallback;
+    final preferred = canonical?.preferredUnitId ?? fallback.preferredUnitId;
+    return _recommendedUnitIds.contains(preferred)
+        ? preferred
+        : _recommendedUnitIds.first;
+  }
+
+  void _selectUnitId(String unitId, {bool showOther = false}) {
+    final definition = ref
+        .read(unitConversionEngineProvider)
+        .resolveUnit(unitId);
+    if (definition == null) {
+      return;
+    }
+    _selectedUnitId = definition.id;
+    unit = definition.displayName;
+    _showOtherUnitPicker = showOther;
+    _unitSelectorRevision++;
+  }
+
+  void _ingredientSelected(
+    String selectedCategory,
+    String selectedName,
+    String selectedEmoji,
+  ) {
+    final previousCanonicalId = _canonicalIngredientId;
+    final previousUnitId = _selectedUnitId;
+
+    category = selectedCategory;
+    name = selectedName;
+    emoji = selectedEmoji;
+    _showIngredientError = false;
+
+    final canonical = _resolveCanonicalIngredient();
+    _setRecommendations(canonical);
+    final ingredientChanged =
+        previousCanonicalId == null ||
+        previousCanonicalId != _canonicalIngredientId;
+    if (!ingredientChanged &&
+        previousUnitId != null &&
+        _recommendedUnitIds.contains(previousUnitId)) {
+      _selectUnitId(previousUnitId);
+      return;
+    }
+    if (previousCanonicalId != null &&
+        previousUnitId != null &&
+        _recommendedUnitIds.contains(previousUnitId)) {
+      _selectUnitId(previousUnitId);
+      return;
+    }
+    _selectUnitId(_preferredUnitId(canonical));
+  }
+
+  List<UnitDefinition> get _recommendedUnitDefinitions {
+    final engine = ref.read(unitConversionEngineProvider);
+    return _recommendedUnitIds
+        .map(engine.resolveUnit)
+        .whereType<UnitDefinition>()
+        .toList(growable: false);
+  }
+
+  List<UnitDefinition> get _allUnitDefinitions {
+    final definitions = List<UnitDefinition>.of(
+      ref.read(unitConversionEngineProvider).definitions,
+    )..sort((first, second) => first.displayName.compareTo(second.displayName));
+    return definitions;
   }
 
   @override
@@ -96,16 +235,33 @@ class _AddIngredientDialogState extends State<AddIngredientDialog> {
 
     final quantity = double.parse(quantityController.text.trim());
     final now = DateTime.now();
+    final original = widget.ingredient;
+    final sameLegacyIdentity = original != null && original.name == name;
+    final submittedCanonicalIngredientId =
+        _canonicalIngredientId ??
+        (sameLegacyIdentity ? original.canonicalIngredientId : '');
+    final submittedCanonicalUnitId =
+        _selectedUnitId ??
+        (sameLegacyIdentity && original.unit == unit
+            ? original.canonicalUnitId
+            : '');
     final ingredient = Ingredient(
-      id: widget.ingredient?.id ?? now.microsecondsSinceEpoch.toString(),
+      id: original?.id ?? now.microsecondsSinceEpoch.toString(),
       name: name,
       category: category,
       emoji: emoji,
       quantity: quantity,
       unit: unit,
       expiryDate: expiryDate,
-      createdAt: widget.ingredient?.createdAt ?? now,
+      createdAt: original?.createdAt ?? now,
       updatedAt: now,
+      canonicalIngredientId: submittedCanonicalIngredientId,
+      canonicalUnitId: submittedCanonicalUnitId,
+      canonicalMappingStatus: _canonicalIngredientId != null
+          ? CanonicalMappingStatus.mapped
+          : (sameLegacyIdentity
+                ? original.canonicalMappingStatus
+                : CanonicalMappingStatus.unmapped),
     );
 
     Navigator.pop(context, ingredient);
@@ -153,10 +309,11 @@ class _AddIngredientDialogState extends State<AddIngredientDialog> {
                       : null,
                   onSelected: (selectedCategory, selectedName, selectedEmoji) {
                     setState(() {
-                      category = selectedCategory;
-                      name = selectedName;
-                      emoji = selectedEmoji;
-                      _showIngredientError = false;
+                      _ingredientSelected(
+                        selectedCategory,
+                        selectedName,
+                        selectedEmoji,
+                      );
                     });
                   },
                 ),
@@ -208,29 +365,24 @@ class _AddIngredientDialogState extends State<AddIngredientDialog> {
                 ),
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
-                  initialValue: unit,
-                  decoration: const InputDecoration(labelText: 'หน่วย'),
-                  items: const [
-                    DropdownMenuItem(value: 'ชิ้น', child: Text('ชิ้น')),
-                    DropdownMenuItem(value: 'ฟอง', child: Text('ฟอง')),
-                    DropdownMenuItem(value: 'กรัม', child: Text('กรัม')),
-                    DropdownMenuItem(
-                      value: 'กิโลกรัม',
-                      child: Text('กิโลกรัม'),
+                  key: ValueKey<String>(
+                    'ingredient-primary-unit-$_unitSelectorRevision',
+                  ),
+                  initialValue: _showOtherUnitPicker
+                      ? _otherUnitAction
+                      : _selectedUnitId,
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: 'หน่วยที่แนะนำ'),
+                  items: <DropdownMenuItem<String>>[
+                    for (final definition in _recommendedUnitDefinitions)
+                      DropdownMenuItem<String>(
+                        value: definition.id,
+                        child: Text(definition.displayName),
+                      ),
+                    const DropdownMenuItem<String>(
+                      value: _otherUnitAction,
+                      child: Text('Other unit…'),
                     ),
-                    DropdownMenuItem(
-                      value: 'มิลลิลิตร',
-                      child: Text('มิลลิลิตร'),
-                    ),
-                    DropdownMenuItem(value: 'ลิตร', child: Text('ลิตร')),
-                    DropdownMenuItem(value: 'ช้อนชา', child: Text('ช้อนชา')),
-                    DropdownMenuItem(
-                      value: 'ช้อนโต๊ะ',
-                      child: Text('ช้อนโต๊ะ'),
-                    ),
-                    DropdownMenuItem(value: 'ขวด', child: Text('ขวด')),
-                    DropdownMenuItem(value: 'ถุง', child: Text('ถุง')),
-                    DropdownMenuItem(value: 'แพ็ก', child: Text('แพ็ก')),
                   ],
                   onChanged: (value) {
                     if (value == null) {
@@ -238,10 +390,50 @@ class _AddIngredientDialogState extends State<AddIngredientDialog> {
                     }
 
                     setState(() {
-                      unit = value;
+                      if (value == _otherUnitAction) {
+                        _showOtherUnitPicker = true;
+                        _unitSelectorRevision++;
+                      } else {
+                        _selectUnitId(value);
+                      }
                     });
                   },
                 ),
+                if (_showOtherUnitPicker) ...[
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    key: ValueKey<String>(
+                      'ingredient-other-unit-$_unitSelectorRevision',
+                    ),
+                    initialValue: _selectedUnitId ?? _legacyUnitValue,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Other unit…',
+                      helperText:
+                          'ใช้เมื่อหน่วยที่บันทึกไว้หรือกรณีพิเศษไม่อยู่ในรายการแนะนำ',
+                    ),
+                    items: <DropdownMenuItem<String>>[
+                      if (_selectedUnitId == null && unit.trim().isNotEmpty)
+                        DropdownMenuItem<String>(
+                          value: _legacyUnitValue,
+                          child: Text('$unit (หน่วยเดิม)'),
+                        ),
+                      for (final definition in _allUnitDefinitions)
+                        DropdownMenuItem<String>(
+                          value: definition.id,
+                          child: Text(definition.displayName),
+                        ),
+                    ],
+                    onChanged: (value) {
+                      if (value == null || value == _legacyUnitValue) {
+                        return;
+                      }
+                      setState(() {
+                        _selectUnitId(value, showOther: true);
+                      });
+                    },
+                  ),
+                ],
                 const SizedBox(height: 10),
                 ListTile(
                   contentPadding: EdgeInsets.zero,

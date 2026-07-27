@@ -209,6 +209,12 @@ class CanonicalIngredientRegistry {
         ingredient.category.trim().isEmpty ||
         ingredient.defaultPurchaseUnitId.trim().isEmpty ||
         ingredient.defaultInventoryUnitId.trim().isEmpty ||
+        ingredient.preferredUnitId.trim().isEmpty ||
+        ingredient.recommendedUnitIds.isEmpty ||
+        ingredient.recommendedUnitIds.any((unitId) => unitId.trim().isEmpty) ||
+        ingredient.recommendedUnitIds.toSet().length !=
+            ingredient.recommendedUnitIds.length ||
+        !ingredient.recommendedUnitIds.contains(ingredient.preferredUnitId) ||
         ingredient.metadata.schemaVersion < 1 ||
         ingredient.metadata.revision < 1) {
       throw CanonicalRegistryException(

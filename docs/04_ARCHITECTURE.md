@@ -122,6 +122,13 @@ IDs, duplicate aliases, missing parents, dimension mismatches, and circular
 graphs. Invalid runtime conversions return a typed failure rather than
 mutating inventory.
 
+`IngredientUnitPolicy` owns ingredient-aware input recommendations. It projects
+canonical identity/category into a preferred unit, a short recommended-unit
+list, and an optional family. Pantry presentation consumes that projection and
+keeps the complete Unit Contract behind `Other unit…`; it contains no
+ingredient-name branching. Existing non-recommended units remain readable and
+editable without migration or silent rewriting.
+
 See [Canonical Ingredient Domain](09_CANONICAL_INGREDIENT_DOMAIN.md) and
 [Canonical Ingredient Data Model](10_CANONICAL_INGREDIENT_DATA_MODEL.md).
 

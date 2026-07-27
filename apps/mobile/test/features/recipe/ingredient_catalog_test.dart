@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/core/domain/ingredients/canonical_ingredient.dart';
 import 'package:mobile/core/domain/ingredients/canonical_ingredient_registry.dart';
+import 'package:mobile/core/domain/units/unit_contract.dart';
 import 'package:mobile/features/recipe/data/ingredient_catalog.dart';
 import 'package:mobile/features/recipe/data/datasources/local_recipe_datasource.dart';
 import 'package:mobile/features/recipe/domain/entities/recipe.dart';
@@ -64,6 +65,7 @@ void main() {
         final definitions = await catalog.load();
         final registry = await catalog.loadRegistry();
         final recipes = await const LocalRecipeDataSource().loadRecipes();
+        final unitEngine = UnitConversionEngine.standard();
         final ids = definitions.map((ingredient) => ingredient.id).toList();
 
         expect(ids.toSet(), hasLength(ids.length));
@@ -71,6 +73,19 @@ void main() {
           expect(definition.canonicalName, isNotEmpty);
           expect(definition.defaultPurchaseUnitId, isNotEmpty);
           expect(definition.defaultInventoryUnitId, isNotEmpty);
+          expect(definition.preferredUnitId, isNotEmpty);
+          expect(definition.recommendedUnitIds, isNotEmpty);
+          expect(
+            definition.recommendedUnitIds,
+            contains(definition.preferredUnitId),
+          );
+          expect(
+            definition.recommendedUnitIds.every(
+              (unitId) => unitEngine.resolveUnit(unitId) != null,
+            ),
+            isTrue,
+          );
+          expect(definition.unitFamily, isNotNull);
           expect(definition.metadata.schemaVersion, greaterThan(0));
           expect(definition.metadata.revision, greaterThan(0));
         }
@@ -85,6 +100,11 @@ void main() {
             );
           }
         }
+        expect(registry.byId('fish')?.preferredUnitId, 'whole');
+        expect(registry.byId('pork')?.preferredUnitId, 'kilogram');
+        expect(registry.byId('egg')?.preferredUnitId, 'egg');
+        expect(registry.byId('cooking_oil')?.preferredUnitId, 'bottle');
+        expect(registry.byId('tofu')?.preferredUnitId, 'block');
       },
     );
   });

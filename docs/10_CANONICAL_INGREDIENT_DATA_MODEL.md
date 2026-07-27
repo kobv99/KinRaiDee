@@ -36,6 +36,13 @@ The durable transaction journal stores complete before/after envelopes, so
 canonical migration is recoverable with the same all-or-nothing guarantees as
 Pantry and cooking-history mutations.
 
+`CanonicalIngredient` also owns `preferredUnitId`, ordered
+`recommendedUnitIds`, and optional `unitFamily`. These values are bundled
+metadata derived by `IngredientUnitPolicy` when not explicitly supplied by the
+asset. They guide new input only and are not persisted into existing Pantry
+lots, so changing recommendations cannot rewrite historical quantities or
+units.
+
 ## Legacy Migration
 
 Startup order:
