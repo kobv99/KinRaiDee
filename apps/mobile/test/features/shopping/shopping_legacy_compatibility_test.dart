@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/features/shopping/application/shopping_providers.dart';
+import 'package:mobile/features/shopping/domain/entities/shopping_item.dart';
 import 'package:mobile/features/shopping/domain/entities/shopping_item_status.dart';
 import 'package:mobile/features/shopping/domain/entities/shopping_purchase.dart';
 import 'package:mobile/features/shopping/domain/models/shopping_mutation.dart';
