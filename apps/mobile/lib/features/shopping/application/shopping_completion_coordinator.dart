@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import '../../../core/domain/ingredients/canonical_ingredient.dart';
 import '../../../core/domain/ingredients/canonical_ingredient_registry.dart';
 import '../../../core/domain/units/unit_contract.dart';
 import '../../../core/models/ingredient.dart';
@@ -11,6 +10,7 @@ import '../../pantry/domain/models/inventory_state_envelope.dart';
 import '../../pantry/domain/models/inventory_transaction_record.dart';
 import '../../pantry/domain/models/pantry_quantity_transaction.dart';
 import '../../pantry/domain/repositories/inventory_commit_repository.dart';
+import '../../pantry/domain/services/pantry_canonical_merge_service.dart';
 import '../domain/entities/shopping_item.dart';
 import '../domain/entities/shopping_item_status.dart';
 import '../domain/entities/shopping_list.dart';
@@ -24,15 +24,16 @@ class ShoppingCompletionCoordinator {
     AppClock clock = systemAppClock,
     TransactionIdGenerator? transactionIdGenerator,
   }) : _repository = repository,
-       _registry = registry,
-       _unitEngine = unitEngine,
+       _mergeService = PantryCanonicalMergeService(
+         registry: registry,
+         unitEngine: unitEngine,
+       ),
        _clock = clock,
        _transactionIdGenerator =
            transactionIdGenerator ?? SecureTransactionIdGenerator();
 
   final InventoryCommitRepository _repository;
-  final CanonicalIngredientRegistry _registry;
-  final UnitConversionEngine _unitEngine;
+  final PantryCanonicalMergeService _mergeService;
   final AppClock _clock;
   final TransactionIdGenerator _transactionIdGenerator;
   Future<void> _tail = Future<void>.value();
@@ -132,33 +133,36 @@ class ShoppingCompletionCoordinator {
         );
       }
 
-      final canonicalId = _resolveShoppingCanonicalId(item);
-      if (canonicalId == null) {
-        return _failure(
-          InventoryTransactionOutcome.validationFailure,
-          'unknown_canonical_shopping_ingredient',
-          before,
-          transaction,
-        );
-      }
-      final canonical = _registry.byId(canonicalId)!;
-      final merge = _mergeIntoPantry(
-        before.pantry,
-        item: item,
-        canonical: canonical,
-        transactionId: id,
-        committedAt: _clock.now().toUtc(),
+      final committedAt = _clock.now().toUtc();
+      final incoming = Ingredient(
+        id: 'shopping-purchase:$id',
+        name: item.displayName,
+        category: item.category.name,
+        emoji: '',
+        quantity: item.quantity,
+        unit: item.unitId,
+        createdAt: committedAt,
+        updatedAt: committedAt,
+        canonicalIngredientId: item.canonicalIngredientId,
+        canonicalUnitId: item.unitId,
+        canonicalMappingStatus: CanonicalMappingStatus.mapped,
       );
-      if (merge.errorCode != null) {
+      final merge = _mergeService.merge(
+        current: before.pantry,
+        incoming: incoming,
+        mode: PantryCanonicalMergeMode.add,
+        at: committedAt,
+      );
+      final mergeError = _shoppingMergeError(merge.errorCode);
+      if (mergeError != null) {
         return _failure(
           InventoryTransactionOutcome.validationFailure,
-          merge.errorCode!,
+          mergeError,
           before,
           transaction,
         );
       }
 
-      final committedAt = _clock.now().toUtc();
       transaction = transaction.copyWith(changes: merge.changes);
       final updatedList = list.copyWith(
         revision: list.revision + 1,
@@ -257,9 +261,14 @@ class ShoppingCompletionCoordinator {
       }
       final listId = removed.$1;
       final item = removed.$2;
-      transaction = transaction.copyWith(
-        recipeId: 'shopping:undoCompletion:$listId:${item.id}',
-        recipeName: 'Undo Shopping completion',
+      transaction = _transaction(
+        transactionId: id,
+        expectedRevision: current.revision,
+        kind: InventoryTransactionKind.undoShoppingPurchase,
+        listId: listId,
+        itemId: item.id,
+        createdAt: createdAt,
+        reversesTransactionId: purchaseTransactionId,
       );
       final affectedIds = _changedPantryIds(purchaseBefore, purchaseAfter);
       final currentList = current.shoppingLists
@@ -287,13 +296,13 @@ class ShoppingCompletionCoordinator {
           transaction: transaction,
         );
       }
-      final canonicalId = _resolveShoppingCanonicalId(item);
+      final canonicalId = _shoppingCanonicalId(item);
       if (currentList.items.any(
         (candidate) =>
             candidate.status == ShoppingItemStatus.active &&
             (candidate.id == item.id ||
                 (canonicalId != null &&
-                    _resolveShoppingCanonicalId(candidate) == canonicalId)),
+                    _shoppingCanonicalId(candidate) == canonicalId)),
       )) {
         return _failure(
           InventoryTransactionOutcome.conflict,
@@ -365,210 +374,32 @@ class ShoppingCompletionCoordinator {
     return _repository.complete(transactionId);
   }
 
-  String? _resolveShoppingCanonicalId(ShoppingItem item) {
-    return _registry.canonicalIdFor(item.canonicalIngredientId) ??
-        _registry.resolve(item.canonicalIngredientId).ingredient?.id ??
-        _registry.resolve(item.displayName).ingredient?.id;
-  }
-
-  String? _resolvePantryCanonicalId(Ingredient ingredient) {
-    return _registry.canonicalIdFor(ingredient.canonicalIngredientId) ??
-        _registry.resolve(ingredient.canonicalIngredientId).ingredient?.id ??
-        _registry.resolve(ingredient.name).ingredient?.id;
-  }
-
-  _PantryMergeResult _mergeIntoPantry(
-    List<Ingredient> before, {
-    required ShoppingItem item,
-    required CanonicalIngredient canonical,
-    required String transactionId,
-    required DateTime committedAt,
-  }) {
-    final sourceUnitId = _unitEngine.resolveUnitId(item.unitId);
-    if (sourceUnitId == null) {
-      return const _PantryMergeResult.failure('unknown_shopping_unit');
-    }
-    final candidates = before
-        .where(
-          (ingredient) =>
-              _resolvePantryCanonicalId(ingredient) == canonical.id,
-        )
-        .toList(growable: false);
-
-    if (candidates.isEmpty) {
-      final targetUnitId = _unitEngine.resolveUnitId(
-        canonical.defaultInventoryUnitId,
-      );
-      if (targetUnitId == null) {
-        return const _PantryMergeResult.failure('unknown_inventory_unit');
-      }
-      final converted = _unitEngine.tryConvert(
-        item.quantity,
-        fromUnit: sourceUnitId,
-        toUnit: targetUnitId,
-      );
-      if (!converted.isSuccess) {
-        return const _PantryMergeResult.failure(
-          'shopping_unit_conversion_required',
-        );
-      }
-      final quantity = _round(converted.value!, targetUnitId);
-      final lot = Ingredient(
-        id: 'shopping-purchase:$transactionId',
-        name: canonical.displayName(),
-        category: canonical.category,
-        emoji: canonical.emoji,
-        quantity: quantity,
-        unit: _unitEngine.resolveUnit(targetUnitId)!.displayName,
-        createdAt: committedAt,
-        updatedAt: committedAt,
-        canonicalIngredientId: canonical.id,
-        canonicalUnitId: targetUnitId,
-        canonicalMappingStatus: CanonicalMappingStatus.mapped,
-      );
-      return _PantryMergeResult.success(
-        pantry: <Ingredient>[...before, lot],
-        changes: <PantryQuantityChange>[
-          PantryQuantityChange(
-            ingredientId: lot.id,
-            ingredientName: lot.name,
-            unit: lot.unit,
-            beforeQuantity: 0,
-            afterQuantity: lot.quantity,
-            canonicalIngredientId: canonical.id,
-            canonicalUnitId: targetUnitId,
-          ),
-        ],
-      );
-    }
-
-    final sorted = List<Ingredient>.of(candidates)
-      ..sort((first, second) {
-        final firstExpired = first.isExpiredAt(committedAt) ? 1 : 0;
-        final secondExpired = second.isExpiredAt(committedAt) ? 1 : 0;
-        final expiry = firstExpired.compareTo(secondExpired);
-        if (expiry != 0) {
-          return expiry;
-        }
-        final firstUnit = _unitEngine.resolveUnitId(
-          first.canonicalUnitId.isEmpty ? first.unit : first.canonicalUnitId,
-        );
-        final secondUnit = _unitEngine.resolveUnitId(
-          second.canonicalUnitId.isEmpty ? second.unit : second.canonicalUnitId,
-        );
-        final exact = (firstUnit == sourceUnitId ? 0 : 1).compareTo(
-          secondUnit == sourceUnitId ? 0 : 1,
-        );
-        if (exact != 0) {
-          return exact;
-        }
-        final created = first.createdAt.compareTo(second.createdAt);
-        return created != 0 ? created : first.id.compareTo(second.id);
-      });
-    final primary = sorted.first;
-    final targetUnitId = _unitEngine.resolveUnitId(
-      primary.canonicalUnitId.isEmpty ? primary.unit : primary.canonicalUnitId,
-    );
-    if (targetUnitId == null) {
-      return const _PantryMergeResult.failure('unknown_inventory_unit');
-    }
-
-    var total = 0.0;
-    for (final candidate in candidates) {
-      final candidateUnit = _unitEngine.resolveUnitId(
-        candidate.canonicalUnitId.isEmpty
-            ? candidate.unit
-            : candidate.canonicalUnitId,
-      );
-      if (candidateUnit == null) {
-        return const _PantryMergeResult.failure('unknown_inventory_unit');
-      }
-      final converted = _unitEngine.tryConvert(
-        candidate.quantity,
-        fromUnit: candidateUnit,
-        toUnit: targetUnitId,
-      );
-      if (!converted.isSuccess) {
-        return const _PantryMergeResult.failure(
-          'shopping_unit_conversion_required',
-        );
-      }
-      total += converted.value!;
-    }
-    final purchase = _unitEngine.tryConvert(
-      item.quantity,
-      fromUnit: sourceUnitId,
-      toUnit: targetUnitId,
-    );
-    if (!purchase.isSuccess) {
-      return const _PantryMergeResult.failure(
-        'shopping_unit_conversion_required',
-      );
-    }
-    final afterQuantity = _round(total + purchase.value!, targetUnitId);
-    final merged = Ingredient(
-      id: primary.id,
-      name: canonical.displayName(),
-      category: canonical.category,
-      emoji: canonical.emoji,
-      quantity: afterQuantity,
-      unit: _unitEngine.resolveUnit(targetUnitId)!.displayName,
-      expiryDate: _mergedExpiry(candidates, committedAt),
-      createdAt: primary.createdAt,
-      updatedAt: committedAt,
-      isFavorite: candidates.any((candidate) => candidate.isFavorite),
-      canonicalIngredientId: canonical.id,
-      canonicalUnitId: targetUnitId,
+  String? _shoppingCanonicalId(ShoppingItem item) {
+    final ingredient = Ingredient(
+      id: item.id,
+      name: item.displayName,
+      category: item.category.name,
+      emoji: '',
+      quantity: item.quantity,
+      unit: item.unitId,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+      canonicalIngredientId: item.canonicalIngredientId,
+      canonicalUnitId: item.unitId,
       canonicalMappingStatus: CanonicalMappingStatus.mapped,
     );
-    final candidateIds = candidates.map((candidate) => candidate.id).toSet();
-    final pantry = <Ingredient>[];
-    var inserted = false;
-    for (final ingredient in before) {
-      if (!candidateIds.contains(ingredient.id)) {
-        pantry.add(ingredient);
-      } else if (!inserted) {
-        pantry.add(merged);
-        inserted = true;
-      }
-    }
-    final changes = <PantryQuantityChange>[];
-    for (final candidate in candidates) {
-      final isPrimary = candidate.id == primary.id;
-      changes.add(
-        PantryQuantityChange(
-          ingredientId: candidate.id,
-          ingredientName: candidate.name,
-          unit: candidate.unit,
-          beforeQuantity: candidate.quantity,
-          afterQuantity: isPrimary ? afterQuantity : 0,
-          canonicalIngredientId: canonical.id,
-          canonicalUnitId: isPrimary
-              ? targetUnitId
-              : (candidate.canonicalUnitId.isEmpty
-                    ? candidate.unit
-                    : candidate.canonicalUnitId),
-        ),
-      );
-    }
-    if (pantry.where((item) => _resolvePantryCanonicalId(item) == canonical.id).length !=
-        1) {
-      return const _PantryMergeResult.failure(
-        'duplicate_canonical_pantry_ingredient',
-      );
-    }
-    return _PantryMergeResult.success(pantry: pantry, changes: changes);
+    return _mergeService.resolveCanonicalIngredientId(ingredient);
   }
 
-  DateTime? _mergedExpiry(
-    List<Ingredient> candidates,
-    DateTime committedAt,
-  ) {
-    if (candidates.any((candidate) => candidate.isExpiredAt(committedAt))) {
-      return null;
-    }
-    final expiries = candidates.map((candidate) => candidate.expiryDate).toSet();
-    return expiries.length == 1 ? expiries.single : null;
+  String? _shoppingMergeError(String? errorCode) {
+    return switch (errorCode) {
+      null => null,
+      'unknown_canonical_pantry_ingredient' =>
+        'unknown_canonical_shopping_ingredient',
+      'pantry_unit_conversion_required' =>
+        'shopping_unit_conversion_required',
+      _ => errorCode,
+    };
   }
 
   (String, ShoppingItem)? _removedShoppingItem(
@@ -600,9 +431,7 @@ class ShoppingCompletionCoordinator {
     final beforeById = {for (final item in before.pantry) item.id: item};
     final afterById = {for (final item in after.pantry) item.id: item};
     return <String>{...beforeById.keys, ...afterById.keys}
-        .where(
-          (id) => !_ingredientEqual(beforeById[id], afterById[id]),
-        )
+        .where((id) => !_ingredientEqual(beforeById[id], afterById[id]))
         .toSet();
   }
 
@@ -718,7 +547,10 @@ class ShoppingCompletionCoordinator {
     required List<InventoryTransactionRecord> records,
   }) async {
     final record = records
-        .where((candidate) => candidate.transactionId == transaction.transactionId)
+        .where(
+          (candidate) =>
+              candidate.transactionId == transaction.transactionId,
+        )
         .firstOrNull;
     if (record == null) {
       return null;
@@ -749,7 +581,10 @@ class ShoppingCompletionCoordinator {
       );
     }
     final refreshed = (await _repository.loadJournal())
-        .where((candidate) => candidate.transactionId == transaction.transactionId)
+        .where(
+          (candidate) =>
+              candidate.transactionId == transaction.transactionId,
+        )
         .firstOrNull;
     return refreshed != null && _isCommitted(refreshed)
         ? InventoryTransactionResult(
@@ -816,13 +651,6 @@ class ShoppingCompletionCoordinator {
     );
   }
 
-  double _round(double quantity, String unitId) {
-    return _unitEngine.precisionPolicy.apply(
-      quantity,
-      decimalPlaces: _unitEngine.resolveUnit(unitId)?.decimalPlaces,
-    );
-  }
-
   Future<T> _serialized<T>(Future<T> Function() operation) {
     final completer = Completer<T>();
     _tail = _tail.then((_) async {
@@ -834,21 +662,6 @@ class ShoppingCompletionCoordinator {
     });
     return completer.future;
   }
-}
-
-class _PantryMergeResult {
-  const _PantryMergeResult.success({
-    required this.pantry,
-    required this.changes,
-  }) : errorCode = null;
-
-  const _PantryMergeResult.failure(this.errorCode)
-    : pantry = const <Ingredient>[],
-      changes = const <PantryQuantityChange>[];
-
-  final List<Ingredient> pantry;
-  final List<PantryQuantityChange> changes;
-  final String? errorCode;
 }
 
 bool _isCommitted(InventoryTransactionRecord record) {
