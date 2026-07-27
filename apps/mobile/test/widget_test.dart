@@ -60,7 +60,7 @@ void main() {
           ),
           inventoryStartupRecoveryProvider.overrideWithValue(startupRecovery),
         ],
-        child: const KinRaiDeeApp(),
+        child: KinRaiDeeApp(theme: ThemeData(useMaterial3: true)),
       ),
     );
     stdout.writeln('[widget_test] after pumpWidget app');
