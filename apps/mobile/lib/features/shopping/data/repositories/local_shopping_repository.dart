@@ -24,7 +24,7 @@ class LocalShoppingRepository implements ShoppingRepository {
   @override
   Future<List<ShoppingList>> getLists() async {
     final snapshot = await _inventoryRepository.loadConsistentSnapshot();
-    final lists = snapshot.shoppingLists
+    final projected = snapshot.shoppingLists
         .map(
           (list) => list.copyWith(
             items: list.items
@@ -34,7 +34,11 @@ class LocalShoppingRepository implements ShoppingRepository {
         )
         .toList()
       ..sort((first, second) => second.updatedAt.compareTo(first.updatedAt));
-    return List<ShoppingList>.unmodifiable(lists);
+    final actionable = projected
+        .where((list) => list.items.isNotEmpty)
+        .toList(growable: false);
+    final visible = actionable.isNotEmpty ? actionable : projected;
+    return List<ShoppingList>.unmodifiable(visible);
   }
 
   @override
