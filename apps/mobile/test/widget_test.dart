@@ -25,11 +25,22 @@ void main() {
     }
   });
 
-  testWidgets('KinRaiDee app loads', (WidgetTester tester) async {
+  testWidgets('KinRaiDee app loads and releases owned resources', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const ProviderScope(child: KinRaiDeeApp()));
     await tester.pump();
 
     expect(find.byType(KinRaiDeeApp), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    // Unmount the application while the test binding is still active. This
+    // disposes ProviderScope and the app-owned GoRouter before Hive is closed
+    // by tearDownAll.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+
+    expect(find.byType(KinRaiDeeApp), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }
