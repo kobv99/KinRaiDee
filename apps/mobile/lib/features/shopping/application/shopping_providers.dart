@@ -9,6 +9,7 @@ import '../../pantry/application/inventory_transaction_providers.dart';
 import '../../pantry/domain/models/pantry_quantity_transaction.dart';
 import '../data/repositories/local_shopping_repository.dart';
 import '../domain/entities/purchase_history_entry.dart';
+import '../domain/entities/shopping_item_status.dart';
 import '../domain/entities/shopping_list.dart';
 import '../domain/models/shopping_mutation.dart';
 import '../domain/repositories/shopping_repository.dart';
@@ -144,7 +145,8 @@ class ShoppingMutationController {
   final void Function(InventoryTransactionResult) _onDurableCommit;
 
   Future<InventoryTransactionResult> execute(ShoppingMutation command) async {
-    final result = await _coordinator.mutateShopping(command);
+    final prepared = await _preserveHiddenLegacyItems(command);
+    final result = await _coordinator.mutateShopping(prepared);
     if (!result.isSuccess) {
       return result;
     }
@@ -155,6 +157,39 @@ class ShoppingMutationController {
     }
     _onDurableCommit(result);
     return result;
+  }
+
+  Future<ShoppingMutation> _preserveHiddenLegacyItems(
+    ShoppingMutation command,
+  ) async {
+    final submitted = command.list;
+    if (command.type != ShoppingMutationType.upsertList || submitted == null) {
+      return command;
+    }
+    final snapshot = await _coordinator.loadSnapshot();
+    final existing = snapshot.shoppingLists
+        .where((list) => list.id == submitted.id)
+        .firstOrNull;
+    if (existing == null) {
+      return command;
+    }
+    final legacy = existing.items
+        .where((item) => item.status != ShoppingItemStatus.active)
+        .toList(growable: false);
+    if (legacy.isEmpty) {
+      return command;
+    }
+    final activeIds = submitted.items.map((item) => item.id).toSet();
+    final preserved = legacy
+        .where((item) => !activeIds.contains(item.id))
+        .toList(growable: false);
+    return command.copyWith(
+      list: submitted.copyWith(
+        items: <dynamic>[...submitted.items, ...preserved]
+            .cast()
+            .toList(growable: false),
+      ),
+    );
   }
 }
 
