@@ -36,6 +36,16 @@ void main() {
     unit: 'kilogram',
     category: ShoppingCategory.grains,
     references: const <String>['fried-rice'],
+    now: now,
+  );
+  final legacyCompleted = _item(
+    id: 'legacy-completed',
+    canonicalId: 'egg',
+    name: 'Old Egg',
+    quantity: 1,
+    unit: 'piece',
+    category: ShoppingCategory.protein,
+    references: const <String>['omelette'],
     status: ShoppingItemStatus.purchased,
     now: now,
   );
@@ -47,27 +57,24 @@ void main() {
       'ไข่ไก่',
       'breakfast protein',
     ]) {
-      final result = projector.project(<ShoppingItem>[
-        egg,
-        rice,
-      ], ShoppingViewState(query: query));
-      expect(result.active, <ShoppingItem>[egg], reason: query);
-      expect(result.completed, isEmpty, reason: query);
+      final result = projector.project(
+        <ShoppingItem>[egg, rice, legacyCompleted],
+        ShoppingViewState(query: query),
+      );
+      expect(result.items, <ShoppingItem>[egg], reason: query);
     }
   });
 
-  test('filters completion, category, and Recipe source together', () {
+  test('filters category and Recipe source while hiding legacy completion', () {
     final result = projector.project(
-      <ShoppingItem>[egg, rice],
+      <ShoppingItem>[egg, rice, legacyCompleted],
       const ShoppingViewState(
-        completion: ShoppingCompletionFilter.completed,
         category: ShoppingCategory.grains,
         recipeId: 'fried-rice',
       ),
     );
 
-    expect(result.active, isEmpty);
-    expect(result.completed, <ShoppingItem>[rice]);
+    expect(result.items, <ShoppingItem>[rice]);
   });
 
   test('sort options are deterministic', () {
@@ -78,8 +85,8 @@ void main() {
             items,
             const ShoppingViewState(sort: ShoppingSortOption.alphabetical),
           )
-          .active,
-      <ShoppingItem>[egg],
+          .items,
+      <ShoppingItem>[egg, rice],
     );
     final byRecipe = projector.project(
       items,
@@ -89,8 +96,7 @@ void main() {
         'fried-rice': 'B Fried rice',
       },
     );
-    expect(byRecipe.active.single, egg);
-    expect(byRecipe.completed.single, rice);
+    expect(byRecipe.items, <ShoppingItem>[egg, rice]);
   });
 
   test('Pantry availability converts units and ignores expired lots', () {
@@ -130,14 +136,13 @@ void main() {
     expect(shoppingCategoryLabel(ShoppingCategory.grains), 'ข้าวและธัญพืช');
   });
 
-  test('view notifier updates and clears every filter', () {
+  test('view notifier updates and clears every actionable filter', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);
     final notifier = container.read(shoppingViewProvider.notifier);
 
     notifier
       ..setQuery('egg')
-      ..setCompletion(ShoppingCompletionFilter.active)
       ..setSort(ShoppingSortOption.alphabetical)
       ..setCategory(ShoppingCategory.protein)
       ..setRecipe('omelette');
