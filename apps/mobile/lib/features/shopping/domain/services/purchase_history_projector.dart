@@ -15,7 +15,40 @@ class PurchaseHistoryProjector {
     final ordered = records.where(_isCommitted).toList(growable: false)
       ..sort(_compareRecords);
     final openByIdentity = <String, List<PurchaseHistoryEntry>>{};
-    final projectedTransactionIds = <String>{};
+    final journalPurchaseIds = ordered
+        .where(
+          (record) =>
+              record.kind == InventoryTransactionKind.shoppingPurchase,
+        )
+        .map((record) => record.transactionId)
+        .toSet();
+
+    final legacySnapshots = <InventoryStateEnvelope>[snapshot];
+    for (final record in ordered) {
+      final before = record.beforeEnvelope;
+      if (before != null) {
+        legacySnapshots.add(before);
+      }
+      final after = record.afterEnvelope;
+      if (after != null) {
+        legacySnapshots.add(after);
+      }
+    }
+    final legacyEntries = _legacyEntries(
+      legacySnapshots,
+      excludedTransactionIds: journalPurchaseIds,
+    )..sort((first, second) {
+        final time = first.purchasedAt.compareTo(second.purchasedAt);
+        return time != 0 ? time : first.id.compareTo(second.id);
+      });
+    for (final entry in legacyEntries) {
+      openByIdentity
+          .putIfAbsent(
+            _identity(entry.shoppingListId, entry.shoppingItemId),
+            () => <PurchaseHistoryEntry>[],
+          )
+          .add(entry);
+    }
 
     for (final record in ordered) {
       switch (record.kind) {
@@ -24,7 +57,6 @@ class PurchaseHistoryProjector {
           if (entry == null) {
             continue;
           }
-          projectedTransactionIds.add(entry.pantryTransactionId);
           openByIdentity
               .putIfAbsent(
                 _identity(entry.shoppingListId, entry.shoppingItemId),
@@ -46,45 +78,50 @@ class PurchaseHistoryProjector {
       }
     }
 
-    // Older envelopes stored the purchase receipt on a completed Shopping item.
-    // Keep those records readable when their transaction journal is unavailable.
-    for (final list in snapshot.shoppingLists) {
-      for (final item in list.items) {
-        final purchase = item.purchase;
-        if (item.status == ShoppingItemStatus.active ||
-            purchase == null ||
-            projectedTransactionIds.contains(purchase.transactionId)) {
-          continue;
-        }
-        final entry = PurchaseHistoryEntry(
-          id: purchase.transactionId,
-          purchasedAt: purchase.purchasedAt,
-          ingredientId: item.id,
-          canonicalIngredientId: item.canonicalIngredientId,
-          ingredientName: item.displayName,
-          quantity: item.quantity,
-          unitId: item.unitId,
-          sourceRecipeIds: item.sourceReferenceIds,
-          shoppingListId: list.id,
-          shoppingItemId: item.id,
-          pantryTransactionId: purchase.transactionId,
-          pantryLotIds: <String>[purchase.pantryLotId],
-        );
-        openByIdentity
-            .putIfAbsent(
-              _identity(list.id, item.id),
-              () => <PurchaseHistoryEntry>[],
-            )
-            .add(entry);
-      }
-    }
-
     final result = openByIdentity.values.expand((entries) => entries).toList()
       ..sort((first, second) {
         final time = second.purchasedAt.compareTo(first.purchasedAt);
         return time != 0 ? time : first.id.compareTo(second.id);
       });
     return List<PurchaseHistoryEntry>.unmodifiable(result);
+  }
+
+  List<PurchaseHistoryEntry> _legacyEntries(
+    Iterable<InventoryStateEnvelope> snapshots, {
+    required Set<String> excludedTransactionIds,
+  }) {
+    final entries = <PurchaseHistoryEntry>[];
+    final seenTransactionIds = <String>{};
+    for (final envelope in snapshots) {
+      for (final list in envelope.shoppingLists) {
+        for (final item in list.items) {
+          final purchase = item.purchase;
+          if (item.status == ShoppingItemStatus.active ||
+              purchase == null ||
+              excludedTransactionIds.contains(purchase.transactionId) ||
+              !seenTransactionIds.add(purchase.transactionId)) {
+            continue;
+          }
+          entries.add(
+            PurchaseHistoryEntry(
+              id: purchase.transactionId,
+              purchasedAt: purchase.purchasedAt,
+              ingredientId: item.id,
+              canonicalIngredientId: item.canonicalIngredientId,
+              ingredientName: item.displayName,
+              quantity: item.quantity,
+              unitId: item.unitId,
+              sourceRecipeIds: item.sourceReferenceIds,
+              shoppingListId: list.id,
+              shoppingItemId: item.id,
+              pantryTransactionId: purchase.transactionId,
+              pantryLotIds: <String>[purchase.pantryLotId],
+            ),
+          );
+        }
+      }
+    }
+    return entries;
   }
 
   PurchaseHistoryEntry? _purchaseFromRecord(
