@@ -9,6 +9,7 @@ import '../../pantry/application/inventory_transaction_providers.dart';
 import '../../pantry/domain/models/pantry_quantity_transaction.dart';
 import '../data/repositories/local_shopping_repository.dart';
 import '../domain/entities/purchase_history_entry.dart';
+import '../domain/entities/shopping_item.dart';
 import '../domain/entities/shopping_item_status.dart';
 import '../domain/entities/shopping_list.dart';
 import '../domain/models/shopping_mutation.dart';
@@ -185,9 +186,7 @@ class ShoppingMutationController {
         .toList(growable: false);
     return command.copyWith(
       list: submitted.copyWith(
-        items: <dynamic>[...submitted.items, ...preserved]
-            .cast()
-            .toList(growable: false),
+        items: <ShoppingItem>[...submitted.items, ...preserved],
       ),
     );
   }
