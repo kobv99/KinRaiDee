@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -13,6 +14,8 @@ void main() {
     WidgetTester tester,
   ) async {
     late Directory tempDirectory;
+    late Box<dynamic> pantryBox;
+    late StreamSubscription<BoxEvent> boxEvents;
 
     stdout.writeln('[widget_test] before setup runAsync');
     await tester.runAsync(() async {
@@ -23,8 +26,15 @@ void main() {
       stdout.writeln('[widget_test] temp directory created');
       Hive.init(tempDirectory.path);
       stdout.writeln('[widget_test] before Hive.openBox');
-      await Hive.openBox<dynamic>(StorageService.pantryBoxName);
+      pantryBox = await Hive.openBox<dynamic>(StorageService.pantryBoxName);
       stdout.writeln('[widget_test] after Hive.openBox');
+      boxEvents = pantryBox.watch().listen((event) {
+        stdout.writeln(
+          '[widget_test] box event: key=${event.key}, '
+          'deleted=${event.deleted}, value=${event.value}',
+        );
+      });
+      stdout.writeln('[widget_test] box watcher attached');
     });
     stdout.writeln('[widget_test] after setup runAsync');
 
@@ -53,9 +63,19 @@ void main() {
     stdout.writeln('[widget_test] before cleanup runAsync');
     await tester.runAsync(() async {
       stdout.writeln('[widget_test] cleanup runAsync entered');
-      stdout.writeln('[widget_test] before Hive.close');
-      await Hive.close();
-      stdout.writeln('[widget_test] after Hive.close');
+      stdout.writeln(
+        '[widget_test] pantry box state: open=${pantryBox.isOpen}, '
+        'length=${pantryBox.length}, keys=${pantryBox.keys.toList()}',
+      );
+      stdout.writeln('[widget_test] before box watcher cancel');
+      await boxEvents.cancel();
+      stdout.writeln('[widget_test] after box watcher cancel');
+      stdout.writeln('[widget_test] before pantryBox.flush');
+      await pantryBox.flush();
+      stdout.writeln('[widget_test] after pantryBox.flush');
+      stdout.writeln('[widget_test] before pantryBox.close');
+      await pantryBox.close();
+      stdout.writeln('[widget_test] after pantryBox.close');
       if (await tempDirectory.exists()) {
         stdout.writeln('[widget_test] before temp directory delete');
         await tempDirectory.delete(recursive: true);
