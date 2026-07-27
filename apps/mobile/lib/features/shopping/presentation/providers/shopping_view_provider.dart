@@ -8,34 +8,26 @@ import '../../domain/entities/shopping_category.dart';
 import '../../domain/entities/shopping_item.dart';
 import '../../domain/entities/shopping_item_status.dart';
 
-enum ShoppingCompletionFilter { all, active, completed }
-
 enum ShoppingSortOption { category, alphabetical, recipeSource }
 
 class ShoppingViewState {
   const ShoppingViewState({
     this.query = '',
-    this.completion = ShoppingCompletionFilter.all,
     this.sort = ShoppingSortOption.category,
     this.category,
     this.recipeId,
   });
 
   final String query;
-  final ShoppingCompletionFilter completion;
   final ShoppingSortOption sort;
   final ShoppingCategory? category;
   final String? recipeId;
 
   bool get hasFilters =>
-      query.trim().isNotEmpty ||
-      completion != ShoppingCompletionFilter.all ||
-      category != null ||
-      recipeId != null;
+      query.trim().isNotEmpty || category != null || recipeId != null;
 
   ShoppingViewState copyWith({
     String? query,
-    ShoppingCompletionFilter? completion,
     ShoppingSortOption? sort,
     ShoppingCategory? category,
     String? recipeId,
@@ -44,7 +36,6 @@ class ShoppingViewState {
   }) {
     return ShoppingViewState(
       query: query ?? this.query,
-      completion: completion ?? this.completion,
       sort: sort ?? this.sort,
       category: clearCategory ? null : category ?? this.category,
       recipeId: clearRecipe ? null : recipeId ?? this.recipeId,
@@ -57,10 +48,6 @@ class ShoppingViewNotifier extends Notifier<ShoppingViewState> {
   ShoppingViewState build() => const ShoppingViewState();
 
   void setQuery(String value) => state = state.copyWith(query: value);
-
-  void setCompletion(ShoppingCompletionFilter value) {
-    state = state.copyWith(completion: value);
-  }
 
   void setSort(ShoppingSortOption value) => state = state.copyWith(sort: value);
 
@@ -81,12 +68,11 @@ final shoppingViewProvider =
     );
 
 class ShoppingViewProjection {
-  const ShoppingViewProjection({required this.active, required this.completed});
+  const ShoppingViewProjection({required this.items});
 
-  final List<ShoppingItem> active;
-  final List<ShoppingItem> completed;
+  final List<ShoppingItem> items;
 
-  bool get isEmpty => active.isEmpty && completed.isEmpty;
+  bool get isEmpty => items.isEmpty;
 }
 
 class ShoppingViewProjector {
@@ -106,19 +92,14 @@ class ShoppingViewProjector {
     final query = normalizeIngredientKey(view.query);
     final visible = items
         .where((item) {
+          if (item.status != ShoppingItemStatus.active) {
+            return false;
+          }
           if (view.category != null && item.category != view.category) {
             return false;
           }
           if (view.recipeId != null &&
               !item.sourceReferenceIds.contains(view.recipeId)) {
-            return false;
-          }
-          if (view.completion == ShoppingCompletionFilter.active &&
-              item.status != ShoppingItemStatus.active) {
-            return false;
-          }
-          if (view.completion == ShoppingCompletionFilter.completed &&
-              item.status == ShoppingItemStatus.active) {
             return false;
           }
           return query.isEmpty || _matches(item, query);
@@ -145,19 +126,9 @@ class ShoppingViewProjector {
       return byName != 0 ? byName : first.id.compareTo(second.id);
     }
 
-    final active =
-        visible
-            .where((item) => item.status == ShoppingItemStatus.active)
-            .toList()
-          ..sort(compare);
-    final completed =
-        visible
-            .where((item) => item.status != ShoppingItemStatus.active)
-            .toList()
-          ..sort(compare);
+    visible.sort(compare);
     return ShoppingViewProjection(
-      active: List<ShoppingItem>.unmodifiable(active),
-      completed: List<ShoppingItem>.unmodifiable(completed),
+      items: List<ShoppingItem>.unmodifiable(visible),
     );
   }
 
@@ -168,6 +139,8 @@ class ShoppingViewProjector {
   }) {
     final canonicalId =
         registry?.canonicalIdFor(item.canonicalIngredientId) ??
+        registry?.resolve(item.canonicalIngredientId).ingredient?.id ??
+        registry?.resolve(item.displayName).ingredient?.id ??
         item.canonicalIngredientId;
     var total = 0.0;
     for (final lot in pantry) {
@@ -176,6 +149,8 @@ class ShoppingViewProjector {
       }
       final lotCanonical =
           registry?.canonicalIdFor(lot.canonicalIngredientId) ??
+          registry?.resolve(lot.canonicalIngredientId).ingredient?.id ??
+          registry?.resolve(lot.name).ingredient?.id ??
           lot.canonicalIngredientId;
       if (lotCanonical != canonicalId) {
         continue;
@@ -196,7 +171,10 @@ class ShoppingViewProjector {
   }
 
   bool _matches(ShoppingItem item, String query) {
-    final ingredient = registry?.byId(item.canonicalIngredientId);
+    final ingredient =
+        registry?.byId(item.canonicalIngredientId) ??
+        registry?.resolve(item.canonicalIngredientId).ingredient ??
+        registry?.resolve(item.displayName).ingredient;
     final values = <String>[
       item.displayName,
       item.canonicalIngredientId,
