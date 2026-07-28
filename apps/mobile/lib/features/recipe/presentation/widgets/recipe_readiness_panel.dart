@@ -34,13 +34,15 @@ class RecipeReadinessPanel extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         child: value == null
             ? const Row(
+                key: ValueKey<String>('recipe-readiness-unavailable'),
                 children: [
-                  SizedBox.square(
-                    dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
+                  Icon(Icons.info_outline_rounded),
                   SizedBox(width: 10),
-                  Text('กำลังคำนวณความพร้อมจาก Pantry'),
+                  Expanded(
+                    child: Text(
+                      'ยังคำนวณความพร้อมจาก Pantry ไม่ได้',
+                    ),
+                  ),
                 ],
               )
             : Column(
