@@ -20,9 +20,10 @@ void main() {
     () async {
       final now = DateTime.utc(2026, 7, 29, 9);
       final registry = await IngredientCatalog().loadRegistry();
+      final clock = _TestAppClock(now);
       final inventory = HiveInventoryCommitRepository(
         store: InMemoryInventoryStore(),
-        clock: FixedAppClock(now),
+        clock: clock,
       );
       await inventory.recoverPendingTransactions();
 
@@ -33,7 +34,7 @@ void main() {
           ),
           inventoryCommitRepositoryProvider.overrideWithValue(inventory),
           canonicalIngredientRegistryProvider.overrideWithValue(registry),
-          appClockProvider.overrideWithValue(FixedAppClock(now)),
+          appClockProvider.overrideWithValue(clock),
           transactionIdGeneratorProvider.overrideWithValue(
             SequenceTransactionIdGenerator(),
           ),
@@ -109,6 +110,15 @@ Ingredient _ingredient({
     updatedAt: now,
     canonicalUnitId: canonicalUnitId,
   );
+}
+
+class _TestAppClock implements AppClock {
+  const _TestAppClock(this.value);
+
+  final DateTime value;
+
+  @override
+  DateTime now() => value;
 }
 
 class _EmptyPantryRepository implements PantryRepository {
