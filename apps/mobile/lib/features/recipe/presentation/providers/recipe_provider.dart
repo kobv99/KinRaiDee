@@ -2,15 +2,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/providers/canonical_ingredient_providers.dart';
 import '../../../../core/providers/pantry_provider.dart';
+import '../../../pantry/application/inventory_transaction_providers.dart';
 import '../../data/datasources/local_recipe_datasource.dart';
 import '../../data/repositories/local_hero_selection_repository.dart';
 import '../../data/repositories/local_recipe_repository.dart';
 import '../../domain/entities/recipe.dart';
 import '../../domain/entities/recipe_match.dart';
+import '../../domain/entities/recipe_readiness.dart';
 import '../../domain/entities/smart_recommendation.dart';
 import '../../domain/repositories/hero_selection_repository.dart';
 import '../../domain/repositories/recipe_repository.dart';
-import '../../domain/services/recipe_matcher.dart';
+import '../../domain/services/recipe_candidate_service.dart';
+import '../../domain/services/recipe_readiness_service.dart';
 import '../../domain/services/smart_recommendation_engine.dart';
 
 final recipeRepositoryProvider = Provider<RecipeRepository>((ref) {
@@ -21,6 +24,70 @@ final recipesProvider = FutureProvider<List<Recipe>>((ref) {
   return ref.read(recipeRepositoryProvider).getRecipes();
 });
 
+final recipeReadinessServiceProvider = Provider<RecipeReadinessService?>((ref) {
+  final registry = ref.watch(canonicalIngredientRegistryProvider);
+  return registry == null
+      ? null
+      : RecipeReadinessService(
+          registry: registry,
+          unitEngine: ref.watch(unitConversionEngineProvider),
+        );
+});
+
+final recipeCandidateServiceProvider = Provider<RecipeCandidateService?>((ref) {
+  final readinessService = ref.watch(recipeReadinessServiceProvider);
+  return readinessService == null
+      ? null
+      : RecipeCandidateService(readinessService: readinessService);
+});
+
+class RecipeReadinessRequest {
+  const RecipeReadinessRequest({required this.recipe, required this.servings});
+
+  final Recipe recipe;
+  final int servings;
+
+  @override
+  bool operator ==(Object other) {
+    return other is RecipeReadinessRequest &&
+        other.recipe.id == recipe.id &&
+        other.recipe.version == recipe.version &&
+        other.servings == servings;
+  }
+
+  @override
+  int get hashCode => Object.hash(recipe.id, recipe.version, servings);
+}
+
+final recipeReadinessProvider =
+    Provider.family<RecipeReadiness?, RecipeReadinessRequest>((ref, request) {
+      final service = ref.watch(recipeReadinessServiceProvider);
+      if (service == null) {
+        return null;
+      }
+      return service.evaluate(
+        recipe: request.recipe,
+        pantry: ref.watch(pantryProvider),
+        servings: request.servings,
+        evaluatedAt: ref.watch(appClockProvider).now(),
+      );
+    });
+
+final recipeReadinessListProvider = FutureProvider<List<RecipeReadiness>>((
+  ref,
+) async {
+  final service = ref.watch(recipeReadinessServiceProvider);
+  if (service == null) {
+    return const <RecipeReadiness>[];
+  }
+  final recipes = await ref.watch(recipesProvider.future);
+  return service.evaluateAll(
+    recipes: recipes,
+    pantry: ref.watch(pantryProvider),
+    evaluatedAt: ref.watch(appClockProvider).now(),
+  );
+});
+
 final heroSelectionRepositoryProvider = Provider<HeroSelectionRepository>((
   ref,
 ) {
@@ -28,12 +95,16 @@ final heroSelectionRepositoryProvider = Provider<HeroSelectionRepository>((
 });
 
 final recipeMatchesProvider = FutureProvider<List<RecipeMatch>>((ref) async {
+  final service = ref.watch(recipeCandidateServiceProvider);
+  if (service == null) {
+    return const <RecipeMatch>[];
+  }
   final recipes = await ref.watch(recipesProvider.future);
-  final pantry = ref.watch(pantryProvider);
-
-  return RecipeMatcher(
-    registry: ref.watch(canonicalIngredientRegistryProvider),
-  ).match(recipes: recipes, pantry: pantry);
+  return service.findCandidates(
+    recipes: recipes,
+    pantry: ref.watch(pantryProvider),
+    evaluatedAt: ref.watch(appClockProvider).now(),
+  );
 });
 
 class RecommendationSessionState {
@@ -159,6 +230,15 @@ final heroSelectionProvider =
       HeroSelectionNotifier.new,
     );
 
+class RecipeRecommendationUnavailable implements Exception {
+  const RecipeRecommendationUnavailable();
+
+  @override
+  String toString() {
+    return 'โหลดคำแนะนำจาก Pantry ไม่สำเร็จ กรุณาลองอีกครั้ง';
+  }
+}
+
 final smartRecommendationProvider = Provider<AsyncValue<SmartRecommendation>>((
   ref,
 ) {
@@ -167,16 +247,23 @@ final smartRecommendationProvider = Provider<AsyncValue<SmartRecommendation>>((
   final heroSelection = ref.watch(heroSelectionProvider);
   final session = ref.watch(recommendationSessionProvider);
 
-  return matches.whenData(
-    (items) => const SmartRecommendationEngine().build(
-      matches: items,
-      pantry: pantry,
-      selectedHeroKey: heroSelection.key,
-      selectionMode: heroSelection.mode,
-      selectionReason: heroSelection.reason,
-      pageIndex: session.pageIndex,
-      shuffleSeed: session.shuffleSeed,
-      registry: ref.watch(canonicalIngredientRegistryProvider),
+  return matches.when(
+    data: (items) => AsyncValue<SmartRecommendation>.data(
+      const SmartRecommendationEngine().build(
+        matches: items,
+        pantry: pantry,
+        selectedHeroKey: heroSelection.key,
+        selectionMode: heroSelection.mode,
+        selectionReason: heroSelection.reason,
+        pageIndex: session.pageIndex,
+        shuffleSeed: session.shuffleSeed,
+        registry: ref.watch(canonicalIngredientRegistryProvider),
+      ),
+    ),
+    loading: () => const AsyncValue<SmartRecommendation>.loading(),
+    error: (error, stackTrace) => AsyncValue<SmartRecommendation>.error(
+      const RecipeRecommendationUnavailable(),
+      stackTrace,
     ),
   );
 });

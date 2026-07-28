@@ -55,6 +55,7 @@ class ShoppingCompletionCoordinator {
     required int expectedListRevision,
     required String itemId,
     required DateTime createdAt,
+    bool keepSeparate = false,
     String transactionId = '',
   }) {
     return _serialized(() async {
@@ -77,6 +78,7 @@ class ShoppingCompletionCoordinator {
         'listId': listId,
         'expectedListRevision': expectedListRevision,
         'itemId': itemId,
+        'keepSeparate': keepSeparate,
         'createdAt': createdAt.toUtc().toIso8601String(),
       });
       final existing = await _existingResult(
@@ -162,7 +164,9 @@ class ShoppingCompletionCoordinator {
       final merge = _mergeService.merge(
         current: before.pantry,
         incoming: incoming,
-        mode: PantryCanonicalMergeMode.add,
+        mode: keepSeparate
+            ? PantryCanonicalMergeMode.addSeparate
+            : PantryCanonicalMergeMode.add,
         at: committedAt,
       );
       final mergeError = _shoppingMergeError(merge.errorCode);

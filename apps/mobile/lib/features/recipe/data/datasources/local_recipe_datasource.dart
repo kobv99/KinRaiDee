@@ -3,10 +3,14 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 
 import '../../domain/entities/recipe.dart';
+import '../recipe_ingredient_catalog.dart';
 import '../recipe_pack_parser.dart';
 
 class LocalRecipeDataSource {
   const LocalRecipeDataSource({this.bundle});
+
+  static const String ingredientCatalogAssetPath =
+      'assets/recipes/ingredient_catalog.json';
 
   static const List<String> defaultAssetPaths = <String>[
     'assets/recipes/thai.json',
@@ -24,9 +28,13 @@ class LocalRecipeDataSource {
 
   Future<List<Recipe>> loadRecipes({
     List<String> assetPaths = defaultAssetPaths,
+    String catalogAssetPath = ingredientCatalogAssetPath,
   }) async {
     final assetBundle = bundle ?? rootBundle;
-    final parser = const RecipePackParser();
+    final catalog = RecipeIngredientCatalog.fromJson(
+      jsonDecode(await assetBundle.loadString(catalogAssetPath)),
+    );
+    final parser = RecipePackParser(catalog: catalog);
     final recipes = <Recipe>[];
     final recipeIds = <String>{};
 
@@ -36,7 +44,7 @@ class LocalRecipeDataSource {
 
       for (final recipe in parsedRecipes) {
         if (!recipeIds.add(recipe.id)) {
-          throw FormatException('Duplicate recipe id: ${recipe.id}');
+          throw const FormatException('Recipe data contains a duplicate id.');
         }
         recipes.add(recipe);
       }

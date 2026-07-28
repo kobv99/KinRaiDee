@@ -4,7 +4,7 @@ import '../../../../core/domain/units/unit_contract.dart';
 import '../../../../core/models/ingredient.dart';
 import '../models/pantry_quantity_transaction.dart';
 
-enum PantryCanonicalMergeMode { add, replace }
+enum PantryCanonicalMergeMode { add, addSeparate, replace }
 
 class PantryCanonicalMergeResult {
   const PantryCanonicalMergeResult._({
@@ -103,7 +103,7 @@ class PantryCanonicalMergeService {
         )
         .toList(growable: false);
 
-    if (candidates.isEmpty) {
+    if (mode == PantryCanonicalMergeMode.addSeparate || candidates.isEmpty) {
       return _storeSingle(
         current: current,
         incoming: incoming,

@@ -257,26 +257,42 @@ class ShoppingEngine {
           'Pantry lot ${lot.id} has an unknown canonical ID.',
         );
       }
-      final requirement = requirements[canonicalId];
-      if (requirement == null) {
+      final compatibleRequirementIds =
+          requirements.keys
+              .where(
+                (requirementId) =>
+                    registry.areCompatibleIds(canonicalId, requirementId),
+              )
+              .toList()
+            ..sort((first, second) {
+              if (first == canonicalId) {
+                return -1;
+              }
+              if (second == canonicalId) {
+                return 1;
+              }
+              return first.compareTo(second);
+            });
+      if (compatibleRequirementIds.isEmpty) {
         continue;
       }
+
       final sourceUnit = lot.canonicalUnitId.trim().isEmpty
           ? lot.unit
           : lot.canonicalUnitId;
-      final converted = unitEngine.tryConvert(
-        lot.quantity,
-        fromUnit: sourceUnit,
-        toUnit: requirement.unitId,
-      );
-      if (!converted.isSuccess) {
-        throw ShoppingDomainException(
-          'invalid_unit_conversion',
-          'Pantry lot ${lot.id} cannot convert $sourceUnit to '
-              '${requirement.unitId}.',
+      for (final requirementId in compatibleRequirementIds) {
+        final requirement = requirements[requirementId]!;
+        final converted = unitEngine.tryConvert(
+          lot.quantity,
+          fromUnit: sourceUnit,
+          toUnit: requirement.unitId,
         );
+        if (!converted.isSuccess) {
+          continue;
+        }
+        totals[requirementId] = (totals[requirementId] ?? 0) + converted.value!;
+        break;
       }
-      totals[canonicalId] = (totals[canonicalId] ?? 0) + converted.value!;
     }
     for (final entry in totals.entries.toList(growable: false)) {
       totals[entry.key] = _round(entry.value, requirements[entry.key]!.unitId);

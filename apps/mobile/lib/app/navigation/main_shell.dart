@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/pantry/presentation/pages/pantry_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
-import '../../features/recipe/presentation/pages/recipe_page.dart';
+import '../../features/recipe/presentation/pages/recipe_hub_page.dart';
 import '../../features/shopping/presentation/pages/shopping_page.dart';
 import 'app_navigation_provider.dart';
 import 'cooking_completion_provider.dart';
@@ -67,7 +67,7 @@ class MainShell extends ConsumerWidget {
     final pages = <Widget>[
       HomePage(onOpenPantry: navigation.openPantry),
       const PantryPage(),
-      const RecipePage(),
+      const RecipeHubPage(),
       const ShoppingPage(),
       const ProfilePage(),
     ];

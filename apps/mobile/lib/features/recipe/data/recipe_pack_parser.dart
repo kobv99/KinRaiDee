@@ -1,8 +1,11 @@
 import '../domain/entities/recipe.dart';
 import '../domain/entities/recipe_ingredient.dart';
+import 'recipe_ingredient_catalog.dart';
 
 class RecipePackParser {
-  const RecipePackParser();
+  const RecipePackParser({required this.catalog});
+
+  final RecipeIngredientCatalog catalog;
 
   List<Recipe> parse(Object? decoded) {
     if (decoded is List<dynamic>) {
@@ -14,7 +17,7 @@ class RecipePackParser {
     }
 
     if (decoded is! Map) {
-      throw const FormatException('Recipe asset must be a list or recipe pack');
+      throw const FormatException('Invalid Recipe data.');
     }
 
     return _parsePack(Map<String, dynamic>.from(decoded));
@@ -29,6 +32,13 @@ class RecipePackParser {
     final heroQuantity = (hero['quantity'] as num?)?.toDouble() ?? 1;
     final heroUnit = hero['unit'] as String? ?? '';
     final heroAliases = _stringList(hero['aliases']);
+    final defaultPrimaryWeight =
+        (pack['defaultPrimaryWeight'] as num?)?.toDouble() ?? 40;
+    final heroRole =
+        recipeIngredientRoleFromJson(hero['role']) ??
+        RecipeIngredientRole.primary;
+    final heroWeight =
+        (hero['weight'] as num?)?.toDouble() ?? defaultPrimaryWeight;
     final rows = pack['recipes'] as List<dynamic>? ?? const <dynamic>[];
 
     return rows
@@ -36,7 +46,8 @@ class RecipePackParser {
           final row = Map<String, dynamic>.from(rawRow as Map);
           final method = row['method'] as String? ?? 'ปรุง';
           final name = row['name'] as String;
-          final ingredientIds = _stringList(row['ingredients']);
+          final rawIngredients =
+              row['ingredients'] as List<dynamic>? ?? const <dynamic>[];
           final ingredients = <RecipeIngredient>[
             RecipeIngredient(
               id: heroId,
@@ -44,8 +55,10 @@ class RecipePackParser {
               quantity: heroQuantity,
               unit: heroUnit,
               aliases: heroAliases,
+              role: heroRole,
+              weight: heroWeight,
             ),
-            ...ingredientIds.map(_buildIngredient),
+            ...rawIngredients.map(catalog.build),
           ];
 
           return Recipe(
@@ -128,216 +141,7 @@ class RecipePackParser {
       ],
     };
   }
-
-  RecipeIngredient _buildIngredient(String id) {
-    final template = _ingredientTemplates[id];
-    if (template == null) {
-      throw FormatException('Unknown recipe ingredient template: $id');
-    }
-
-    return RecipeIngredient(
-      id: id,
-      name: template.name,
-      quantity: template.quantity,
-      unit: template.unit,
-      required: template.required,
-      aliases: template.aliases,
-    );
-  }
 }
-
-class _IngredientTemplate {
-  const _IngredientTemplate(
-    this.name,
-    this.quantity,
-    this.unit, {
-    this.required = true,
-    this.aliases = const <String>[],
-  });
-
-  final String name;
-  final double quantity;
-  final String unit;
-  final bool required;
-  final List<String> aliases;
-}
-
-const Map<String, _IngredientTemplate> _ingredientTemplates = {
-  'garlic': _IngredientTemplate(
-    'กระเทียม',
-    4,
-    'กลีบ',
-    aliases: <String>['กระเทียมสด'],
-  ),
-  'chili': _IngredientTemplate(
-    'พริก',
-    4,
-    'เม็ด',
-    required: false,
-    aliases: <String>['พริกสด', 'พริกขี้หนู'],
-  ),
-  'holy_basil': _IngredientTemplate(
-    'ใบกะเพรา',
-    1,
-    'กำ',
-    aliases: <String>['กะเพรา', 'กระเพรา'],
-  ),
-  'fish_sauce': _IngredientTemplate('น้ำปลา', 1, 'ช้อนโต๊ะ'),
-  'soy_sauce': _IngredientTemplate(
-    'ซีอิ๊วขาว',
-    1,
-    'ช้อนโต๊ะ',
-    aliases: <String>['ซีอิ๊ว', 'โชยุ'],
-  ),
-  'dark_soy_sauce': _IngredientTemplate('ซีอิ๊วดำ', 1, 'ช้อนชา'),
-  'oyster_sauce': _IngredientTemplate(
-    'น้ำมันหอย',
-    1,
-    'ช้อนโต๊ะ',
-    aliases: <String>['ซอสหอยนางรม'],
-  ),
-  'cooking_oil': _IngredientTemplate(
-    'น้ำมันพืช',
-    2,
-    'ช้อนโต๊ะ',
-    aliases: <String>['น้ำมัน'],
-  ),
-  'sugar': _IngredientTemplate(
-    'น้ำตาล',
-    1,
-    'ช้อนชา',
-    required: false,
-    aliases: <String>['น้ำตาลทราย'],
-  ),
-  'salt': _IngredientTemplate(
-    'เกลือ',
-    0.5,
-    'ช้อนชา',
-    aliases: <String>['เกลือป่น'],
-  ),
-  'pepper': _IngredientTemplate(
-    'พริกไทย',
-    0.5,
-    'ช้อนชา',
-    required: false,
-    aliases: <String>['พริกไทยดำ'],
-  ),
-  'rice': _IngredientTemplate('ข้าวสวย', 1, 'ถ้วย', aliases: <String>['ข้าว']),
-  'egg': _IngredientTemplate('ไข่ไก่', 1, 'ฟอง', aliases: <String>['ไข่']),
-  'pork': _IngredientTemplate(
-    'หมูสับ',
-    100,
-    'กรัม',
-    aliases: <String>['หมู', 'เนื้อหมู'],
-  ),
-  'shrimp': _IngredientTemplate(
-    'กุ้ง',
-    100,
-    'กรัม',
-    aliases: <String>['กุ้งสด', 'กุ้งขาว'],
-  ),
-  'onion': _IngredientTemplate(
-    'หอมหัวใหญ่',
-    0.5,
-    'หัว',
-    required: false,
-    aliases: <String>['หัวหอมใหญ่'],
-  ),
-  'spring_onion': _IngredientTemplate(
-    'ต้นหอม',
-    1,
-    'ต้น',
-    required: false,
-    aliases: <String>['ต้นหอมซอย'],
-  ),
-  'lime': _IngredientTemplate('มะนาว', 1, 'ลูก', aliases: <String>['น้ำมะนาว']),
-  'lemongrass': _IngredientTemplate('ตะไคร้', 2, 'ต้น'),
-  'kaffir_lime_leaf': _IngredientTemplate('ใบมะกรูด', 4, 'ใบ'),
-  'galangal': _IngredientTemplate('ข่า', 5, 'แว่น'),
-  'mushroom': _IngredientTemplate(
-    'เห็ด',
-    100,
-    'กรัม',
-    required: false,
-    aliases: <String>['เห็ดฟาง', 'เห็ดนางฟ้า'],
-  ),
-  'broccoli': _IngredientTemplate(
-    'บรอกโคลี',
-    150,
-    'กรัม',
-    aliases: <String>['บร็อคโคลี่'],
-  ),
-  'kale': _IngredientTemplate(
-    'คะน้า',
-    150,
-    'กรัม',
-    aliases: <String>['ผักคะน้า'],
-  ),
-  'celery': _IngredientTemplate(
-    'ขึ้นฉ่าย',
-    2,
-    'ต้น',
-    aliases: <String>['คื่นฉ่าย'],
-  ),
-  'corn': _IngredientTemplate(
-    'ข้าวโพดอ่อน',
-    100,
-    'กรัม',
-    aliases: <String>['ข้าวโพด'],
-  ),
-  'green_pea': _IngredientTemplate('ถั่วลันเตา', 100, 'กรัม'),
-  'mixed_vegetables': _IngredientTemplate(
-    'ผักรวม',
-    150,
-    'กรัม',
-    aliases: <String>['แครอท', 'บรอกโคลี'],
-  ),
-  'chili_paste': _IngredientTemplate(
-    'น้ำพริกเผา',
-    1,
-    'ช้อนโต๊ะ',
-    aliases: <String>['พริกเผา'],
-  ),
-  'salted_egg': _IngredientTemplate('ไข่เค็ม', 1, 'ฟอง'),
-  'glass_noodle': _IngredientTemplate(
-    'วุ้นเส้น',
-    80,
-    'กรัม',
-    aliases: <String>['วุ้นเส้นแห้ง'],
-  ),
-  'tamarind_sauce': _IngredientTemplate(
-    'น้ำมะขามเปียก',
-    2,
-    'ช้อนโต๊ะ',
-    aliases: <String>['ซอสมะขาม'],
-  ),
-  'coconut_milk': _IngredientTemplate('กะทิ', 250, 'มิลลิลิตร'),
-  'red_curry_paste': _IngredientTemplate(
-    'พริกแกงแดง',
-    1,
-    'ช้อนโต๊ะ',
-    aliases: <String>['พริกแกง'],
-  ),
-  'sour_curry_paste': _IngredientTemplate('พริกแกงส้ม', 1, 'ช้อนโต๊ะ'),
-  'breadcrumbs': _IngredientTemplate('เกล็ดขนมปัง', 100, 'กรัม'),
-  'flour': _IngredientTemplate(
-    'แป้งทอดกรอบ',
-    100,
-    'กรัม',
-    aliases: <String>['แป้ง'],
-  ),
-  'ginger': _IngredientTemplate('ขิง', 20, 'กรัม', aliases: <String>['ขิงซอย']),
-  'cabbage': _IngredientTemplate(
-    'กะหล่ำปลี',
-    150,
-    'กรัม',
-    aliases: <String>['กะหล่ำ'],
-  ),
-  'tofu': _IngredientTemplate('เต้าหู้', 1, 'ก้อน'),
-  'potato': _IngredientTemplate('มันฝรั่ง', 1, 'หัว'),
-  'cashew': _IngredientTemplate('เม็ดมะม่วงหิมพานต์', 50, 'กรัม'),
-  'tomato': _IngredientTemplate('มะเขือเทศ', 1, 'ลูก'),
-};
 
 List<String> _stringList(Object? value) {
   if (value is String) {

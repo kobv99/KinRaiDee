@@ -36,7 +36,7 @@ class _ShoppingGenerationSheetState
 
   @override
   Widget build(BuildContext context) {
-    final recipes = ref.watch(recipesProvider);
+    final candidates = ref.watch(recipeMatchesProvider);
     return SafeArea(
       top: false,
       child: Padding(
@@ -65,13 +65,13 @@ class _ShoppingGenerationSheetState
                     children: [
                       Text(
                         _preview == null
-                            ? 'เลือกเมนู'
+                            ? 'เลือกสูตรจาก Pantry'
                             : 'ตรวจสอบรายการก่อนบันทึก',
                         style: AppTextStyles.headlineMedium,
                       ),
                       Text(
                         _preview == null
-                            ? 'เลือกหนึ่งเมนูขึ้นไป ระบบจะหักจำนวนที่มีใน Pantry อัตโนมัติ'
+                            ? 'แสดงเฉพาะสูตรที่มีวัตถุดิบ Primary อยู่ใน Pantry'
                             : 'ตรวจสอบการเปลี่ยนแปลงก่อนยืนยันบันทึก',
                         style: AppTextStyles.bodyMedium,
                       ),
@@ -94,15 +94,19 @@ class _ShoppingGenerationSheetState
             const SizedBox(height: AppSpacing.md),
             Expanded(
               child: _preview == null
-                  ? recipes.when(
-                      data: _buildRecipeSelection,
+                  ? candidates.when(
+                      data: (matches) => _buildRecipeSelection(
+                        matches
+                            .map((match) => match.recipe)
+                            .toList(growable: false),
+                      ),
                       loading: () => const Center(
                         child: CircularProgressIndicator(
                           key: ValueKey<String>('shopping-recipes-loading'),
                         ),
                       ),
                       error: (error, stackTrace) => _GenerationError(
-                        onRetry: () => ref.invalidate(recipesProvider),
+                        onRetry: () => ref.invalidate(recipeMatchesProvider),
                       ),
                     )
                   : _buildPreview(_preview!),
@@ -115,8 +119,8 @@ class _ShoppingGenerationSheetState
                 icon: const Icon(Icons.visibility_outlined),
                 label: Text(
                   _servings.isEmpty
-                      ? 'เลือกเมนูเพื่อดูตัวอย่าง'
-                      : 'ดูตัวอย่าง ${_servings.length} เมนู',
+                      ? 'เลือกสูตรเพื่อดูตัวอย่าง'
+                      : 'ดูตัวอย่าง ${_servings.length} สูตร',
                 ),
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(52),
@@ -169,7 +173,9 @@ class _ShoppingGenerationSheetState
 
   Widget _buildRecipeSelection(List<Recipe> recipes) {
     if (recipes.isEmpty) {
-      return const Center(child: Text('ไม่มีข้อมูลเมนูในอุปกรณ์นี้'));
+      return const Center(
+        child: Text('ยังไม่มีสูตรที่สัมพันธ์กับวัตถุดิบ Primary ใน Pantry'),
+      );
     }
     return ListView.separated(
       key: const ValueKey<String>('shopping-recipe-selection'),
@@ -239,7 +245,7 @@ class _ShoppingGenerationSheetState
             spacing: AppSpacing.md,
             runSpacing: AppSpacing.sm,
             children: [
-              _PreviewMetric(value: '${preview.recipeCount}', label: 'เมนู'),
+              _PreviewMetric(value: '${preview.recipeCount}', label: 'สูตร'),
               _PreviewMetric(
                 value: '${preview.aggregatedIngredientCount}',
                 label: 'วัตถุดิบ',
@@ -264,7 +270,7 @@ class _ShoppingGenerationSheetState
                         color: AppColors.success,
                       ),
                       SizedBox(height: AppSpacing.sm),
-                      Text('วัตถุดิบใน Pantry เพียงพอสำหรับเมนูเหล่านี้แล้ว'),
+                      Text('วัตถุดิบใน Pantry เพียงพอสำหรับสูตรเหล่านี้แล้ว'),
                     ],
                   ),
                 )
@@ -315,13 +321,20 @@ class _ShoppingGenerationSheetState
   void _createPreview() {
     final engine = ref.read(shoppingEngineProvider);
     if (engine == null) {
-      setState(() => _error = 'กำลังโหลดข้อมูลวัตถุดิบ กรุณาลองอีกครั้ง');
+      setState(() => _error = 'ข้อมูล Pantry ยังไม่พร้อม กรุณาลองอีกครั้ง');
       return;
     }
-    final recipes = ref.read(recipesProvider).value ?? const <Recipe>[];
+    final matches = ref.read(recipeMatchesProvider).value ?? const [];
     final byId = <String, Recipe>{
-      for (final recipe in recipes) recipe.id: recipe,
+      for (final match in matches) match.recipe.id: match.recipe,
     };
+    if (_servings.keys.any((id) => !byId.containsKey(id))) {
+      setState(() {
+        _error = 'สูตรที่เลือกไม่สัมพันธ์กับ Pantry แล้ว กรุณาเลือกใหม่';
+        _preview = null;
+      });
+      return;
+    }
     try {
       final now = ref.read(appClockProvider).now().toUtc();
       final existing = widget.existingList;
@@ -344,10 +357,10 @@ class _ShoppingGenerationSheetState
         _preview = preview;
         _error = null;
       });
-    } on ShoppingDomainException catch (error) {
-      setState(() => _error = error.message);
+    } on ShoppingDomainException {
+      setState(() => _error = 'สร้างรายการจากสูตรที่เลือกไม่ได้ กรุณาตรวจข้อมูล');
     } on Object {
-      setState(() => _error = 'Could not generate a preview.');
+      setState(() => _error = 'สร้างตัวอย่างรายการไม่ได้ กรุณาลองอีกครั้ง');
     }
   }
 
@@ -509,7 +522,7 @@ class _GenerationError extends StatelessWidget {
         children: [
           const Icon(Icons.cloud_off_outlined, size: 48),
           const SizedBox(height: AppSpacing.sm),
-          const Text('ไม่สามารถโหลดข้อมูลเมนูได้'),
+          const Text('ไม่สามารถโหลดสูตรจาก Pantry ได้'),
           TextButton(onPressed: onRetry, child: const Text('ลองอีกครั้ง')),
         ],
       ),
@@ -534,8 +547,8 @@ String _transactionError(String code) {
     'stale_inventory_revision' || 'stale_shopping_list_revision' =>
       'รายการมีการเปลี่ยนแปลง กรุณาปิดตัวอย่างแล้วลองอีกครั้ง',
     'invalid_shopping_unit_conversion' =>
-      'มีจำนวนอย่างน้อยหนึ่งรายการที่ไม่สามารถแปลงหน่วยได้อย่างปลอดภัย',
+      'มีรายการที่หน่วยวัดยังไม่สามารถรวมได้อย่างปลอดภัย',
     'recovery_required' => 'ต้องกู้คืนข้อมูลในเครื่องให้เสร็จก่อนแก้ไขรายการ',
-    _ => 'ไม่สามารถบันทึกรายการได้ ($code) ข้อมูลเดิมไม่ถูกเปลี่ยนแปลง',
+    _ => 'ไม่สามารถบันทึกรายการได้ ข้อมูลเดิมไม่ถูกเปลี่ยนแปลง',
   };
 }
