@@ -61,6 +61,7 @@ class RecipeReadinessService {
     required List<pantry_model.Ingredient> pantry,
     required int servings,
     required DateTime evaluatedAt,
+    Map<String, String> acceptedSubstitutions = const <String, String>{},
   }) {
     if (servings <= 0) {
       throw ArgumentError.value(servings, 'servings', 'must be greater than 0');
@@ -88,6 +89,9 @@ class RecipeReadinessService {
         requiredQuantity: ingredient.quantity * scale,
         pantry: availablePantry,
         weight: weight,
+        acceptedSubstituteId: canonicalId == null
+            ? null
+            : acceptedSubstitutions[canonicalId],
       );
       evaluations.add(evaluation);
       totalWeight += weight;
@@ -126,6 +130,7 @@ class RecipeReadinessService {
     required double requiredQuantity,
     required List<pantry_model.Ingredient> pantry,
     required double weight,
+    required String? acceptedSubstituteId,
   }) {
     if (!requiredQuantity.isFinite || requiredQuantity < 0) {
       return _result(
@@ -166,6 +171,21 @@ class RecipeReadinessService {
         .where((item) => _pantryMatchesCanonical(item, canonicalId))
         .toList(growable: false);
     if (matching.isEmpty) {
+      if (acceptedSubstituteId != null &&
+          pantry.any(
+            (item) => _pantryMatchesCanonical(item, acceptedSubstituteId),
+          )) {
+        return _result(
+          ingredient: ingredient,
+          canonicalId: canonicalId,
+          requiredQuantity: requiredQuantity,
+          availableQuantity: requiredQuantity,
+          ratio: 1,
+          weight: weight,
+          status: RecipeIngredientReadinessStatus.substituted,
+          substituteCanonicalIngredientId: acceptedSubstituteId,
+        );
+      }
       return _result(
         ingredient: ingredient,
         canonicalId: canonicalId,
@@ -245,6 +265,7 @@ class RecipeReadinessService {
     required double ratio,
     required double weight,
     required RecipeIngredientReadinessStatus status,
+    String? substituteCanonicalIngredientId,
   }) {
     final shortage = requiredQuantity.isFinite
         ? requiredQuantity - availableQuantity
@@ -258,6 +279,7 @@ class RecipeReadinessService {
       availabilityRatio: ratio,
       weight: weight,
       status: status,
+      substituteCanonicalIngredientId: substituteCanonicalIngredientId,
     );
   }
 

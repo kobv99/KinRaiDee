@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/providers/canonical_ingredient_providers.dart';
 import '../../../../core/providers/pantry_provider.dart';
 import '../../../pantry/application/inventory_transaction_providers.dart';
+import '../../../substitution/presentation/providers/substitution_provider.dart';
 import '../../data/datasources/local_recipe_datasource.dart';
 import '../../data/repositories/local_hero_selection_repository.dart';
 import '../../data/repositories/local_recipe_repository.dart';
@@ -70,6 +71,10 @@ final recipeReadinessProvider =
         pantry: ref.watch(pantryProvider),
         servings: request.servings,
         evaluatedAt: ref.watch(appClockProvider).now(),
+        acceptedSubstitutions: acceptedForRecipe(
+          ref.watch(acceptedSubstitutionsProvider),
+          request.recipe.id,
+        ),
       );
     });
 
