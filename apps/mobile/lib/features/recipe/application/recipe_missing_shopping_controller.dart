@@ -44,11 +44,21 @@ class RecipeMissingShoppingController {
     required ShoppingMutationExecutor executeShoppingMutation,
     required List<Ingredient> Function() readPantry,
     required AppClock clock,
-  }) : _engine = engine,
-       _shoppingRepository = shoppingRepository,
-       _executeShoppingMutation = executeShoppingMutation,
-       _readPantry = readPantry,
-       _clock = clock;
+  }) : this._(
+         engine,
+         shoppingRepository,
+         executeShoppingMutation,
+         readPantry,
+         clock,
+       );
+
+  const RecipeMissingShoppingController._(
+    this._engine,
+    this._shoppingRepository,
+    this._executeShoppingMutation,
+    this._readPantry,
+    this._clock,
+  );
 
   final ShoppingEngine _engine;
   final ShoppingRepository _shoppingRepository;
