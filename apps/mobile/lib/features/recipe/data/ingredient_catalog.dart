@@ -7,6 +7,7 @@ import '../../../core/domain/ingredients/canonical_ingredient_registry.dart';
 import '../../../core/domain/ingredients/ingredient_artwork_policy.dart';
 import '../../../core/domain/units/ingredient_unit_policy.dart';
 import '../../../core/domain/units/unit_contract.dart';
+import 'pantry_catalog_canonical_definitions.dart';
 
 class IngredientCatalog {
   IngredientCatalog({
@@ -41,8 +42,9 @@ class IngredientCatalog {
   Future<CanonicalIngredientRegistry> loadRegistry({
     String assetPath = 'assets/ingredients/thai_ingredients.json',
   }) async {
+    final bundled = await load(assetPath: assetPath);
     return CanonicalIngredientRegistry(
-      ingredients: await load(assetPath: assetPath),
+      ingredients: applyPantryCatalogCanonicalCoverage(bundled),
       redirects: defaultCanonicalIngredientRedirects,
     );
   }

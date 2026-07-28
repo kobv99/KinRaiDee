@@ -105,7 +105,7 @@ void main() {
             pantry: [
               _pantry(
                 'ไข่',
-                expiryDate: DateTime.now().subtract(const Duration(days: 1)),
+                expiryDate: DateTime.utc(2020, 1, 1),
               ),
             ],
           )
