@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mobile/app/navigation/app_navigation_provider.dart';
 import 'package:mobile/core/providers/pantry_provider.dart';
 import 'package:mobile/features/recipe/domain/entities/recipe.dart';
 import 'package:mobile/features/recipe/domain/entities/recipe_ingredient.dart';
@@ -57,13 +58,22 @@ void main() {
       expect(find.text('ลองอีกครั้ง'), findsOneWidget);
     });
 
-    testWidgets('renders actionable initial empty state', (tester) async {
+    testWidgets('renders Pantry-first initial empty state', (tester) async {
       final harness = await ShoppingUiHarness.create();
       addTearDown(harness.dispose);
       await harness.pump(tester);
 
       expect(find.text('ยังไม่มีรายการซื้อของ'), findsOneWidget);
-      expect(find.text('สร้างรายการจากเมนู'), findsOneWidget);
+      expect(find.text('ไปเลือกสูตรจาก Pantry'), findsOneWidget);
+
+      await tester.tap(find.text('ไปเลือกสูตรจาก Pantry'));
+      await tester.pump();
+
+      expect(
+        harness.container.read(appNavigationProvider),
+        AppNavigationNotifier.recipeTab,
+      );
+      expect(await harness.lists(), isEmpty);
     });
   });
 
@@ -119,7 +129,7 @@ void main() {
     });
 
     testWidgets(
-      'เก็บเข้าตู้ removes Shopping, merges Pantry, records history, and undoes',
+      'purchase updates Pantry, removes Shopping, records history, and undoes',
       (tester) async {
         final harness = await ShoppingUiHarness.create(
           pantry: [
@@ -160,13 +170,16 @@ void main() {
         expect(harness.container.read(pantryProvider).single.quantity, 8);
         expect((await harness.lists()).single.items, isEmpty);
         expect(await harness.history(), hasLength(1));
-        expect(find.text('✓ เพิ่มเข้าตู้แล้ว'), findsOneWidget);
+        expect(find.text('✓ Pantry อัปเดตแล้ว'), findsOneWidget);
         expect(
           find.byKey(const ValueKey<String>('shopping-complete-empty-state')),
           findsOneWidget,
         );
         expect(find.text('🎉 ไม่มีรายการที่ต้องซื้อแล้ว'), findsOneWidget);
-        expect(find.text('พร้อมทำอาหารได้เลย'), findsOneWidget);
+        expect(
+          find.text('Pantry พร้อมสำหรับสูตรที่วางแผนไว้'),
+          findsOneWidget,
+        );
 
         await tester.tap(find.byType(SnackBarAction));
         await tester.pumpAndSettle();
@@ -235,7 +248,7 @@ void main() {
       expect((await harness.lists()).single.items.single.displayName, 'Egg');
     });
 
-    testWidgets('failed durable completion shows error without UI drift', (
+    testWidgets('failed durable completion shows safe error without UI drift', (
       tester,
     ) async {
       final harness = await ShoppingUiHarness.create(
@@ -265,16 +278,20 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('ไม่สำเร็จอย่างปลอดภัย'), findsOneWidget);
+      expect(
+        find.text('ทำรายการไม่สำเร็จ ข้อมูลเดิมยังคงปลอดภัย'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('shopping-purchase:'), findsNothing);
       expect((await harness.lists()).single.items.single.id, 'egg-item');
       expect(harness.container.read(pantryProvider), isEmpty);
       expect(await harness.history(), isEmpty);
     });
-  });
 
-  testWidgets(
-    'multi-recipe preview confirms and regenerates without duplicates',
-    (tester) async {
+    testWidgets('planning from Shopping routes to Recipes without mutation', (
+      tester,
+    ) async {
+      final initial = testShoppingList(now: now);
       final harness = await ShoppingUiHarness.create(
         pantry: [
           testPantryLot(
@@ -287,62 +304,29 @@ void main() {
           ),
         ],
         recipes: _recipes,
+        list: initial,
       );
       addTearDown(harness.dispose);
       await harness.pump(tester);
 
-      await _generateAllRecipes(tester);
-      final firstList = (await harness.lists()).single;
-      expect(firstList.items, hasLength(2));
-      expect(
-        firstList.items.map((item) => item.canonicalIngredientId).toSet(),
-        <String>{'egg', 'rice'},
-      );
-
+      final before = (await harness.lists()).single;
       await tester.tap(
         find.byKey(const ValueKey<String>('shopping-generate-button')),
       );
-      await tester.pumpAndSettle();
-      await _selectRecipesAndConfirm(tester);
+      await tester.pump();
 
-      final regenerated = (await harness.lists()).single;
-      expect(regenerated.items, hasLength(2));
       expect(
-        regenerated.items.map((item) => item.canonicalIngredientId).toSet(),
-        hasLength(2),
+        harness.container.read(appNavigationProvider),
+        AppNavigationNotifier.recipeTab,
       );
-      expect(regenerated.revision, greaterThan(firstList.revision));
-    },
-  );
-}
-
-Future<void> _generateAllRecipes(WidgetTester tester) async {
-  await tester.tap(find.text('สร้างรายการจากเมนู'));
-  await tester.pumpAndSettle();
-  await _selectRecipesAndConfirm(tester);
-}
-
-Future<void> _selectRecipesAndConfirm(WidgetTester tester) async {
-  await tester.tap(
-    find.byKey(const ValueKey<String>('shopping-recipe-omelette')),
-  );
-  await tester.pump();
-  await tester.tap(
-    find.byKey(const ValueKey<String>('shopping-recipe-fried-rice')),
-  );
-  await tester.pump();
-  await tester.tap(
-    find.byKey(const ValueKey<String>('shopping-preview-button')),
-  );
-  await tester.pumpAndSettle();
-  expect(
-    find.byKey(const ValueKey<String>('shopping-generation-preview')),
-    findsOneWidget,
-  );
-  await tester.tap(
-    find.byKey(const ValueKey<String>('shopping-confirm-button')),
-  );
-  await tester.pumpAndSettle();
+      final after = (await harness.lists()).single;
+      expect(after.revision, before.revision);
+      expect(
+        after.items.map((item) => item.id),
+        orderedEquals(before.items.map((item) => item.id)),
+      );
+    });
+  });
 }
 
 const List<Recipe> _recipes = <Recipe>[
@@ -353,6 +337,7 @@ const List<Recipe> _recipes = <Recipe>[
     emoji: 'O',
     cookTimeMinutes: 10,
     servings: 2,
+    heroIngredientId: 'egg',
     ingredients: <RecipeIngredient>[
       RecipeIngredient(id: 'egg', name: 'Egg', quantity: 2, unit: 'piece'),
     ],
@@ -365,6 +350,7 @@ const List<Recipe> _recipes = <Recipe>[
     emoji: 'R',
     cookTimeMinutes: 20,
     servings: 2,
+    heroIngredientId: 'rice',
     ingredients: <RecipeIngredient>[
       RecipeIngredient(
         id: 'egg',
