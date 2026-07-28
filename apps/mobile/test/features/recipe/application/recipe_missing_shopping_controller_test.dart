@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/core/providers/pantry_provider.dart';
+import 'package:mobile/features/recipe/application/recipe_missing_shopping_controller.dart';
 import 'package:mobile/features/recipe/domain/entities/recipe.dart';
 import 'package:mobile/features/recipe/domain/entities/recipe_ingredient.dart';
 import 'package:mobile/features/recipe/presentation/providers/recipe_shopping_provider.dart';
@@ -126,6 +127,22 @@ void main() {
     expect(result.isSuccess, isTrue);
     expect(result.changedItemCount, 0);
     expect(await harness.lists(), isEmpty);
+  });
+
+  test('failed durable write leaves Shopping unchanged', () async {
+    final now = DateTime.utc(2026, 7, 28, 8);
+    final harness = await ShoppingUiHarness.create(at: now);
+    addTearDown(harness.dispose);
+    harness.store.failEnvelopeWrites = true;
+
+    final result = await harness.container
+        .read(recipeMissingShoppingControllerProvider)!
+        .addMissingIngredients(recipe: _recipe, servings: 2);
+
+    expect(result.outcome, RecipeMissingShoppingOutcome.failed);
+    expect(result.changedItemCount, 0);
+    expect(await harness.lists(), isEmpty);
+    expect(harness.container.read(pantryProvider), isEmpty);
   });
 
   test('purchased Recipe shortage merges the existing canonical Pantry record', () async {
