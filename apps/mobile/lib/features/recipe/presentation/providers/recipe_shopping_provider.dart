@@ -14,7 +14,8 @@ final recipeMissingShoppingControllerProvider =
       return RecipeMissingShoppingController(
         engine: engine,
         shoppingRepository: ref.watch(shoppingRepositoryProvider),
-        mutationController: ref.watch(shoppingMutationControllerProvider),
+        executeShoppingMutation:
+            ref.watch(shoppingMutationControllerProvider).execute,
         readPantry: () => ref.read(pantryProvider),
         clock: ref.watch(appClockProvider),
       );
