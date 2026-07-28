@@ -92,6 +92,44 @@ void main() {
       expect(find.text('ขั้นตอน 1'), findsOneWidget);
     },
   );
+
+  testWidgets('compact and expanded advisory do not overflow small screens', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final harness = await _harness();
+    addTearDown(harness.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: harness.container,
+        child: MaterialApp(
+          theme: ThemeData(useMaterial3: true),
+          home: const RecipeDetailPage(recipe: _recipe),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(
+      find.byKey(const ValueKey<String>('add-missing-to-shopping')),
+      findsOneWidget,
+    );
+    expect(find.text('เริ่มทำอาหารสำหรับ 2 คน'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('recipe-readiness-toggle')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('เราแนะนำให้เตรียมเพิ่ม'), findsOneWidget);
+    expect(find.text('เริ่มทำอาหารสำหรับ 2 คน'), findsOneWidget);
+  });
 }
 
 Future<ShoppingUiHarness> _harness() {
