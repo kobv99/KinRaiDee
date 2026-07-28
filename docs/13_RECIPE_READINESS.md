@@ -1,35 +1,103 @@
-# Recipe Readiness and Smart Shopping Foundation
+# Recipe Readiness and Pantry Candidate Rules
 
 ## Product Rule
 
-Pantry is the starting point for cooking decisions. Recipe Readiness answers:
+Pantry is the starting point for cooking decisions. Recipe evaluation answers:
 
 > What can I cook with what I already have?
 
-Readiness is a deterministic domain projection. It is not AI-generated and is
-not persisted separately from Recipe and Pantry data.
+The flow is deterministic and domain-owned. It is not AI-generated and is not
+persisted separately from Recipe and Pantry data.
 
 ## Source of Truth
 
-- Recipe ingredients define required quantities, units, optional status, and
-  optional readiness metadata.
-- Pantry inventory provides the current canonical quantity snapshot.
+- Recipe data declares ingredient identity, quantity, unit, role, and weight.
+- `assets/recipes/ingredient_catalog.json` provides reusable defaults.
+- Individual Recipe packs may override any ingredient metadata.
+- Pantry provides the current canonical quantity snapshot.
 - `CanonicalIngredientRegistry` owns ingredient identity resolution.
-- `UnitConversionEngine` owns all quantity conversion and precision rules.
-- `RecipeReadinessService` combines those inputs into a derived result.
+- `UnitConversionEngine` owns conversion and precision.
+- `RecipeCandidateService` owns recommendation eligibility and ranking.
+- `RecipeReadinessService` owns quantity-aware readiness.
 
-Recomputing the projection whenever Pantry, Recipe version, or servings changes
-prevents stale readiness records and avoids a second persistence schema.
+Recomputing whenever Pantry, Recipe version, or servings changes prevents stale
+records and avoids another persistence schema.
 
-## Domain Model
+## Data-Driven Ingredient Model
 
-`RecipeIngredient` remains backward compatible and may additionally declare:
+`RecipeIngredient` supports:
 
-- `importance`: `main`, `supporting`, or `garnish`;
-- `readinessWeight`: an explicit positive scoring override.
+- `role`: `primary`, `secondary`, or `optional`;
+- `weight`: an explicit positive contribution to readiness;
+- identity, aliases, quantity, and unit.
 
-Existing Recipe packs require no migration. When metadata is absent, the service
-uses Recipe hero identity and required/optional status.
+Example:
+
+```json
+{
+  "id": "holy_basil",
+  "role": "primary",
+  "weight": 35
+}
+```
+
+The Dart parser no longer owns a hardcoded ingredient catalog. Legacy string IDs
+remain readable and resolve their defaults from JSON. Legacy `required`,
+`importance`, and `readinessWeight` fields remain compatibility inputs, not the
+preferred schema.
+
+## Roles
+
+| Role | Product meaning | Candidate behavior | Shopping behavior |
+|---|---|---|---|
+| Primary | Defines the Recipe's meaningful Pantry relationship | At least one must exist in Pantry | Missing amount is required |
+| Secondary | Required support | Does not create a candidate alone | Missing amount is required |
+| Optional | Nice-to-have or garnish | Does not create a candidate | Excluded by default |
+
+A Recipe may have more than one Primary ingredient. Pad Kra Pao, for example, can
+be related to Pantry through Pork or Holy Basil. Egg alone does not make it a
+candidate.
+
+## Candidate Recipes
+
+`RecipeCandidateService` evaluates all Recipes against Pantry. A Recipe is returned
+only when at least one Primary ingredient is represented in Pantry.
+
+A positive but insufficient quantity still establishes a meaningful relationship.
+An incompatible unit can also establish identity, but readiness remains a typed
+unit-mismatch result. Missing or unresolved Primary ingredients do not.
+
+Candidates are ranked by:
+
+1. weighted readiness score;
+2. fewer missing Primary ingredients;
+3. fewer missing Secondary ingredients;
+4. popularity and stable name ordering.
+
+Recommendation lists and Random Recipe consume this candidate list. They never
+start from the complete Recipe catalog.
+
+## Weighted Readiness
+
+The score is quantity-aware:
+
+```text
+ingredient contribution = weight × clamp(available / required, 0, 1)
+readiness = sum(contributions) / sum(weights)
+```
+
+Explicit data weight wins. Role defaults exist only for legacy data:
+
+| Role | Legacy fallback weight |
+|---|---:|
+| Primary | 5.0 |
+| Secondary | 2.0 |
+| Optional | 0.5 |
+| Legacy garnish | 0.25 |
+
+A partially available ingredient contributes proportionally. Missing a Primary
+ingredient therefore has a much larger effect when the Recipe data assigns it a
+large weight.
 
 `RecipeReadiness` exposes:
 
@@ -39,134 +107,75 @@ uses Recipe hero identity and required/optional status.
 - optional ingredients;
 - missing optional ingredients;
 - per-ingredient required, available, and shortage quantities;
-- canonical identity, weight, availability ratio, and typed status.
-
-## Weighted Scoring
-
-Default weights:
-
-| Ingredient role | Weight |
-|---|---:|
-| Hero/main ingredient | 5.0 |
-| Required supporting ingredient | 2.0 |
-| Optional ingredient | 0.5 |
-| Garnish | 0.25 |
-
-The score is quantity-aware:
-
-```text
-ingredient contribution = weight × clamp(available / required, 0, 1)
-readiness = sum(contributions) / sum(weights)
-```
-
-A partially available ingredient therefore contributes proportionally. Missing a
-main protein has a much larger effect than missing garnish.
-
-Explicit ingredient weight wins over importance. Explicit importance wins over
-hero/required/optional fallback.
+- canonical identity, role, weight, availability ratio, and typed status.
 
 ## Canonical and Unit Rules
 
-For each Recipe ingredient, resolution order is:
+Resolution order:
 
 1. canonical ingredient ID or redirect;
 2. stable registry key;
-3. localized name or canonical name;
+3. localized or canonical name;
 4. aliases.
 
-Pantry display-name equality is never an identity rule. Legacy Pantry records
-without canonical IDs may use the registry name path as a read-only compatibility
-fallback.
+Display-name equality is never an identity rule. Exact canonical identity is
+required after redirect resolution. Parent/child families are not substitutions.
 
-After redirect resolution, Recipe Readiness requires the exact same canonical ID.
-Parent/child ingredient families are not treated as substitutions in this sprint.
-That boundary is reserved for the future Ingredient Substitution feature.
-
-All non-expired, positive Pantry records with the exact resolved identity are
-converted into the Recipe unit and summed. Incompatible units produce a typed
-status and contribute zero rather than being silently merged or guessed.
+All non-expired positive Pantry records with the identity are converted into the
+Recipe unit and summed. Incompatible units produce a typed status and are never
+guessed.
 
 ## Riverpod Projection
 
-- `recipeReadinessServiceProvider` wires registry and unit contracts.
+- `recipeReadinessServiceProvider` wires identity and unit contracts.
+- `recipeCandidateServiceProvider` wires the candidate domain service.
 - `recipeReadinessProvider` evaluates one Recipe and serving count.
-- `recipeReadinessListProvider` guarantees one result for every loaded Recipe.
+- `recipeReadinessListProvider` returns one result per loaded Recipe.
+- `recipeMatchesProvider` returns Pantry candidate Recipes only.
+- `smartRecommendationProvider` ranks and pages only those candidates.
 
-The family cache key includes Recipe ID, Recipe version, and servings. Pantry and
-clock changes are watched dependencies, so inventory updates recalculate the
-projection.
+The cache identity includes Recipe ID, Recipe version, and servings. Pantry and
+clock changes trigger recalculation.
 
-## Recipe Detail
+## Recipe Detail and Shopping
 
-Recipe Detail displays a bounded, scrollable readiness panel below the existing
-AppBar. It shows:
+Recipe Detail shows readiness groups and one action to add missing required
+ingredients. `RecipeMissingShoppingController` first verifies that the selected
+Recipe is still a candidate, then calls `ShoppingEngine.generate` with that Recipe,
+Pantry, and servings.
 
-- readiness percentage and progress;
-- available, missing, and optional counts;
-- ingredient groups and shortage quantities;
-- one action to add required shortages to Shopping.
+The engine adds only missing required quantities, preserves existing active intent,
+avoids canonical duplicates, and executes one durable Shopping mutation. Optional
+ingredients are excluded by default.
 
-The existing serving, cooking checklist, Pantry deduction, Cooking History, and
-Undo flows remain unchanged.
-
-The readiness action currently uses the Recipe's configured serving count. A
-future shared serving-selection state may synchronize all Recipe Detail sections;
-that is outside this focused sprint.
-
-## Add Missing Ingredients to Shopping
-
-The UI invokes one application action:
-
-```text
-Add Missing Ingredients(recipe, servings)
-```
-
-`RecipeMissingShoppingController`:
-
-1. loads the current actionable Shopping list;
-2. calls the existing `ShoppingEngine.generate` with Recipe, Pantry, and servings;
-3. excludes optional ingredients by default;
-4. detects no-missing and unchanged outcomes;
-5. executes one durable `ShoppingMutation.upsert`.
-
-The controller depends on a `ShoppingMutationExecutor` function rather than a
-Riverpod provider or concrete presentation controller. Provider wiring stays at
-the presentation boundary.
-
-Canonical duplicate avoidance, unit conversion, Pantry subtraction, active manual
-intent, revisions, durable commit, and recovery all remain owned by the existing
-Shopping Engine and transaction coordinator.
+The Shopping screen does not independently choose Recipes. Planning actions route
+back to Pantry-based Recipe selection.
 
 ## Pantry Completion
 
-This sprint does not add another Pantry write path. Shopping completion continues
-to call the canonical Pantry merge service introduced by the Shopping workflow.
-Completing purchased items therefore updates compatible inventory instead of
-creating duplicate canonical Pantry records.
+Completing Shopping updates Pantry through `PantryCanonicalMergeService`.
+Compatible units merge deterministically into the oldest durable Pantry record.
+When units cannot be converted, the user may cancel, keep the purchase as a
+separate Pantry record, or view the future conversion-configuration action.
 
-## Future Extension Points
-
-The readiness result is intentionally reusable by future features:
-
-- Smart Shopping prioritization;
-- Ingredient Substitution;
-- AI Cooking Advisor;
-- Purchase Optimization.
-
-None of those features is implemented here. Future systems consume the typed
-readiness result rather than duplicating Pantry matching or scoring logic.
+Raw transaction codes, object IDs, UUIDs, exception messages, and stack traces are
+never presentation text.
 
 ## Validation Targets
 
-- hero/main and garnish weighting;
+- data-driven role and weight parsing;
+- Egg-only candidate rejection for Pad Kra Pao;
+- Pork and Holy Basil candidate acceptance;
+- role-/weight-aware ranking and readiness;
 - partial quantity scoring;
 - convertible-unit aggregation;
-- localized identity fallback;
-- exact identity without substitution;
+- incompatible-unit typed status and keep-separate action;
 - expired Pantry exclusion;
-- every Recipe receives a result;
-- Recipe Detail groups and score;
-- one-click batch Shopping upsert;
-- repeated action produces no duplicate canonical Shopping item;
-- fully ready Recipes do not create empty Shopping lists;
-- existing Shopping completion still performs canonical Pantry merge.
+- candidate-only Random Recipe and Shopping generation;
+- one-click missing Shopping upsert;
+- repeated action produces no canonical duplicate;
+- fully ready Recipe produces no empty Shopping list;
+- existing completion, Undo, persistence, and recovery remain durable.
+
+Smart Shopping Recommendation, AI Cooking Advisor, Ingredient Substitution, and
+Purchase Optimization remain future work.
