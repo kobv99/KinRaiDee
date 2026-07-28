@@ -46,7 +46,8 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
               expanded: _expanded,
               isAddingMissing: _isAddingMissing,
               onToggle: () => setState(() => _expanded = !_expanded),
-              onAddMissing: readiness == null || readiness.missingIngredients.isEmpty
+              onAddMissing:
+                  readiness == null || readiness.missingIngredients.isEmpty
                   ? null
                   : _addMissingIngredients,
             ),
@@ -123,6 +124,9 @@ class _ReadinessPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final value = readiness;
+    final detailsHeight = (MediaQuery.sizeOf(context).height * 0.34)
+        .clamp(180.0, 340.0)
+        .toDouble();
     return Container(
       key: const ValueKey<String>('recipe-readiness-panel'),
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
@@ -153,11 +157,14 @@ class _ReadinessPanel extends StatelessWidget {
                         children: [
                           Text(
                             'ความพร้อม ${value.scorePercent}%',
-                            key: const ValueKey<String>('recipe-readiness-score'),
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: colors.onPrimaryContainer,
+                            key: const ValueKey<String>(
+                              'recipe-readiness-score',
                             ),
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: colors.onPrimaryContainer,
+                                ),
                           ),
                           const SizedBox(height: 6),
                           LinearProgressIndicator(
@@ -200,44 +207,64 @@ class _ReadinessPanel extends StatelessWidget {
                 ),
                 if (expanded) ...[
                   const SizedBox(height: 12),
-                  _IngredientGroup(
-                    title: 'มีใน Pantry แล้ว',
-                    emptyLabel: 'ยังไม่มีวัตถุดิบที่ครบตามปริมาณ',
-                    items: value.availableIngredients,
-                    icon: Icons.check_circle_outline,
-                  ),
-                  const SizedBox(height: 10),
-                  _IngredientGroup(
-                    title: 'วัตถุดิบที่ขาด',
-                    emptyLabel: 'วัตถุดิบหลักครบแล้ว',
-                    items: value.missingIngredients,
-                    icon: Icons.shopping_cart_outlined,
-                  ),
-                  const SizedBox(height: 10),
-                  _IngredientGroup(
-                    title: 'วัตถุดิบไม่บังคับ',
-                    emptyLabel: 'สูตรนี้ไม่มีวัตถุดิบไม่บังคับ',
-                    items: value.optionalIngredients,
-                    icon: Icons.eco_outlined,
-                  ),
-                  if (value.missingIngredients.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    FilledButton.icon(
-                      key: const ValueKey<String>('add-missing-to-shopping'),
-                      onPressed: isAddingMissing ? null : onAddMissing,
-                      icon: isAddingMissing
-                          ? const SizedBox.square(
-                              dimension: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.add_shopping_cart_outlined),
-                      label: Text(
-                        isAddingMissing
-                            ? 'กำลังเพิ่มไป Shopping'
-                            : 'เพิ่มวัตถุดิบที่ขาดไป Shopping',
+                  SizedBox(
+                    height: detailsHeight,
+                    child: Scrollbar(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _IngredientGroup(
+                              title: 'มีใน Pantry แล้ว',
+                              emptyLabel: 'ยังไม่มีวัตถุดิบที่ครบตามปริมาณ',
+                              items: value.availableIngredients,
+                              icon: Icons.check_circle_outline,
+                            ),
+                            const SizedBox(height: 10),
+                            _IngredientGroup(
+                              title: 'วัตถุดิบที่ขาด',
+                              emptyLabel: 'วัตถุดิบหลักครบแล้ว',
+                              items: value.missingIngredients,
+                              icon: Icons.shopping_cart_outlined,
+                            ),
+                            const SizedBox(height: 10),
+                            _IngredientGroup(
+                              title: 'วัตถุดิบไม่บังคับ',
+                              emptyLabel: 'สูตรนี้ไม่มีวัตถุดิบไม่บังคับ',
+                              items: value.optionalIngredients,
+                              icon: Icons.eco_outlined,
+                            ),
+                            if (value.missingIngredients.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              FilledButton.icon(
+                                key: const ValueKey<String>(
+                                  'add-missing-to-shopping',
+                                ),
+                                onPressed: isAddingMissing
+                                    ? null
+                                    : onAddMissing,
+                                icon: isAddingMissing
+                                    ? const SizedBox.square(
+                                        dimension: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Icon(
+                                        Icons.add_shopping_cart_outlined,
+                                      ),
+                                label: Text(
+                                  isAddingMissing
+                                      ? 'กำลังเพิ่มไป Shopping'
+                                      : 'เพิ่มวัตถุดิบที่ขาดไป Shopping',
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
                     ),
-                  ],
+                  ),
                 ],
               ],
             ),
@@ -329,9 +356,9 @@ class _IngredientGroup extends StatelessWidget {
     if (value == value.roundToDouble()) {
       return value.toInt().toString();
     }
-    return value.toStringAsFixed(2).replaceFirst(RegExp(r'0+$'), '').replaceFirst(
-      RegExp(r'\.$'),
-      '',
-    );
+    return value
+        .toStringAsFixed(2)
+        .replaceFirst(RegExp(r'0+$'), '')
+        .replaceFirst(RegExp(r'\.$'), '');
   }
 }
