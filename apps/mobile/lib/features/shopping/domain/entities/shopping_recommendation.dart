@@ -34,10 +34,8 @@ class RecommendationRecipeImpact {
   final double shortageQuantity;
   final String shortageUnitId;
 
-  int get readinessBeforePercent =>
-      (readinessBefore.clamp(0, 1) * 100).round();
-  int get readinessAfterPercent =>
-      (readinessAfter.clamp(0, 1) * 100).round();
+  int get readinessBeforePercent => (readinessBefore.clamp(0, 1) * 100).round();
+  int get readinessAfterPercent => (readinessAfter.clamp(0, 1) * 100).round();
   int get readinessIncreasePercent =>
       (readinessIncrease.clamp(0, 1) * 100).round();
 

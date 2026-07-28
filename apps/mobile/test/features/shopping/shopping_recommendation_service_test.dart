@@ -24,43 +24,46 @@ void main() {
     unitEngine: units,
   );
 
-  test('ranks deterministic cooking value and excludes optional-only items', () {
-    final first = service.recommend(
-      recipes: _recipes,
-      pantry: <Ingredient>[_pantry('rice', 100, 'gram', now)],
-      shoppingLists: const <ShoppingList>[],
-      evaluatedAt: now,
-    );
-    final second = service.recommend(
-      recipes: _recipes.reversed.toList(),
-      pantry: <Ingredient>[_pantry('rice', 100, 'gram', now)],
-      shoppingLists: const <ShoppingList>[],
-      evaluatedAt: now,
-    );
+  test(
+    'ranks deterministic cooking value and excludes optional-only items',
+    () {
+      final first = service.recommend(
+        recipes: _recipes,
+        pantry: <Ingredient>[_pantry('rice', 100, 'gram', now)],
+        shoppingLists: const <ShoppingList>[],
+        evaluatedAt: now,
+      );
+      final second = service.recommend(
+        recipes: _recipes.reversed.toList(),
+        pantry: <Ingredient>[_pantry('rice', 100, 'gram', now)],
+        shoppingLists: const <ShoppingList>[],
+        evaluatedAt: now,
+      );
 
-    expect(first.map((item) => item.canonicalIngredientId), <String>[
-      'egg',
-      'onion',
-    ]);
-    expect(
-      first.map((item) => item.toJson()).toList(),
-      second.map((item) => item.toJson()).toList(),
-    );
+      expect(first.map((item) => item.canonicalIngredientId), <String>[
+        'egg',
+        'onion',
+      ]);
+      expect(
+        first.map((item) => item.toJson()).toList(),
+        second.map((item) => item.toJson()).toList(),
+      );
 
-    final egg = first.first;
-    expect(egg.evidence.recipesUnlocked, 2);
-    expect(egg.evidence.impactedRecipeCount, 2);
-    expect(egg.recommendedQuantity, 2);
-    expect(egg.targetShoppingQuantity, 2);
-    expect(
-      egg.evidence.reasonCodes.map((reason) => reason.name),
-      contains('unlocksManyRecipes'),
-    );
-    expect(
-      first.where((item) => item.canonicalIngredientId == 'cinnamon'),
-      isEmpty,
-    );
-  });
+      final egg = first.first;
+      expect(egg.evidence.recipesUnlocked, 2);
+      expect(egg.evidence.impactedRecipeCount, 2);
+      expect(egg.recommendedQuantity, 2);
+      expect(egg.targetShoppingQuantity, 2);
+      expect(
+        egg.evidence.reasonCodes.map((reason) => reason.name),
+        contains('unlocksManyRecipes'),
+      );
+      expect(
+        first.where((item) => item.canonicalIngredientId == 'cinnamon'),
+        isEmpty,
+      );
+    },
+  );
 
   test('uses maximum single-Recipe shortage and subtracts active Shopping', () {
     final eggItem = ShoppingItemFactory(registry: registry, unitEngine: units)

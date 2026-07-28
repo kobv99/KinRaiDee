@@ -79,8 +79,9 @@ class ShoppingRecommendationController {
 
     final additional = unitEngine.precisionPolicy.apply(
       target - currentCoverage,
-      decimalPlaces:
-          unitEngine.resolveUnit(recommendation.recommendedUnitId)?.decimalPlaces,
+      decimalPlaces: unitEngine
+          .resolveUnit(recommendation.recommendedUnitId)
+          ?.decimalPlaces,
     );
     if (additional <= unitEngine.precisionPolicy.zeroTolerance) {
       return const ShoppingRecommendationAddResult(
@@ -93,19 +94,19 @@ class ShoppingRecommendationController {
     late final ShoppingList updatedList;
     late final ShoppingRecommendationAddOutcome successOutcome;
     if (activeCompatible.isEmpty) {
-      final item = ShoppingItemFactory(
-        registry: registry,
-        unitEngine: unitEngine,
-      ).create(
-        id:
-            '$listId::recommendation::${recommendation.canonicalIngredientId}::${recommendation.recommendedUnitId}',
-        canonicalIngredientId: recommendation.canonicalIngredientId,
-        quantity: target,
-        unit: recommendation.recommendedUnitId,
-        source: ShoppingSource.pantryShortage,
-        sourceReferenceId: marker,
-        createdAt: createdAt,
-      );
+      final item =
+          ShoppingItemFactory(
+            registry: registry,
+            unitEngine: unitEngine,
+          ).create(
+            id: '$listId::recommendation::${recommendation.canonicalIngredientId}::${recommendation.recommendedUnitId}',
+            canonicalIngredientId: recommendation.canonicalIngredientId,
+            quantity: target,
+            unit: recommendation.recommendedUnitId,
+            source: ShoppingSource.pantryShortage,
+            sourceReferenceId: marker,
+            createdAt: createdAt,
+          );
       if (current == null) {
         updatedList = ShoppingList(
           id: listId,
@@ -137,8 +138,7 @@ class ShoppingRecommendationController {
       final references = <String>{
         ...survivor.sourceReferenceIds,
         marker,
-      }.toList()
-        ..sort();
+      }.toList()..sort();
       final updatedItem = survivor.copyWith(
         quantity: survivor.quantity + converted.value!,
         sourceReferenceIds: references,

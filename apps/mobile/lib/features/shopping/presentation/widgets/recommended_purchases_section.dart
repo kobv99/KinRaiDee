@@ -44,18 +44,18 @@ class _RecommendedPurchasesSectionState
                       children: [
                         Text(
                           'วัตถุดิบที่ซื้อแล้วคุ้ม',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: AppSpacing.xxs),
                         Text(
                           'เรียงจากผลต่อจำนวนเมนูและความพร้อมของสูตร',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurfaceVariant,
-                          ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
                         ),
                       ],
                     ),
@@ -71,19 +71,21 @@ class _RecommendedPurchasesSectionState
                 ],
               ),
               const SizedBox(height: AppSpacing.sm),
-              ...items.take(3).map(
-                (recommendation) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: _RecommendationCard(
-                    recommendation: recommendation,
-                    isBusy:
-                        _busyIngredientId ==
-                        recommendation.canonicalIngredientId,
-                    onShowDetails: () => _showDetails(recommendation),
-                    onAdd: () => _addRecommendation(recommendation),
+              ...items
+                  .take(3)
+                  .map(
+                    (recommendation) => Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                      child: _RecommendationCard(
+                        recommendation: recommendation,
+                        isBusy:
+                            _busyIngredientId ==
+                            recommendation.canonicalIngredientId,
+                        onShowDetails: () => _showDetails(recommendation),
+                        onAdd: () => _addRecommendation(recommendation),
+                      ),
+                    ),
                   ),
-                ),
-              ),
             ],
           ),
         );
@@ -117,9 +119,7 @@ class _RecommendedPurchasesSectionState
     );
   }
 
-  Future<void> _addRecommendation(
-    ShoppingRecommendation recommendation,
-  ) async {
+  Future<void> _addRecommendation(ShoppingRecommendation recommendation) async {
     if (_busyIngredientId != null) {
       return;
     }
@@ -128,9 +128,7 @@ class _RecommendedPurchasesSectionState
       _showMessage('ระบบคำแนะนำยังไม่พร้อม กรุณาลองใหม่อีกครั้ง');
       return;
     }
-    setState(
-      () => _busyIngredientId = recommendation.canonicalIngredientId,
-    );
+    setState(() => _busyIngredientId = recommendation.canonicalIngredientId);
     try {
       final result = await controller.addToShopping(recommendation);
       if (!mounted) {
@@ -143,7 +141,9 @@ class _RecommendedPurchasesSectionState
           ref.invalidate(shoppingRecommendationsProvider);
           break;
         case ShoppingRecommendationAddOutcome.unchanged:
-          _showMessage('${recommendation.displayName} อยู่ใน Shopping เพียงพอแล้ว');
+          _showMessage(
+            '${recommendation.displayName} อยู่ใน Shopping เพียงพอแล้ว',
+          );
           break;
         case ShoppingRecommendationAddOutcome.failed:
           _showMessage('เพิ่มรายการไม่สำเร็จ ข้อมูลเดิมยังคงปลอดภัย');

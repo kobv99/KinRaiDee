@@ -57,8 +57,7 @@ class ShoppingRecommendationPolicy {
   double score(RecommendationEvidence evidence) {
     return (evidence.recipesUnlocked * unlockedRecipeWeight) +
         (evidence.totalReadinessIncrease * totalReadinessIncreaseWeight) +
-        (evidence.averageReadinessIncrease *
-            averageReadinessIncreaseWeight) +
+        (evidence.averageReadinessIncrease * averageReadinessIncreaseWeight) +
         (evidence.primaryRecipeCount * primaryRecipeWeight) +
         (evidence.secondaryRecipeCount * secondaryRecipeWeight) +
         (evidence.impactedRecipeCount * impactedRecipeWeight);
@@ -277,23 +276,29 @@ class ShoppingRecommendationService {
     }
 
     impacts.sort(_compareRecipeImpacts);
-    final recipesUnlocked = impacts.where((impact) => impact.becomesUnlocked).length;
+    final recipesUnlocked = impacts
+        .where((impact) => impact.becomesUnlocked)
+        .length;
     final totalReadinessIncrease = impacts.fold<double>(
       0,
       (total, impact) => total + impact.readinessIncrease,
     );
-    final averageBefore = impacts.fold<double>(
+    final averageBefore =
+        impacts.fold<double>(
           0,
           (total, impact) => total + impact.readinessBefore,
         ) /
         impacts.length;
-    final averageAfter = impacts.fold<double>(
+    final averageAfter =
+        impacts.fold<double>(
           0,
           (total, impact) => total + impact.readinessAfter,
         ) /
         impacts.length;
     final primaryCount = impacts
-        .where((impact) => impact.ingredientRole == RecipeIngredientRole.primary)
+        .where(
+          (impact) => impact.ingredientRole == RecipeIngredientRole.primary,
+        )
         .length;
     final secondaryCount = impacts.length - primaryCount;
     final hasPartialPantry = _hasPartialPantryCoverage(
@@ -405,7 +410,8 @@ class ShoppingRecommendationService {
         continue;
       }
       final pantryId = registry.canonicalIdFor(item.canonicalIngredientId);
-      if (pantryId == null || !registry.areCompatibleIds(pantryId, canonicalId)) {
+      if (pantryId == null ||
+          !registry.areCompatibleIds(pantryId, canonicalId)) {
         continue;
       }
       final sourceUnit = item.canonicalUnitId.trim().isEmpty
@@ -489,7 +495,9 @@ class ShoppingRecommendationService {
     if (first.becomesUnlocked != second.becomesUnlocked) {
       return first.becomesUnlocked ? -1 : 1;
     }
-    final increase = second.readinessIncrease.compareTo(first.readinessIncrease);
+    final increase = second.readinessIncrease.compareTo(
+      first.readinessIncrease,
+    );
     if (increase != 0) {
       return increase;
     }

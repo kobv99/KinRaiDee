@@ -13,41 +13,44 @@ import 'package:mobile/features/shopping/domain/entities/shopping_recommendation
 import 'package:mobile/features/shopping/domain/repositories/shopping_repository.dart';
 
 void main() {
-  test('explicit repeated Add reaches target once without duplicates', () async {
-    final now = DateTime.utc(2026, 7, 28, 10);
-    final repository = _MemoryShoppingRepository();
-    var mutationCount = 0;
-    final controller = ShoppingRecommendationController(
-      repository: repository,
-      registry: _registry,
-      unitEngine: UnitConversionEngine.standard(),
-      clock: FixedAppClock(now),
-      executeMutation: (mutation) async {
-        mutationCount++;
-        final list = mutation.list!;
-        repository.lists = <ShoppingList>[list];
-        return InventoryTransactionResult(
-          outcome: InventoryTransactionOutcome.committed,
-          code: 'committed',
-          snapshot: InventoryStateEnvelope.initial(
-            createdAt: now,
-            shoppingLists: <ShoppingList>[list],
-          ),
-        );
-      },
-    );
+  test(
+    'explicit repeated Add reaches target once without duplicates',
+    () async {
+      final now = DateTime.utc(2026, 7, 28, 10);
+      final repository = _MemoryShoppingRepository();
+      var mutationCount = 0;
+      final controller = ShoppingRecommendationController(
+        repository: repository,
+        registry: _registry,
+        unitEngine: UnitConversionEngine.standard(),
+        clock: FixedAppClock(now),
+        executeMutation: (mutation) async {
+          mutationCount++;
+          final list = mutation.list!;
+          repository.lists = <ShoppingList>[list];
+          return InventoryTransactionResult(
+            outcome: InventoryTransactionOutcome.committed,
+            code: 'committed',
+            snapshot: InventoryStateEnvelope.initial(
+              createdAt: now,
+              shoppingLists: <ShoppingList>[list],
+            ),
+          );
+        },
+      );
 
-    final first = await controller.addToShopping(_recommendation);
-    final second = await controller.addToShopping(_recommendation);
+      final first = await controller.addToShopping(_recommendation);
+      final second = await controller.addToShopping(_recommendation);
 
-    expect(first.outcome, ShoppingRecommendationAddOutcome.added);
-    expect(second.outcome, ShoppingRecommendationAddOutcome.unchanged);
-    expect(mutationCount, 1);
-    final items = repository.lists.single.items;
-    expect(items, hasLength(1));
-    expect(items.single.canonicalIngredientId, 'egg');
-    expect(items.single.quantity, 2);
-  });
+      expect(first.outcome, ShoppingRecommendationAddOutcome.added);
+      expect(second.outcome, ShoppingRecommendationAddOutcome.unchanged);
+      expect(mutationCount, 1);
+      final items = repository.lists.single.items;
+      expect(items, hasLength(1));
+      expect(items.single.canonicalIngredientId, 'egg');
+      expect(items.single.quantity, 2);
+    },
+  );
 }
 
 final CanonicalIngredientRegistry _registry = CanonicalIngredientRegistry(
