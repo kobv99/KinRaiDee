@@ -31,9 +31,12 @@ class RecipeIngredientReadiness {
   final double weight;
   final RecipeIngredientReadinessStatus status;
 
-  bool get isOptional => !ingredient.required;
+  RecipeIngredientRole get role => ingredient.effectiveRole();
+  bool get isPrimary => role == RecipeIngredientRole.primary;
+  bool get isSecondary => role == RecipeIngredientRole.secondary;
+  bool get isOptional => role == RecipeIngredientRole.optional;
   bool get isAvailable => status == RecipeIngredientReadinessStatus.available;
-  bool get needsShopping => ingredient.required && !isAvailable;
+  bool get needsShopping => !isOptional && !isAvailable;
 }
 
 class RecipeReadiness {
