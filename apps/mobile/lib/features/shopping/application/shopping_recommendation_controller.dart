@@ -1,6 +1,6 @@
-import '../../../../core/domain/ingredients/canonical_ingredient_registry.dart';
-import '../../../../core/domain/units/unit_contract.dart';
-import '../../../../core/time/app_clock.dart';
+import '../../../core/domain/ingredients/canonical_ingredient_registry.dart';
+import '../../../core/domain/units/unit_contract.dart';
+import '../../../core/time/app_clock.dart';
 import '../../pantry/application/inventory_transaction_coordinator.dart';
 import '../domain/entities/shopping_item.dart';
 import '../domain/entities/shopping_item_status.dart';
