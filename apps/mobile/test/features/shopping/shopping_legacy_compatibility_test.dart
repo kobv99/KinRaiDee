@@ -15,6 +15,7 @@ void main() {
     final harness = await ShoppingUiHarness.create(
       list: testShoppingList(now: now, items: [active, legacy]),
       at: now,
+      seedLegacyShoppingState: true,
     );
     addTearDown(harness.dispose);
 
@@ -50,6 +51,7 @@ void main() {
     final harness = await ShoppingUiHarness.create(
       list: testShoppingList(now: now, items: [active, legacy]),
       at: now,
+      seedLegacyShoppingState: true,
     );
     addTearDown(harness.dispose);
 
