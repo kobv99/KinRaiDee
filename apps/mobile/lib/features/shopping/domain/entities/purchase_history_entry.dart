@@ -8,11 +8,11 @@ class PurchaseHistoryEntry {
     required this.ingredientName,
     required this.quantity,
     required this.unitId,
-    required this.sourceRecipeIds,
+    required List<String> sourceRecipeIds,
     required this.shoppingListId,
     required this.shoppingItemId,
     required this.pantryTransactionId,
-    required this.pantryLotIds,
+    required List<String> pantryLotIds,
   }) : sourceRecipeIds = List<String>.unmodifiable(sourceRecipeIds),
        pantryLotIds = List<String>.unmodifiable(pantryLotIds);
 
