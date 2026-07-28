@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/models/ingredient.dart';
 import '../../../../core/providers/pantry_provider.dart';
-import '../../../shopping/presentation/widgets/recommended_purchases_section.dart';
 import '../widgets/dashboard_summary.dart';
 import '../widgets/empty_dashboard.dart';
 import '../widgets/expiry_overview.dart';
@@ -105,7 +104,6 @@ class HomePage extends ConsumerWidget {
                       withinSevenDays: expiringWithinSevenDays,
                       safe: safeIngredients,
                     ),
-                    const RecommendedPurchasesSection(),
                     const SizedBox(height: 22),
                     Row(
                       children: [
