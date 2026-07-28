@@ -69,6 +69,7 @@ class ShoppingCompletionController {
     required int expectedListRevision,
     required String itemId,
     required DateTime createdAt,
+    bool keepSeparate = false,
   }) {
     final coordinator = _coordinator;
     if (coordinator == null) {
@@ -81,6 +82,7 @@ class ShoppingCompletionController {
         expectedListRevision: expectedListRevision,
         itemId: itemId,
         createdAt: createdAt,
+        keepSeparate: keepSeparate,
       ),
     );
   }
