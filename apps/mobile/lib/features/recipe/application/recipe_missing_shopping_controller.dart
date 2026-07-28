@@ -1,7 +1,6 @@
 import '../../../core/models/ingredient.dart';
 import '../../../core/time/app_clock.dart';
 import '../../pantry/application/inventory_transaction_coordinator.dart';
-import '../../shopping/application/shopping_providers.dart';
 import '../../shopping/domain/entities/shopping_item.dart';
 import '../../shopping/domain/entities/shopping_list.dart';
 import '../../shopping/domain/models/shopping_mutation.dart';
@@ -9,7 +8,15 @@ import '../../shopping/domain/repositories/shopping_repository.dart';
 import '../../shopping/domain/services/shopping_engine.dart';
 import '../domain/entities/recipe.dart';
 
-enum RecipeMissingShoppingOutcome { committed, noMissingIngredients, unchanged, failed }
+typedef ShoppingMutationExecutor =
+    Future<InventoryTransactionResult> Function(ShoppingMutation mutation);
+
+enum RecipeMissingShoppingOutcome {
+  committed,
+  noMissingIngredients,
+  unchanged,
+  failed,
+}
 
 class RecipeMissingShoppingResult {
   const RecipeMissingShoppingResult({
@@ -34,18 +41,18 @@ class RecipeMissingShoppingController {
   const RecipeMissingShoppingController({
     required ShoppingEngine engine,
     required ShoppingRepository shoppingRepository,
-    required ShoppingMutationController mutationController,
+    required ShoppingMutationExecutor executeShoppingMutation,
     required List<Ingredient> Function() readPantry,
     required AppClock clock,
   }) : _engine = engine,
        _shoppingRepository = shoppingRepository,
-       _mutationController = mutationController,
+       _executeShoppingMutation = executeShoppingMutation,
        _readPantry = readPantry,
        _clock = clock;
 
   final ShoppingEngine _engine;
   final ShoppingRepository _shoppingRepository;
-  final ShoppingMutationController _mutationController;
+  final ShoppingMutationExecutor _executeShoppingMutation;
   final List<Ingredient> Function() _readPantry;
   final AppClock _clock;
 
@@ -82,7 +89,7 @@ class RecipeMissingShoppingController {
       );
     }
 
-    final transactionResult = await _mutationController.execute(
+    final transactionResult = await _executeShoppingMutation(
       ShoppingMutation.upsert(
         list: generation.list,
         createdAt: generatedAt,
