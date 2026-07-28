@@ -22,7 +22,6 @@ class RecipeReadinessWeightPolicy {
   final double garnishWeight;
 
   double weightFor({
-    required Recipe recipe,
     required RecipeIngredient ingredient,
     required String? canonicalIngredientId,
     required String? heroCanonicalIngredientId,
@@ -84,7 +83,6 @@ class RecipeReadinessService {
     for (final ingredient in recipe.ingredients) {
       final canonicalId = _resolveRecipeCanonicalId(ingredient);
       final weight = weightPolicy.weightFor(
-        recipe: recipe,
         ingredient: ingredient,
         canonicalIngredientId: canonicalId,
         heroCanonicalIngredientId: heroCanonicalId,
@@ -311,7 +309,6 @@ class RecipeReadinessService {
     final pantryCanonicalId = rawId.isNotEmpty
         ? registry.canonicalIdFor(rawId)
         : registry.resolve(item.name).ingredient?.id;
-    return pantryCanonicalId != null &&
-        registry.areCompatibleIds(pantryCanonicalId, recipeCanonicalId);
+    return pantryCanonicalId == recipeCanonicalId;
   }
 }
