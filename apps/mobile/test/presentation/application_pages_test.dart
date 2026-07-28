@@ -423,6 +423,35 @@ void main() {
       await tester.tap(automaticSelection);
       await tester.pumpAndSettle();
     });
+
+    testWidgets('recipe loading failure never exposes technical details', (
+      tester,
+    ) async {
+      final container = ProviderContainer(
+        overrides: [
+          smartRecommendationProvider.overrideWithValue(
+            AsyncValue<SmartRecommendation>.error(
+              Exception(
+                'RepositoryException: pantry UUID '
+                '20000000-0000-4000-8000-000000000001',
+              ),
+              StackTrace.current,
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await _pumpPage(tester, container, const RecipePage());
+
+      expect(find.text('โหลดเมนูไม่สำเร็จ'), findsOneWidget);
+      expect(
+        find.textContaining('ข้อมูลใน Pantry ของคุณยังปลอดภัย'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('RepositoryException'), findsNothing);
+      expect(find.textContaining('20000000-0000'), findsNothing);
+    });
   });
 }
 

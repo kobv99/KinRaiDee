@@ -17,10 +17,8 @@ class RecipePage extends ConsumerWidget {
       appBar: AppBar(title: const Text('ทำอะไรกินดี 🍳')),
       body: recommendation.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stackTrace) => _ErrorView(
-          message: error.toString(),
-          onRetry: () => ref.invalidate(recipesProvider),
-        ),
+        error: (error, stackTrace) =>
+            _ErrorView(onRetry: () => ref.invalidate(recipesProvider)),
         data: (result) {
           if (!result.requestedSelectionAvailable) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -598,9 +596,8 @@ class _NoHeroView extends StatelessWidget {
 }
 
 class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.message, required this.onRetry});
+  const _ErrorView({required this.onRetry});
 
-  final String message;
   final VoidCallback onRetry;
 
   @override
@@ -618,7 +615,10 @@ class _ErrorView extends StatelessWidget {
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            Text(message, textAlign: TextAlign.center),
+            const Text(
+              'กรุณาลองใหม่อีกครั้ง ข้อมูลใน Pantry ของคุณยังปลอดภัย',
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 16),
             FilledButton.icon(
               onPressed: onRetry,
