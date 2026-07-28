@@ -278,7 +278,9 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
       if (!result.isSuccess &&
           result.code == 'shopping_unit_conversion_required') {
         final action = await _showUnitMismatchDialog(item);
-        if (!mounted || action == null || action == _UnitMismatchAction.cancel) {
+        if (!mounted ||
+            action == null ||
+            action == _UnitMismatchAction.cancel) {
           return;
         }
         if (action == _UnitMismatchAction.configureConversion) {
@@ -336,9 +338,8 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(
-              context,
-            ).pop(_UnitMismatchAction.cancel),
+            onPressed: () =>
+                Navigator.of(context).pop(_UnitMismatchAction.cancel),
             child: const Text('ยกเลิก'),
           ),
           TextButton(
@@ -349,9 +350,8 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
           ),
           FilledButton(
             key: const ValueKey<String>('shopping-keep-separate'),
-            onPressed: () => Navigator.of(
-              context,
-            ).pop(_UnitMismatchAction.keepSeparate),
+            onPressed: () =>
+                Navigator.of(context).pop(_UnitMismatchAction.keepSeparate),
             child: const Text('เก็บแยกใน Pantry'),
           ),
         ],
@@ -557,6 +557,7 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
       SnackBar(
         content: Text(message),
         duration: duration,
+        persist: false,
         action: onUndo == null
             ? null
             : SnackBarAction(label: 'ย้อนกลับ', onPressed: onUndo),
@@ -867,10 +868,7 @@ class _SectionTitle extends StatelessWidget {
 }
 
 class _NoMatchingItems extends StatelessWidget {
-  const _NoMatchingItems({
-    required this.hasFilters,
-    required this.onClear,
-  });
+  const _NoMatchingItems({required this.hasFilters, required this.onClear});
 
   final bool hasFilters;
   final VoidCallback onClear;
@@ -923,8 +921,8 @@ String _friendlyTransactionError(InventoryTransactionResult result) {
       'หน่วยวัดของรายการนี้ต่างจาก Pantry กรุณาเลือกวิธีจัดเก็บ',
     'unknown_canonical_shopping_ingredient' =>
       'ยังไม่สามารถจับคู่วัตถุดิบรายการนี้กับ Pantry ได้',
-    'stale_shopping_list_revision' || 'stale_inventory_revision' =>
-      'รายการมีการเปลี่ยนแปลง กรุณาลองใหม่อีกครั้ง',
+    'stale_shopping_list_revision' ||
+    'stale_inventory_revision' => 'รายการมีการเปลี่ยนแปลง กรุณาลองใหม่อีกครั้ง',
     'purchase_pantry_state_changed' =>
       'Pantry ถูกแก้ไขหลังการซื้อ จึงย้อนกลับอัตโนมัติไม่ได้',
     'shopping_item_already_recreated' =>

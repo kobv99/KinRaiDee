@@ -34,7 +34,8 @@ class RecipeReadinessWeightPolicy {
         ingredient.importance == RecipeIngredientImportance.garnish) {
       return garnishWeight;
     }
-    final isHero = canonicalIngredientId != null &&
+    final isHero =
+        canonicalIngredientId != null &&
         canonicalIngredientId == heroCanonicalIngredientId;
     return switch (ingredient.effectiveRole(isHero: isHero)) {
       RecipeIngredientRole.primary => mainWeight,
@@ -68,9 +69,7 @@ class RecipeReadinessService {
     final scale = servings / baseServings;
     final heroCanonicalId = _resolveHeroCanonicalId(recipe);
     final availablePantry = pantry
-        .where(
-          (item) => item.quantity > 0 && !item.isExpiredAt(evaluatedAt),
-        )
+        .where((item) => item.quantity > 0 && !item.isExpiredAt(evaluatedAt))
         .toList(growable: false);
     final evaluations = <RecipeIngredientReadiness>[];
     var earnedWeight = 0.0;
@@ -193,9 +192,7 @@ class RecipeReadinessService {
     var hasCompatibleQuantity = false;
     for (final item in matching) {
       final sourceUnitId = unitEngine.resolveUnitId(
-        item.canonicalUnitId.trim().isEmpty
-            ? item.unit
-            : item.canonicalUnitId,
+        item.canonicalUnitId.trim().isEmpty ? item.unit : item.canonicalUnitId,
       );
       if (sourceUnitId == null) {
         continue;
@@ -305,6 +302,7 @@ class RecipeReadinessService {
     final pantryCanonicalId = rawId.isNotEmpty
         ? registry.canonicalIdFor(rawId)
         : registry.resolve(item.name).ingredient?.id;
-    return pantryCanonicalId == recipeCanonicalId;
+    return pantryCanonicalId != null &&
+        registry.areCompatibleIds(pantryCanonicalId, recipeCanonicalId);
   }
 }

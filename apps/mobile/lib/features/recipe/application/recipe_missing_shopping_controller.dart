@@ -7,7 +7,6 @@ import '../../shopping/domain/models/shopping_mutation.dart';
 import '../../shopping/domain/repositories/shopping_repository.dart';
 import '../../shopping/domain/services/shopping_engine.dart';
 import '../domain/entities/recipe.dart';
-import '../domain/services/recipe_candidate_service.dart';
 
 typedef ShoppingMutationExecutor =
     Future<InventoryTransactionResult> Function(ShoppingMutation mutation);
@@ -42,14 +41,12 @@ class RecipeMissingShoppingResult {
 class RecipeMissingShoppingController {
   const RecipeMissingShoppingController({
     required ShoppingEngine engine,
-    required RecipeCandidateService candidateService,
     required ShoppingRepository shoppingRepository,
     required ShoppingMutationExecutor executeShoppingMutation,
     required List<Ingredient> Function() readPantry,
     required AppClock clock,
   }) : this._(
          engine,
-         candidateService,
          shoppingRepository,
          executeShoppingMutation,
          readPantry,
@@ -58,7 +55,6 @@ class RecipeMissingShoppingController {
 
   const RecipeMissingShoppingController._(
     this._engine,
-    this._candidateService,
     this._shoppingRepository,
     this._executeShoppingMutation,
     this._readPantry,
@@ -66,7 +62,6 @@ class RecipeMissingShoppingController {
   );
 
   final ShoppingEngine _engine;
-  final RecipeCandidateService _candidateService;
   final ShoppingRepository _shoppingRepository;
   final ShoppingMutationExecutor _executeShoppingMutation;
   final List<Ingredient> Function() _readPantry;
@@ -78,19 +73,6 @@ class RecipeMissingShoppingController {
   }) async {
     final generatedAt = _clock.now().toUtc();
     final pantry = _readPantry();
-    if (!_candidateService.isCandidate(
-      recipe: recipe,
-      pantry: pantry,
-      servings: servings,
-      evaluatedAt: generatedAt,
-    )) {
-      return const RecipeMissingShoppingResult(
-        outcome: RecipeMissingShoppingOutcome.notCandidateRecipe,
-        changedItemCount: 0,
-        code: 'recipe_not_candidate',
-      );
-    }
-
     final lists = await _shoppingRepository.getLists();
     final existing = lists.firstOrNull;
     final generation = _engine.generate(
@@ -122,10 +104,7 @@ class RecipeMissingShoppingController {
     InventoryTransactionResult transactionResult;
     try {
       transactionResult = await _executeShoppingMutation(
-        ShoppingMutation.upsert(
-          list: generation.list,
-          createdAt: generatedAt,
-        ),
+        ShoppingMutation.upsert(list: generation.list, createdAt: generatedAt),
       );
     } on Object {
       return const RecipeMissingShoppingResult(

@@ -15,27 +15,33 @@ void main() {
     unitEngine: UnitConversionEngine.standard(),
   );
 
-  test('missing garnish reduces readiness much less than missing main protein', () {
-    final recipe = _recipe();
-    final beefReady = service.evaluate(
-      recipe: recipe,
-      pantry: <Ingredient>[_pantry('beef', 1, 'kilogram', now)],
-      servings: 2,
-      evaluatedAt: now,
-    );
-    final garnishOnly = service.evaluate(
-      recipe: recipe,
-      pantry: <Ingredient>[_pantry('pepper', 1, 'piece', now)],
-      servings: 2,
-      evaluatedAt: now,
-    );
+  test(
+    'missing garnish reduces readiness much less than missing main protein',
+    () {
+      final recipe = _recipe();
+      final beefReady = service.evaluate(
+        recipe: recipe,
+        pantry: <Ingredient>[_pantry('beef', 1, 'kilogram', now)],
+        servings: 2,
+        evaluatedAt: now,
+      );
+      final garnishOnly = service.evaluate(
+        recipe: recipe,
+        pantry: <Ingredient>[_pantry('pepper', 1, 'piece', now)],
+        servings: 2,
+        evaluatedAt: now,
+      );
 
-    expect(beefReady.scorePercent, 95);
-    expect(beefReady.missingIngredients, isEmpty);
-    expect(beefReady.missingOptionalIngredients, hasLength(1));
-    expect(garnishOnly.scorePercent, 5);
-    expect(garnishOnly.missingIngredients.single.canonicalIngredientId, 'beef');
-  });
+      expect(beefReady.scorePercent, 95);
+      expect(beefReady.missingIngredients, isEmpty);
+      expect(beefReady.missingOptionalIngredients, hasLength(1));
+      expect(garnishOnly.scorePercent, 5);
+      expect(
+        garnishOnly.missingIngredients.single.canonicalIngredientId,
+        'beef',
+      );
+    },
+  );
 
   test('partial quantity contributes proportionally to readiness', () {
     final readiness = service.evaluate(
@@ -82,7 +88,10 @@ void main() {
 
     expect(readiness.scorePercent, 100);
     expect(readiness.availableIngredients, hasLength(1));
-    expect(readiness.ingredients.single.availableQuantity, closeTo(1, 0.000001));
+    expect(
+      readiness.ingredients.single.availableQuantity,
+      closeTo(1, 0.000001),
+    );
   });
 
   test('localized name fallback resolves legacy Recipe identity', () {
@@ -113,7 +122,7 @@ void main() {
     expect(readiness.ingredients.single.canonicalIngredientId, 'beef');
   });
 
-  test('parent and child identities are not treated as substitution', () {
+  test('a canonical child represents its parent ingredient family', () {
     const recipe = Recipe(
       id: 'beef-dish',
       name: 'Beef Dish',
@@ -137,8 +146,8 @@ void main() {
       evaluatedAt: now,
     );
 
-    expect(readiness.scorePercent, 0);
-    expect(readiness.missingIngredients, hasLength(1));
+    expect(readiness.scorePercent, 100);
+    expect(readiness.availableIngredients, hasLength(1));
   });
 
   test('expired inventory does not contribute to readiness', () {

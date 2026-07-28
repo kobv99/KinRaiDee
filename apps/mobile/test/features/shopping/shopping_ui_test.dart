@@ -171,15 +171,14 @@ void main() {
         expect((await harness.lists()).single.items, isEmpty);
         expect(await harness.history(), hasLength(1));
         expect(find.text('✓ Pantry อัปเดตแล้ว'), findsOneWidget);
+        final snackBar = tester.widget<SnackBar>(find.byType(SnackBar));
+        expect(snackBar.persist, isFalse);
         expect(
           find.byKey(const ValueKey<String>('shopping-complete-empty-state')),
           findsOneWidget,
         );
         expect(find.text('🎉 ไม่มีรายการที่ต้องซื้อแล้ว'), findsOneWidget);
-        expect(
-          find.text('Pantry พร้อมสำหรับสูตรที่วางแผนไว้'),
-          findsOneWidget,
-        );
+        expect(find.text('Pantry พร้อมสำหรับสูตรที่วางแผนไว้'), findsOneWidget);
 
         await tester.tap(find.byType(SnackBarAction));
         await tester.pumpAndSettle();
