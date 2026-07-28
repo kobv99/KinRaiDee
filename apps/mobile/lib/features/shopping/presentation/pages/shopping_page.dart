@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/navigation/app_navigation_provider.dart';
 import '../../../../app/providers/canonical_ingredient_providers.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
@@ -19,7 +20,6 @@ import '../../domain/entities/shopping_item.dart';
 import '../../domain/entities/shopping_list.dart';
 import '../../domain/models/shopping_mutation.dart';
 import '../providers/shopping_view_provider.dart';
-import '../widgets/shopping_generation_sheet.dart';
 import '../widgets/shopping_item_card.dart';
 
 class ShoppingPage extends ConsumerStatefulWidget {
@@ -50,11 +50,9 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
         actions: [
           IconButton(
             key: const ValueKey<String>('shopping-generate-action'),
-            tooltip: 'สร้างรายการจากเมนู',
-            onPressed: _isMutating
-                ? null
-                : () => _openGenerator(_selectedList(lists.value)),
-            icon: const Icon(Icons.auto_awesome_outlined),
+            tooltip: 'เลือกสูตรจาก Pantry',
+            onPressed: _isMutating ? null : _openRecipes,
+            icon: const Icon(Icons.restaurant_menu_outlined),
           ),
           const SizedBox(width: AppSpacing.xs),
         ],
@@ -86,10 +84,10 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
         icon: Icons.shopping_basket_outlined,
         title: 'ยังไม่มีรายการซื้อของ',
         description:
-            'เลือกเมนูที่ต้องการ แล้ว KinRaiDee จะรวมวัตถุดิบและหักจำนวน'
-            'ที่มีอยู่ใน Pantry ให้อัตโนมัติ',
-        actionLabel: 'สร้างรายการจากเมนู',
-        onActionPressed: () => _openGenerator(null),
+            'เริ่มจาก Pantry เลือกสูตรที่เกี่ยวข้อง แล้ว KinRaiDee จะเพิ่มเฉพาะ'
+            'วัตถุดิบที่ขาดของสูตรนั้น',
+        actionLabel: 'ไปเลือกสูตรจาก Pantry',
+        onActionPressed: _openRecipes,
       );
     }
 
@@ -99,9 +97,9 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
         key: const ValueKey<String>('shopping-complete-empty-state'),
         icon: Icons.celebration_outlined,
         title: '🎉 ไม่มีรายการที่ต้องซื้อแล้ว',
-        description: 'พร้อมทำอาหารได้เลย',
-        actionLabel: 'สร้างรายการใหม่',
-        onActionPressed: () => _openGenerator(list),
+        description: 'Pantry พร้อมสำหรับสูตรที่วางแผนไว้',
+        actionLabel: 'เลือกสูตรถัดไป',
+        onActionPressed: _openRecipes,
       );
     }
 
@@ -146,7 +144,7 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
                     selectedListId: list.id,
                     onListChanged: (value) =>
                         setState(() => _selectedListId = value),
-                    onGenerate: () => _openGenerator(list),
+                    onPlanRecipe: _openRecipes,
                   ),
                 ),
               ),
@@ -256,21 +254,8 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
         lists.first;
   }
 
-  Future<void> _openGenerator(ShoppingList? existingList) async {
-    final generated = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: AppColors.surface,
-      builder: (context) => FractionallySizedBox(
-        heightFactor: 0.92,
-        child: ShoppingGenerationSheet(existingList: existingList),
-      ),
-    );
-    if (!mounted || generated != true) {
-      return;
-    }
-    _showMessage('สร้างรายการซื้อของแล้ว โดยไม่มีรายการซ้ำ');
+  void _openRecipes() {
+    ref.read(appNavigationProvider.notifier).openRecipes();
   }
 
   Future<void> _completeItem(ShoppingList list, ShoppingItem item) async {
@@ -279,16 +264,38 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
       _busyItemId = item.id;
     });
     try {
-      final result = await ref
-          .read(shoppingCompletionControllerProvider)
-          .complete(
-            listId: list.id,
-            expectedListRevision: list.revision,
-            itemId: item.id,
-            createdAt: ref.read(appClockProvider).now(),
-          );
+      final controller = ref.read(shoppingCompletionControllerProvider);
+      var keptSeparate = false;
+      var result = await controller.complete(
+        listId: list.id,
+        expectedListRevision: list.revision,
+        itemId: item.id,
+        createdAt: ref.read(appClockProvider).now(),
+      );
       if (!mounted) {
         return;
+      }
+      if (!result.isSuccess &&
+          result.code == 'shopping_unit_conversion_required') {
+        final action = await _showUnitMismatchDialog(item);
+        if (!mounted || action == null || action == _UnitMismatchAction.cancel) {
+          return;
+        }
+        if (action == _UnitMismatchAction.configureConversion) {
+          _showMessage('การตั้งค่าการแปลงหน่วยจะเพิ่มในรุ่นถัดไป');
+          return;
+        }
+        keptSeparate = true;
+        result = await controller.complete(
+          listId: list.id,
+          expectedListRevision: list.revision,
+          itemId: item.id,
+          createdAt: ref.read(appClockProvider).now(),
+          keepSeparate: true,
+        );
+        if (!mounted) {
+          return;
+        }
       }
       if (!result.isSuccess) {
         _showError(_friendlyTransactionError(result));
@@ -296,7 +303,9 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
       }
       final purchaseTransactionId = result.transaction?.transactionId;
       _showMessage(
-        '✓ เพิ่มเข้าตู้แล้ว',
+        keptSeparate
+            ? '✓ เพิ่มเป็นรายการแยกใน Pantry แล้ว'
+            : '✓ Pantry อัปเดตแล้ว',
         duration: const Duration(seconds: 7),
         onUndo: purchaseTransactionId == null || purchaseTransactionId.isEmpty
             ? null
@@ -314,6 +323,40 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
         });
       }
     }
+  }
+
+  Future<_UnitMismatchAction?> _showUnitMismatchDialog(ShoppingItem item) {
+    return showDialog<_UnitMismatchAction>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('รวมหน่วยใน Pantry ไม่ได้'),
+        content: Text(
+          '${item.displayName} ใช้หน่วยวัดต่างจากรายการเดิมใน Pantry '
+          'คุณสามารถเก็บเป็นรายการแยก หรือยกเลิกโดยข้อมูลเดิมจะไม่เปลี่ยนแปลง',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(
+              context,
+            ).pop(_UnitMismatchAction.cancel),
+            child: const Text('ยกเลิก'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(
+              context,
+            ).pop(_UnitMismatchAction.configureConversion),
+            child: const Text('ตั้งค่าการแปลงหน่วย — เร็ว ๆ นี้'),
+          ),
+          FilledButton(
+            key: const ValueKey<String>('shopping-keep-separate'),
+            onPressed: () => Navigator.of(
+              context,
+            ).pop(_UnitMismatchAction.keepSeparate),
+            child: const Text('เก็บแยกใน Pantry'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _undoCompletion(String purchaseTransactionId) async {
@@ -534,6 +577,8 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
   }
 }
 
+enum _UnitMismatchAction { keepSeparate, configureConversion, cancel }
+
 class _UndoAction {
   const _UndoAction({
     required this.label,
@@ -613,14 +658,14 @@ class _ShoppingOverview extends StatelessWidget {
     required this.lists,
     required this.selectedListId,
     required this.onListChanged,
-    required this.onGenerate,
+    required this.onPlanRecipe,
   });
 
   final ShoppingList list;
   final List<ShoppingList> lists;
   final String selectedListId;
   final ValueChanged<String> onListChanged;
-  final VoidCallback onGenerate;
+  final VoidCallback onPlanRecipe;
 
   @override
   Widget build(BuildContext context) {
@@ -676,9 +721,9 @@ class _ShoppingOverview extends StatelessWidget {
           ),
           FilledButton.icon(
             key: const ValueKey<String>('shopping-generate-button'),
-            onPressed: onGenerate,
-            icon: const Icon(Icons.auto_awesome_outlined, size: 18),
-            label: const Text('สร้างรายการ'),
+            onPressed: onPlanRecipe,
+            icon: const Icon(Icons.restaurant_menu_outlined, size: 18),
+            label: const Text('เลือกสูตร'),
           ),
         ],
       ),
@@ -875,15 +920,15 @@ class _ShoppingErrorState extends StatelessWidget {
 String _friendlyTransactionError(InventoryTransactionResult result) {
   return switch (result.code) {
     'shopping_unit_conversion_required' =>
-      'หน่วยของรายการนี้ยังรวมกับ Pantry ไม่ได้ กรุณาแปลงหน่วยก่อน',
+      'หน่วยวัดของรายการนี้ต่างจาก Pantry กรุณาเลือกวิธีจัดเก็บ',
     'unknown_canonical_shopping_ingredient' =>
-      'ไม่พบวัตถุดิบมาตรฐานของรายการนี้ จึงยังเก็บเข้าตู้ไม่ได้',
+      'ยังไม่สามารถจับคู่วัตถุดิบรายการนี้กับ Pantry ได้',
     'stale_shopping_list_revision' || 'stale_inventory_revision' =>
       'รายการมีการเปลี่ยนแปลง กรุณาลองใหม่อีกครั้ง',
     'purchase_pantry_state_changed' =>
       'Pantry ถูกแก้ไขหลังการซื้อ จึงย้อนกลับอัตโนมัติไม่ได้',
     'shopping_item_already_recreated' =>
       'รายการนี้ถูกสร้างขึ้นใหม่แล้ว จึงย้อนกลับซ้ำไม่ได้',
-    _ => 'ทำรายการไม่สำเร็จอย่างปลอดภัย (${result.code})',
+    _ => 'ทำรายการไม่สำเร็จ ข้อมูลเดิมยังคงปลอดภัย',
   };
 }
