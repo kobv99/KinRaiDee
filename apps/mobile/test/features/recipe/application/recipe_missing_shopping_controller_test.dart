@@ -33,6 +33,14 @@ void main() {
           unit: 'piece',
           now: now,
         ),
+        testPantryLot(
+          id: 'rice-lot',
+          canonicalId: 'rice',
+          name: 'Rice',
+          quantity: 0.2,
+          unit: 'kilogram',
+          now: now,
+        ),
       ],
       list: testShoppingList(now: now, items: [existingEgg]),
     );
@@ -69,7 +77,19 @@ void main() {
 
   test('second add is a no-op and does not duplicate Shopping items', () async {
     final now = DateTime.utc(2026, 7, 28, 8);
-    final harness = await ShoppingUiHarness.create(at: now);
+    final harness = await ShoppingUiHarness.create(
+      at: now,
+      pantry: [
+        testPantryLot(
+          id: 'rice-lot',
+          canonicalId: 'rice',
+          name: 'Rice',
+          quantity: 0.2,
+          unit: 'kilogram',
+          now: now,
+        ),
+      ],
+    );
     addTearDown(harness.dispose);
     final controller = harness.container.read(
       recipeMissingShoppingControllerProvider,
@@ -93,6 +113,32 @@ void main() {
       items.map((item) => item.canonicalIngredientId).toSet(),
       <String>{'egg', 'rice'},
     );
+  });
+
+  test('recipe without a Primary Pantry ingredient cannot generate Shopping', () async {
+    final now = DateTime.utc(2026, 7, 28, 8);
+    final harness = await ShoppingUiHarness.create(
+      at: now,
+      pantry: [
+        testPantryLot(
+          id: 'egg-lot',
+          canonicalId: 'egg',
+          name: 'Egg',
+          quantity: 1,
+          unit: 'piece',
+          now: now,
+        ),
+      ],
+    );
+    addTearDown(harness.dispose);
+
+    final result = await harness.container
+        .read(recipeMissingShoppingControllerProvider)!
+        .addMissingIngredients(recipe: _recipe, servings: 2);
+
+    expect(result.outcome, RecipeMissingShoppingOutcome.notCandidateRecipe);
+    expect(result.changedItemCount, 0);
+    expect(await harness.lists(), isEmpty);
   });
 
   test('fully ready recipe does not create an empty Shopping list', () async {
@@ -131,7 +177,19 @@ void main() {
 
   test('failed durable write leaves Shopping unchanged', () async {
     final now = DateTime.utc(2026, 7, 28, 8);
-    final harness = await ShoppingUiHarness.create(at: now);
+    final harness = await ShoppingUiHarness.create(
+      at: now,
+      pantry: [
+        testPantryLot(
+          id: 'rice-lot',
+          canonicalId: 'rice',
+          name: 'Rice',
+          quantity: 0.2,
+          unit: 'kilogram',
+          now: now,
+        ),
+      ],
+    );
     addTearDown(harness.dispose);
     harness.store.failEnvelopeWrites = true;
 
@@ -142,7 +200,7 @@ void main() {
     expect(result.outcome, RecipeMissingShoppingOutcome.failed);
     expect(result.changedItemCount, 0);
     expect(await harness.lists(), isEmpty);
-    expect(harness.container.read(pantryProvider), isEmpty);
+    expect(harness.container.read(pantryProvider), hasLength(1));
   });
 
   test('purchased Recipe shortage merges the existing canonical Pantry record', () async {
@@ -201,12 +259,16 @@ const Recipe _recipe = Recipe(
       name: 'Egg',
       quantity: 6,
       unit: 'piece',
+      role: RecipeIngredientRole.secondary,
+      weight: 25,
     ),
     RecipeIngredient(
       id: 'rice',
       name: 'Rice',
       quantity: 1,
       unit: 'kilogram',
+      role: RecipeIngredientRole.primary,
+      weight: 75,
     ),
   ],
   steps: <String>[],
@@ -224,6 +286,8 @@ const Recipe _eggRecipe = Recipe(
       name: 'Egg',
       quantity: 6,
       unit: 'piece',
+      role: RecipeIngredientRole.primary,
+      weight: 100,
     ),
   ],
   steps: <String>[],
