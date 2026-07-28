@@ -85,6 +85,62 @@ void main() {
     expect(readiness.ingredients.single.availableQuantity, closeTo(1, 0.000001));
   });
 
+  test('localized name fallback resolves legacy Recipe identity', () {
+    const recipe = Recipe(
+      id: 'legacy-beef',
+      name: 'Legacy Beef',
+      category: 'test',
+      servings: 1,
+      heroIngredientId: 'legacy-beef-key',
+      ingredients: <RecipeIngredient>[
+        RecipeIngredient(
+          id: 'legacy-beef-key',
+          name: 'เนื้อวัว',
+          quantity: 1,
+          unit: 'kilogram',
+        ),
+      ],
+      steps: <String>[],
+    );
+    final readiness = service.evaluate(
+      recipe: recipe,
+      pantry: <Ingredient>[_pantry('beef', 1, 'kilogram', now)],
+      servings: 1,
+      evaluatedAt: now,
+    );
+
+    expect(readiness.scorePercent, 100);
+    expect(readiness.ingredients.single.canonicalIngredientId, 'beef');
+  });
+
+  test('parent and child identities are not treated as substitution', () {
+    const recipe = Recipe(
+      id: 'beef-dish',
+      name: 'Beef Dish',
+      category: 'test',
+      servings: 1,
+      heroIngredientId: 'beef',
+      ingredients: <RecipeIngredient>[
+        RecipeIngredient(
+          id: 'beef',
+          name: 'Beef',
+          quantity: 1,
+          unit: 'kilogram',
+        ),
+      ],
+      steps: <String>[],
+    );
+    final readiness = service.evaluate(
+      recipe: recipe,
+      pantry: <Ingredient>[_pantry('beef_slice', 1, 'kilogram', now)],
+      servings: 1,
+      evaluatedAt: now,
+    );
+
+    expect(readiness.scorePercent, 0);
+    expect(readiness.missingIngredients, hasLength(1));
+  });
+
   test('expired inventory does not contribute to readiness', () {
     final readiness = service.evaluate(
       recipe: _recipe(optional: false),
@@ -160,22 +216,35 @@ Ingredient _pantry(
 
 final CanonicalIngredientRegistry _registry = CanonicalIngredientRegistry(
   ingredients: <CanonicalIngredient>[
-    _canonical('beef', 'kilogram'),
+    _canonical(
+      'beef',
+      'kilogram',
+      localizedName: 'เนื้อวัว',
+      aliases: const <String>['beef steak'],
+    ),
+    _canonical('beef_slice', 'kilogram', parentId: 'beef'),
     _canonical('pepper', 'piece'),
     _canonical('water', 'liter'),
   ],
 );
 
-CanonicalIngredient _canonical(String id, String unit) {
+CanonicalIngredient _canonical(
+  String id,
+  String unit, {
+  String? localizedName,
+  List<String> aliases = const <String>[],
+  String? parentId,
+}) {
   return CanonicalIngredient(
     id: id,
     canonicalName: id,
-    localizedNames: <String, String>{'th': id},
-    aliases: const <String>[],
+    localizedNames: <String, String>{'th': localizedName ?? id},
+    aliases: aliases,
     searchKeywords: const <String>[],
     category: 'test',
     defaultStorageType: IngredientStorageType.pantry,
     defaultPurchaseUnitId: unit,
     defaultInventoryUnitId: unit,
+    parentId: parentId,
   );
 }
