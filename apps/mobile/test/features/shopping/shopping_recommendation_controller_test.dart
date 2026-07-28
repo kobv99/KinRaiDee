@@ -10,7 +10,6 @@ import 'package:mobile/features/shopping/application/shopping_recommendation_con
 import 'package:mobile/features/shopping/domain/entities/purchase_history_entry.dart';
 import 'package:mobile/features/shopping/domain/entities/shopping_list.dart';
 import 'package:mobile/features/shopping/domain/entities/shopping_recommendation.dart';
-import 'package:mobile/features/shopping/domain/models/shopping_mutation.dart';
 import 'package:mobile/features/shopping/domain/repositories/shopping_repository.dart';
 
 void main() {
