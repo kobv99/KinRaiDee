@@ -7,6 +7,7 @@ import '../../../core/domain/ingredients/canonical_ingredient_registry.dart';
 import '../../../core/domain/ingredients/ingredient_artwork_policy.dart';
 import '../../../core/domain/units/ingredient_unit_policy.dart';
 import '../../../core/domain/units/unit_contract.dart';
+import 'pantry_catalog_canonical_definitions.dart';
 
 class IngredientCatalog {
   IngredientCatalog({
@@ -32,10 +33,10 @@ class IngredientCatalog {
   }) async {
     final source = await _bundle.loadString(assetPath);
     final decoded = jsonDecode(source) as List<dynamic>;
-
-    return decoded
+    final bundled = decoded
         .map((item) => _fromJson(Map<String, dynamic>.from(item as Map)))
         .toList(growable: false);
+    return applyPantryCatalogCanonicalCoverage(bundled);
   }
 
   Future<CanonicalIngredientRegistry> loadRegistry({
