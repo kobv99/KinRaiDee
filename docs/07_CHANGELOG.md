@@ -4,10 +4,21 @@
 
 ### Added
 
+- Data-driven Recipe ingredient catalog in `assets/recipes/ingredient_catalog.json`
+  with Recipe-specific `primary`, `secondary`, and `optional` role overrides plus
+  positive readiness weights.
+- `RecipeCandidateService` as the single domain owner for Pantry-originated Recipe
+  eligibility and ranking. At least one Primary ingredient must exist in Pantry.
+- Candidate coverage proving Egg alone does not recommend Pad Kra Pao while Pork or
+  Holy Basil does.
+- Candidate-only Shopping generation and Random Recipe pools.
+- User choice to keep an incompatible purchased unit as a separate Pantry record,
+  cancel safely, or view the future unit-conversion action.
+- Product-flow coverage that routes Shopping planning back through Pantry Recipes.
 - `RecipeReadinessService` as the deterministic domain owner for Pantry-aware,
   quantity-aware Recipe evaluation.
-- Weighted readiness scoring with hero/main, required supporting, optional, and
-  garnish defaults plus explicit per-ingredient overrides.
+- Weighted readiness scoring with Primary, Secondary, Optional, legacy garnish
+  defaults, and explicit per-ingredient overrides.
 - Typed Recipe readiness results containing available, missing, optional,
   shortage, canonical identity, unit compatibility, and quantity coverage data.
 - Riverpod projections that recalculate readiness from Recipe + Pantry and
@@ -19,11 +30,11 @@
 - Regression coverage for weighted scoring, partial quantities, mixed-unit
   aggregation, expiry, every-Recipe projection, Recipe Detail, batch Shopping,
   repeated-action deduplication, and fully ready no-op behavior.
-- Actionable-only Shopping completion workflow: `เก็บเข้าตู้` atomically merges
-  Pantry, records Purchase History, and removes the Shopping item.
+- Actionable-only Shopping completion workflow that atomically updates Pantry,
+  records Purchase History, and removes the Shopping item.
 - `PantryCanonicalMergeService` as the shared domain owner for canonical
   resolution, compatible-unit conversion, deterministic consolidation, and
-  typed incompatible-unit failure.
+  typed incompatible-unit outcomes.
 - Durable `PurchaseHistoryEntry` read model projected from committed inventory
   transaction snapshots, including timestamp, resolved ingredient, quantity,
   Recipe sources, Shopping identity, Pantry transaction ID, and affected Pantry
@@ -36,7 +47,7 @@
   duplicate consolidation, incompatible-unit failure, restart durability, and
   full Undo.
 - Celebration state when an existing Shopping list has no unfinished items:
-  `🎉 ไม่มีรายการที่ต้องซื้อแล้ว` and `พร้อมทำอาหารได้เลย`.
+  `🎉 ไม่มีรายการที่ต้องซื้อแล้ว`.
 - Transaction-safe single-entry deletion and clear-all retention controls for
   Cooking History, both protected by confirmation dialogs.
 - Shared `UnitPresentation` localization coverage for Pantry, Recipe, Shopping,
@@ -44,10 +55,9 @@
 - Canonical artwork metadata and backward-compatible presentation fallback.
 - Ingredient-aware Unit Policy with preferred units, recommended units, and
   optional unit families on every canonical ingredient.
-- SF-003 Shopping screen, multi-Recipe generation preview, canonical search,
-  category/Recipe filters, deterministic sorting, Pantry availability, and
-  durable edit/delete Undo.
-- SF-002 `ShoppingEngine` for deterministic multi-Recipe aggregation, Pantry
+- SF-003 Shopping screen, canonical search, category/Recipe filters,
+  deterministic sorting, Pantry availability, and durable edit/delete Undo.
+- SF-002 `ShoppingEngine` for deterministic Recipe aggregation, Pantry
   subtraction, canonical alias resolution, unit conversion, and active-demand
   merging.
 - SF-001 Shopping entities and a read-only repository backed by the durable
@@ -58,15 +68,24 @@
 
 ### Changed
 
+- Recipe packs now supply ingredient role and weight data. The Dart parser no
+  longer contains the ingredient-name, quantity, unit, or optional-status catalog.
+- Pantry is the source of Recipe candidates, readiness, ranking, and Random Recipe.
+  Recipes without a meaningful Primary Pantry relationship are excluded.
+- Shopping is a consequence of Recipe planning. Shopping entry actions route to
+  Pantry-based Recipe selection instead of starting from an unrelated generator.
+- Shopping generation verifies candidate eligibility before creating only the
+  missing required ingredients for the selected Recipe.
+- User-facing failure messages no longer include transaction codes, UUIDs, object
+  IDs, raw exception messages, stack traces, or implementation terminology.
+- Pantry terminology replaces `เพิ่มเข้าตู้` and `เก็บเข้าตู้` in current flows.
 - Pantry is now the source for Recipe readiness decisions; readiness is derived
   instead of persisted so inventory changes cannot leave stale scores.
-- Recipe ingredient data remains backward compatible while optionally accepting
-  semantic importance and explicit readiness weight metadata.
 - Missing-ingredient Shopping uses the existing canonical Shopping Engine rather
   than duplicating canonical resolution, Pantry subtraction, unit conversion, or
   deduplication rules in Recipe presentation.
-- Recipe application code depends on a Shopping mutation executor contract;
-  Riverpod and concrete controller wiring remain at the presentation boundary.
+- Recipe application code depends on domain candidate and Shopping mutation
+  contracts; Riverpod and concrete controller wiring remain at presentation.
 - Shopping now represents unfinished work only. The current UI no longer renders
   a Completed section/tab or archive/restore controls.
 - Completing an item removes it immediately instead of changing it to
@@ -79,7 +98,8 @@
   persisted data and embedded receipts for backward compatibility.
 - Pantry add/update and Shopping completion use the same canonical merge rules.
   Compatible canonical duplicates are consolidated into one inventory record;
-  incompatible units fail without mutation.
+  incompatible units fail without mutation unless the user explicitly chooses a
+  separate Pantry record.
 - Canonical merge priority is canonical ID redirect resolution, stable registry
   key, then localized/alias registry resolution. Display-name equality is not a
   merge rule.
@@ -98,7 +118,7 @@
 ### Quality Status
 
 - PR #6 and stacked PR #7 remain Draft.
-- Recipe-readiness targeted tests, the full suite, analysis, formatting, diff,
+- Product-alignment targeted tests, the full suite, analysis, formatting, diff,
   and manual web results must be recorded from the local Flutter environment
   before Ready for review.
 - No pass result is claimed in this changelog until those commands complete.
