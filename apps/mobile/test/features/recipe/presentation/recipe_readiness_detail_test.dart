@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/features/recipe/domain/entities/recipe.dart';
@@ -114,7 +115,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(tester.takeException(), isNull);
+    _expectNoHorizontalOverflow(
+      tester,
+      exception: tester.takeException(),
+      phase: 'compact',
+    );
     expect(
       find.byKey(const ValueKey<String>('add-missing-to-shopping')),
       findsOneWidget,
@@ -126,10 +131,81 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(tester.takeException(), isNull);
+    _expectNoHorizontalOverflow(
+      tester,
+      exception: tester.takeException(),
+      phase: 'expanded',
+    );
     expect(find.text('เราแนะนำให้เตรียมเพิ่ม'), findsOneWidget);
     expect(find.text('เริ่มทำอาหารสำหรับ 2 คน'), findsOneWidget);
   });
+}
+
+void _expectNoHorizontalOverflow(
+  WidgetTester tester, {
+  required Object? exception,
+  required String phase,
+}) {
+  if (exception == null) {
+    return;
+  }
+
+  final reports = <String>[];
+  for (final element in find.byType(Row).evaluate()) {
+    final renderObject = element.renderObject;
+    if (renderObject is! RenderFlex ||
+        renderObject.direction != Axis.horizontal ||
+        !renderObject.hasSize) {
+      continue;
+    }
+
+    var minLeft = 0.0;
+    var maxRight = renderObject.size.width;
+    RenderBox? child = renderObject.firstChild;
+    while (child != null) {
+      final parentData = child.parentData;
+      if (parentData is FlexParentData && child.hasSize) {
+        final rect = parentData.offset & child.size;
+        if (rect.left < minLeft) {
+          minLeft = rect.left;
+        }
+        if (rect.right > maxRight) {
+          maxRight = rect.right;
+        }
+      }
+      child = renderObject.childAfter(child);
+    }
+
+    final leftOverflow = -minLeft;
+    final rightOverflow = maxRight - renderObject.size.width;
+    if (leftOverflow <= 0.5 && rightOverflow <= 0.5) {
+      continue;
+    }
+
+    final labels = <String>[];
+    void collectText(Element current) {
+      final widget = current.widget;
+      if (widget is Text && widget.data != null && widget.data!.isNotEmpty) {
+        labels.add(widget.data!);
+      }
+      current.visitChildren(collectText);
+    }
+
+    collectText(element);
+    reports.add(
+      'Row labels=${labels.join(' | ')} '
+      'size=${renderObject.size} '
+      'leftOverflow=${leftOverflow.toStringAsFixed(1)} '
+      'rightOverflow=${rightOverflow.toStringAsFixed(1)} '
+      'owner=${renderObject.debugCreator}',
+    );
+  }
+
+  fail(
+    'Layout exception during $phase: $exception\n'
+    'Measured overflowing rows:\n'
+    '${reports.isEmpty ? '(none found)' : reports.join('\n---\n')}',
+  );
 }
 
 Future<ShoppingUiHarness> _harness() {
