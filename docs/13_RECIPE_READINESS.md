@@ -78,7 +78,11 @@ Pantry display-name equality is never an identity rule. Legacy Pantry records
 without canonical IDs may use the registry name path as a read-only compatibility
 fallback.
 
-All non-expired, positive Pantry records with a compatible canonical identity are
+After redirect resolution, Recipe Readiness requires the exact same canonical ID.
+Parent/child ingredient families are not treated as substitutions in this sprint.
+That boundary is reserved for the future Ingredient Substitution feature.
+
+All non-expired, positive Pantry records with the exact resolved identity are
 converted into the Recipe unit and summed. Incompatible units produce a typed
 status and contribute zero rather than being silently merged or guessed.
 
@@ -157,6 +161,8 @@ readiness result rather than duplicating Pantry matching or scoring logic.
 - hero/main and garnish weighting;
 - partial quantity scoring;
 - convertible-unit aggregation;
+- localized identity fallback;
+- exact identity without substitution;
 - expired Pantry exclusion;
 - every Recipe receives a result;
 - Recipe Detail groups and score;
