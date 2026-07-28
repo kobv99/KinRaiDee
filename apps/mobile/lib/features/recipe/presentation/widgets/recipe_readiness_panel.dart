@@ -69,9 +69,7 @@ class RecipeReadinessPanel extends StatelessWidget {
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton.tonal(
-                        key: const ValueKey<String>(
-                          'add-missing-to-shopping',
-                        ),
+                        key: const ValueKey<String>('add-missing-to-shopping'),
                         style: FilledButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,
@@ -120,7 +118,9 @@ class RecipeReadinessPanel extends StatelessWidget {
                                 items: value.missingIngredients,
                                 icon: Icons.shopping_cart_outlined,
                               ),
-                              if (value.missingOptionalIngredients.isNotEmpty) ...[
+                              if (value
+                                  .missingOptionalIngredients
+                                  .isNotEmpty) ...[
                                 const SizedBox(height: 10),
                                 _IngredientGroup(
                                   title: 'วัตถุดิบเสริม เลือกใช้ได้',
@@ -239,11 +239,7 @@ class _ReadinessHeader extends StatelessWidget {
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              Icons.auto_awesome_outlined,
-              size: 21,
-              color: colors.primary,
-            ),
+            Icon(Icons.auto_awesome_outlined, size: 21, color: colors.primary),
             const SizedBox(width: 10),
             summary,
             IconButton(
@@ -317,9 +313,9 @@ class _IngredientGroup extends StatelessWidget {
         if (items.isEmpty)
           Text(
             emptyLabel,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: colors.onSurfaceVariant,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
           )
         else
           ...items.map(

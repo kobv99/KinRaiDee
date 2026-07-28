@@ -229,13 +229,13 @@ class PantryCanonicalMergeService {
   }) {
     final recordId = replacementId ?? incoming.id;
     if (recordId.trim().isEmpty) {
-      return PantryCanonicalMergeResult.failure(
-        'missing_pantry_ingredient_id',
-      );
+      return PantryCanonicalMergeResult.failure('missing_pantry_ingredient_id');
     }
     if (replacementId == null &&
         current.any((ingredient) => ingredient.id == recordId)) {
-      return PantryCanonicalMergeResult.failure('duplicate_pantry_ingredient_id');
+      return PantryCanonicalMergeResult.failure(
+        'duplicate_pantry_ingredient_id',
+      );
     }
     final stored = Ingredient(
       id: recordId,

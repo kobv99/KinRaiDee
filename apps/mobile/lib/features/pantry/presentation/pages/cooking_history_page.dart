@@ -334,9 +334,8 @@ class _HistoryCard extends StatelessWidget {
                     children: [
                       Text(
                         entry.recipeName,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 3),
                       Text(

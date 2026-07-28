@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.2.0 - Pantry Intelligence
 
 ### Added
 
@@ -117,11 +117,12 @@
 
 ### Quality Status
 
-- PR #6 and stacked PR #7 remain Draft.
-- Product-alignment targeted tests, the full suite, analysis, formatting, diff,
-  and manual web results must be recorded from the local Flutter environment
-  before Ready for review.
-- No pass result is claimed in this changelog until those commands complete.
+- Dart formatting passes for all 193 files.
+- Flutter analysis passes with zero issues.
+- Sprint-focused Pantry and Shopping tests pass.
+- The full automated suite passes with 219 tests.
+- The release web build completes successfully.
+- Manual Pantry-to-Shopping acceptance was completed by the product owner.
 
 ## v0.1.0
 

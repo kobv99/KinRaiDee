@@ -358,7 +358,9 @@ class _ShoppingGenerationSheetState
         _error = null;
       });
     } on ShoppingDomainException {
-      setState(() => _error = 'สร้างรายการจากสูตรที่เลือกไม่ได้ กรุณาตรวจข้อมูล');
+      setState(
+        () => _error = 'สร้างรายการจากสูตรที่เลือกไม่ได้ กรุณาตรวจข้อมูล',
+      );
     } on Object {
       setState(() => _error = 'สร้างตัวอย่างรายการไม่ได้ กรุณาลองอีกครั้ง');
     }

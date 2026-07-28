@@ -84,7 +84,10 @@ void main() {
     });
 
     test('localizes approved category keys centrally', () {
-      expect(IngredientPresentation.localizedCategory('seasoning'), 'เครื่องปรุง');
+      expect(
+        IngredientPresentation.localizedCategory('seasoning'),
+        'เครื่องปรุง',
+      );
       expect(IngredientPresentation.localizedCategory('protein'), 'โปรตีน');
       expect(IngredientPresentation.localizedCategory('seafood'), 'อาหารทะเล');
     });

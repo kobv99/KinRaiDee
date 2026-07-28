@@ -45,39 +45,42 @@ void main() {
     expect((await harness.lists()).single.items.single.quantity, 8);
   });
 
-  test('new completion retains legacy Purchase History from journal snapshots', () async {
-    final now = DateTime.utc(2026, 7, 27, 10);
-    final active = _activeItem(now);
-    final legacy = _legacyItem(now);
-    final harness = await ShoppingUiHarness.create(
-      list: testShoppingList(now: now, items: [active, legacy]),
-      at: now,
-      seedLegacyShoppingState: true,
-    );
-    addTearDown(harness.dispose);
+  test(
+    'new completion retains legacy Purchase History from journal snapshots',
+    () async {
+      final now = DateTime.utc(2026, 7, 27, 10);
+      final active = _activeItem(now);
+      final legacy = _legacyItem(now);
+      final harness = await ShoppingUiHarness.create(
+        list: testShoppingList(now: now, items: [active, legacy]),
+        at: now,
+        seedLegacyShoppingState: true,
+      );
+      addTearDown(harness.dispose);
 
-    final list = (await harness.lists()).single;
-    final completed = await harness.container
-        .read(shoppingCompletionControllerProvider)
-        .complete(
-          listId: list.id,
-          expectedListRevision: list.revision,
-          itemId: active.id,
-          createdAt: now,
-        );
+      final list = (await harness.lists()).single;
+      final completed = await harness.container
+          .read(shoppingCompletionControllerProvider)
+          .complete(
+            listId: list.id,
+            expectedListRevision: list.revision,
+            itemId: active.id,
+            createdAt: now,
+          );
 
-    expect(completed.isSuccess, isTrue);
-    expect((await harness.lists()).single.items, isEmpty);
-    final history = await harness.history();
-    expect(history, hasLength(2));
-    expect(
-      history.map((entry) => entry.pantryTransactionId).toSet(),
-      containsAll(<String>{
-        'legacy-purchase-transaction',
-        completed.transaction!.transactionId,
-      }),
-    );
-  });
+      expect(completed.isSuccess, isTrue);
+      expect((await harness.lists()).single.items, isEmpty);
+      final history = await harness.history();
+      expect(history, hasLength(2));
+      expect(
+        history.map((entry) => entry.pantryTransactionId).toSet(),
+        containsAll(<String>{
+          'legacy-purchase-transaction',
+          completed.transaction!.transactionId,
+        }),
+      );
+    },
+  );
 }
 
 ShoppingItem _activeItem(DateTime now) {

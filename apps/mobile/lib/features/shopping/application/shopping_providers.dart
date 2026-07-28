@@ -35,7 +35,9 @@ final shoppingListsProvider = FutureProvider<List<ShoppingList>>((ref) {
   return ref.watch(shoppingRepositoryProvider).getLists();
 });
 
-final purchaseHistoryProvider = FutureProvider<List<PurchaseHistoryEntry>>((ref) {
+final purchaseHistoryProvider = FutureProvider<List<PurchaseHistoryEntry>>((
+  ref,
+) {
   return ref.watch(shoppingRepositoryProvider).getPurchaseHistory();
 });
 

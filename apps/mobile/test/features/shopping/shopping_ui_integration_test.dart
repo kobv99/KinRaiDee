@@ -45,9 +45,7 @@ void main() {
       expect(recovery.snapshot.pantry.single.quantity, 6);
       expect(recovery.snapshot.shoppingLists.single.items, isEmpty);
       expect(
-        await LocalShoppingRepository(
-          restartedRepository,
-        ).getPurchaseHistory(),
+        await LocalShoppingRepository(restartedRepository).getPurchaseHistory(),
         hasLength(1),
       );
 
@@ -56,11 +54,12 @@ void main() {
 
       final afterUndo = await restartedRepository.recoverPendingTransactions();
       expect(afterUndo.snapshot.pantry, isEmpty);
-      expect(afterUndo.snapshot.shoppingLists.single.items.single.id, 'egg-item');
       expect(
-        await LocalShoppingRepository(
-          restartedRepository,
-        ).getPurchaseHistory(),
+        afterUndo.snapshot.shoppingLists.single.items.single.id,
+        'egg-item',
+      );
+      expect(
+        await LocalShoppingRepository(restartedRepository).getPurchaseHistory(),
         isEmpty,
       );
     },

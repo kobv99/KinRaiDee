@@ -31,7 +31,8 @@ class RecipeIngredientCatalog {
       Map value => Map<String, dynamic>.from(value),
       _ => throw const FormatException('Invalid recipe ingredient.'),
     };
-    final id = (overrides['id'] ?? overrides['canonicalIngredientId'])
+    final id =
+        (overrides['id'] ?? overrides['canonicalIngredientId'])
             ?.toString()
             .trim() ??
         '';

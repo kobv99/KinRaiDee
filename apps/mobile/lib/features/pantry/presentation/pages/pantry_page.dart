@@ -139,14 +139,18 @@ class _PantryPageState extends ConsumerState<PantryPage> {
           );
       ref.read(recommendationSessionProvider.notifier).reset();
       ref.read(appNavigationProvider.notifier).openRecipes();
-    } catch (error) {
+    } catch (_) {
       if (!mounted) {
         return;
       }
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('เปิดเมนูไม่สำเร็จ: $error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'เปิดเมนูไม่สำเร็จ กรุณาลองใหม่อีกครั้ง ข้อมูลใน Pantry ยังปลอดภัย',
+          ),
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() {

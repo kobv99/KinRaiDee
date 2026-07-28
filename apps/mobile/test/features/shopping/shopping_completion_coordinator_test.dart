@@ -18,139 +18,157 @@ import '../../support/inventory_test_support.dart';
 void main() {
   final now = DateTime.utc(2026, 7, 27, 10);
 
-  test('completion removes Shopping item, merges Pantry, and records history', () async {
-    final harness = _Harness.create(
-      now: now,
-      pantry: <Ingredient>[
-        _lot(
-          id: 'egg-lot',
+  test(
+    'completion removes Shopping item, merges Pantry, and records history',
+    () async {
+      final harness = _Harness.create(
+        now: now,
+        pantry: <Ingredient>[
+          _lot(
+            id: 'egg-lot',
+            canonicalId: 'egg',
+            name: 'ไข่ไก่',
+            quantity: 6,
+            unit: 'egg',
+            now: now,
+          ),
+        ],
+        item: _item(
+          id: 'egg-item',
           canonicalId: 'egg',
-          name: 'ไข่ไก่',
-          quantity: 6,
+          name: 'ไข่',
+          quantity: 2,
           unit: 'egg',
+          category: ShoppingCategory.protein,
           now: now,
         ),
-      ],
-      item: _item(
-        id: 'egg-item',
-        canonicalId: 'egg',
-        name: 'ไข่',
-        quantity: 2,
-        unit: 'egg',
-        category: ShoppingCategory.protein,
+      );
+
+      final completed = await harness.coordinator.completeItem(
+        listId: 'weekly',
+        expectedListRevision: 0,
+        itemId: 'egg-item',
+        createdAt: now,
+      );
+
+      expect(completed.isSuccess, isTrue);
+      expect(completed.snapshot.shoppingLists.single.items, isEmpty);
+      expect(completed.snapshot.pantry, hasLength(1));
+      expect(completed.snapshot.pantry.single.quantity, 8);
+      expect(completed.snapshot.pantry.single.canonicalIngredientId, 'egg');
+      await harness.coordinator.completePresentation(
+        completed.transaction!.transactionId,
+      );
+
+      final history = await harness.shoppingRepository.getPurchaseHistory();
+      expect(history, hasLength(1));
+      expect(history.single.ingredientName, 'ไข่');
+      expect(history.single.quantity, 2);
+      expect(history.single.sourceRecipeIds, <String>['omelette']);
+      expect(history.single.shoppingListId, 'weekly');
+      expect(
+        history.single.pantryTransactionId,
+        completed.transaction!.transactionId,
+      );
+    },
+  );
+
+  test(
+    'convertible units merge and existing duplicates are consolidated',
+    () async {
+      final harness = _Harness.create(
         now: now,
-      ),
-    );
-
-    final completed = await harness.coordinator.completeItem(
-      listId: 'weekly',
-      expectedListRevision: 0,
-      itemId: 'egg-item',
-      createdAt: now,
-    );
-
-    expect(completed.isSuccess, isTrue);
-    expect(completed.snapshot.shoppingLists.single.items, isEmpty);
-    expect(completed.snapshot.pantry, hasLength(1));
-    expect(completed.snapshot.pantry.single.quantity, 8);
-    expect(completed.snapshot.pantry.single.canonicalIngredientId, 'egg');
-    await harness.coordinator.completePresentation(
-      completed.transaction!.transactionId,
-    );
-
-    final history = await harness.shoppingRepository.getPurchaseHistory();
-    expect(history, hasLength(1));
-    expect(history.single.ingredientName, 'ไข่');
-    expect(history.single.quantity, 2);
-    expect(history.single.sourceRecipeIds, <String>['omelette']);
-    expect(history.single.shoppingListId, 'weekly');
-    expect(
-      history.single.pantryTransactionId,
-      completed.transaction!.transactionId,
-    );
-  });
-
-  test('convertible units merge and existing duplicates are consolidated', () async {
-    final harness = _Harness.create(
-      now: now,
-      pantry: <Ingredient>[
-        _lot(
-          id: 'fish-sauce-liter',
+        pantry: <Ingredient>[
+          _lot(
+            id: 'fish-sauce-liter',
+            canonicalId: 'fish_sauce',
+            name: 'น้ำปลา',
+            quantity: 0.4,
+            unit: 'liter',
+            now: now,
+          ),
+          _lot(
+            id: 'fish-sauce-ml',
+            canonicalId: 'fish_sauce',
+            name: 'Fish sauce',
+            quantity: 100,
+            unit: 'milliliter',
+            now: now.add(const Duration(minutes: 1)),
+          ),
+        ],
+        item: _item(
+          id: 'fish-sauce-item',
           canonicalId: 'fish_sauce',
           name: 'น้ำปลา',
-          quantity: 0.4,
-          unit: 'liter',
-          now: now,
-        ),
-        _lot(
-          id: 'fish-sauce-ml',
-          canonicalId: 'fish_sauce',
-          name: 'Fish sauce',
-          quantity: 100,
+          quantity: 250,
           unit: 'milliliter',
-          now: now.add(const Duration(minutes: 1)),
-        ),
-      ],
-      item: _item(
-        id: 'fish-sauce-item',
-        canonicalId: 'fish_sauce',
-        name: 'น้ำปลา',
-        quantity: 250,
-        unit: 'milliliter',
-        category: ShoppingCategory.seasonings,
-        now: now,
-      ),
-    );
-
-    final completed = await harness.coordinator.completeItem(
-      listId: 'weekly',
-      expectedListRevision: 0,
-      itemId: 'fish-sauce-item',
-      createdAt: now,
-    );
-
-    expect(completed.isSuccess, isTrue);
-    expect(completed.snapshot.pantry, hasLength(1));
-    expect(completed.snapshot.pantry.single.canonicalUnitId, 'liter');
-    expect(completed.snapshot.pantry.single.quantity, closeTo(0.75, 0.000001));
-  });
-
-  test('canonical stable key and localized alias fallback resolve before merge', () async {
-    final harness = _Harness.create(
-      now: now,
-      pantry: <Ingredient>[
-        _lot(
-          id: 'fish-sauce-liter',
-          canonicalId: '',
-          name: 'น้ำปลา',
-          quantity: 0.4,
-          unit: 'liter',
+          category: ShoppingCategory.seasonings,
           now: now,
         ),
-      ],
-      item: _item(
-        id: 'fish-sauce-item',
-        canonicalId: 'Fish Sauce',
-        name: 'น้ำปลา',
-        quantity: 0.25,
-        unit: 'liter',
-        category: ShoppingCategory.seasonings,
+      );
+
+      final completed = await harness.coordinator.completeItem(
+        listId: 'weekly',
+        expectedListRevision: 0,
+        itemId: 'fish-sauce-item',
+        createdAt: now,
+      );
+
+      expect(completed.isSuccess, isTrue);
+      expect(completed.snapshot.pantry, hasLength(1));
+      expect(completed.snapshot.pantry.single.canonicalUnitId, 'liter');
+      expect(
+        completed.snapshot.pantry.single.quantity,
+        closeTo(0.75, 0.000001),
+      );
+    },
+  );
+
+  test(
+    'canonical stable key and localized alias fallback resolve before merge',
+    () async {
+      final harness = _Harness.create(
         now: now,
-      ),
-    );
+        pantry: <Ingredient>[
+          _lot(
+            id: 'fish-sauce-liter',
+            canonicalId: '',
+            name: 'น้ำปลา',
+            quantity: 0.4,
+            unit: 'liter',
+            now: now,
+          ),
+        ],
+        item: _item(
+          id: 'fish-sauce-item',
+          canonicalId: 'Fish Sauce',
+          name: 'น้ำปลา',
+          quantity: 0.25,
+          unit: 'liter',
+          category: ShoppingCategory.seasonings,
+          now: now,
+        ),
+      );
 
-    final completed = await harness.coordinator.completeItem(
-      listId: 'weekly',
-      expectedListRevision: 0,
-      itemId: 'fish-sauce-item',
-      createdAt: now,
-    );
+      final completed = await harness.coordinator.completeItem(
+        listId: 'weekly',
+        expectedListRevision: 0,
+        itemId: 'fish-sauce-item',
+        createdAt: now,
+      );
 
-    expect(completed.isSuccess, isTrue);
-    expect(completed.snapshot.pantry, hasLength(1));
-    expect(completed.snapshot.pantry.single.canonicalIngredientId, 'fish_sauce');
-    expect(completed.snapshot.pantry.single.quantity, closeTo(0.65, 0.000001));
-  });
+      expect(completed.isSuccess, isTrue);
+      expect(completed.snapshot.pantry, hasLength(1));
+      expect(
+        completed.snapshot.pantry.single.canonicalIngredientId,
+        'fish_sauce',
+      );
+      expect(
+        completed.snapshot.pantry.single.quantity,
+        closeTo(0.65, 0.000001),
+      );
+    },
+  );
 
   test('incompatible units fail without Shopping or Pantry drift', () async {
     final original = _lot(
@@ -189,52 +207,55 @@ void main() {
     expect(await harness.shoppingRepository.getPurchaseHistory(), isEmpty);
   });
 
-  test('undo restores Pantry and Shopping and removes projected history', () async {
-    final original = _lot(
-      id: 'egg-lot',
-      canonicalId: 'egg',
-      name: 'ไข่ไก่',
-      quantity: 6,
-      unit: 'egg',
-      now: now,
-    );
-    final harness = _Harness.create(
-      now: now,
-      pantry: <Ingredient>[original],
-      item: _item(
-        id: 'egg-item',
+  test(
+    'undo restores Pantry and Shopping and removes projected history',
+    () async {
+      final original = _lot(
+        id: 'egg-lot',
         canonicalId: 'egg',
-        name: 'ไข่',
-        quantity: 2,
+        name: 'ไข่ไก่',
+        quantity: 6,
         unit: 'egg',
-        category: ShoppingCategory.protein,
         now: now,
-      ),
-    );
-    final completed = await harness.coordinator.completeItem(
-      listId: 'weekly',
-      expectedListRevision: 0,
-      itemId: 'egg-item',
-      createdAt: now,
-    );
-    await harness.coordinator.completePresentation(
-      completed.transaction!.transactionId,
-    );
+      );
+      final harness = _Harness.create(
+        now: now,
+        pantry: <Ingredient>[original],
+        item: _item(
+          id: 'egg-item',
+          canonicalId: 'egg',
+          name: 'ไข่',
+          quantity: 2,
+          unit: 'egg',
+          category: ShoppingCategory.protein,
+          now: now,
+        ),
+      );
+      final completed = await harness.coordinator.completeItem(
+        listId: 'weekly',
+        expectedListRevision: 0,
+        itemId: 'egg-item',
+        createdAt: now,
+      );
+      await harness.coordinator.completePresentation(
+        completed.transaction!.transactionId,
+      );
 
-    final undone = await harness.coordinator.undoCompletion(
-      purchaseTransactionId: completed.transaction!.transactionId,
-      createdAt: now.add(const Duration(seconds: 5)),
-    );
+      final undone = await harness.coordinator.undoCompletion(
+        purchaseTransactionId: completed.transaction!.transactionId,
+        createdAt: now.add(const Duration(seconds: 5)),
+      );
 
-    expect(undone.isSuccess, isTrue);
-    expect(undone.snapshot.pantry.single.toJson(), original.toJson());
-    expect(undone.snapshot.shoppingLists.single.items, hasLength(1));
-    expect(undone.snapshot.shoppingLists.single.items.single.id, 'egg-item');
-    await harness.coordinator.completePresentation(
-      undone.transaction!.transactionId,
-    );
-    expect(await harness.shoppingRepository.getPurchaseHistory(), isEmpty);
-  });
+      expect(undone.isSuccess, isTrue);
+      expect(undone.snapshot.pantry.single.toJson(), original.toJson());
+      expect(undone.snapshot.shoppingLists.single.items, hasLength(1));
+      expect(undone.snapshot.shoppingLists.single.items.single.id, 'egg-item');
+      await harness.coordinator.completePresentation(
+        undone.transaction!.transactionId,
+      );
+      expect(await harness.shoppingRepository.getPurchaseHistory(), isEmpty);
+    },
+  );
 }
 
 class _Harness {
