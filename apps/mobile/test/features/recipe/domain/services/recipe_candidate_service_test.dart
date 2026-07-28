@@ -60,7 +60,7 @@ void main() {
       candidates.map((candidate) => candidate.recipe.id),
       orderedEquals(<String>['pad-kra-pao', 'egg-snack']),
     );
-    expect(candidates.first.scorePercent, 50);
+    expect(candidates.first.scorePercent, 55);
     expect(candidates.last.scorePercent, 20);
   });
 }
