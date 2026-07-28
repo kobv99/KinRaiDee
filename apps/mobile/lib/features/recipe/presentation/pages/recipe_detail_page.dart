@@ -19,7 +19,8 @@ class RecipeDetailPage extends ConsumerStatefulWidget {
 
 class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
   late final int _servings;
-  bool _expanded = true;
+  bool _expanded = false;
+  bool _dismissed = false;
   bool _isAddingMissing = false;
 
   @override
@@ -35,27 +36,44 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
         RecipeReadinessRequest(recipe: widget.recipe, servings: _servings),
       ),
     );
-    final panelTop = MediaQuery.paddingOf(context).top + kToolbarHeight + 8;
-    return Material(
-      color: Theme.of(context).scaffoldBackgroundColor,
-      child: Stack(
+    final theme = Theme.of(context);
+    final embeddedTheme = theme.copyWith(
+      appBarTheme: theme.appBarTheme.copyWith(toolbarHeight: 0),
+    );
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('สูตรอาหาร')),
+      body: Column(
         children: [
-          Positioned.fill(
-            child: legacy.RecipeDetailPage(recipe: widget.recipe),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOut,
+            child: _dismissed
+                ? const SizedBox.shrink()
+                : Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
+                    child: RecipeReadinessPanel(
+                      readiness: readiness,
+                      expanded: _expanded,
+                      isAddingMissing: _isAddingMissing,
+                      onToggle: () => setState(() => _expanded = !_expanded),
+                      onDismiss: () => setState(() => _dismissed = true),
+                      onAddMissing:
+                          readiness == null ||
+                              readiness.missingIngredients.isEmpty
+                          ? null
+                          : _addMissingIngredients,
+                    ),
+                  ),
           ),
-          Positioned(
-            top: panelTop,
-            left: 12,
-            right: 12,
-            child: RecipeReadinessPanel(
-              readiness: readiness,
-              expanded: _expanded,
-              isAddingMissing: _isAddingMissing,
-              onToggle: () => setState(() => _expanded = !_expanded),
-              onAddMissing:
-                  readiness == null || readiness.missingIngredients.isEmpty
-                  ? null
-                  : _addMissingIngredients,
+          Expanded(
+            child: MediaQuery.removePadding(
+              context: context,
+              removeTop: true,
+              child: Theme(
+                data: embeddedTheme,
+                child: legacy.RecipeDetailPage(recipe: widget.recipe),
+              ),
             ),
           ),
         ],
@@ -69,7 +87,9 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
     }
     final controller = ref.read(recipeMissingShoppingControllerProvider);
     if (controller == null) {
-      _showMessage('ข้อมูล Pantry ยังไม่พร้อม กรุณาลองอีกครั้ง');
+      _showMessage(
+        'ยังตรวจ Pantry ไม่สำเร็จ คุณยังเริ่มทำอาหารได้และเพิ่มรายการภายหลังได้',
+      );
       return;
     }
     setState(() => _isAddingMissing = true);
@@ -85,18 +105,18 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
         RecipeMissingShoppingOutcome.committed =>
           'เพิ่มวัตถุดิบที่ขาด ${result.changedItemCount} รายการไป Shopping แล้ว',
         RecipeMissingShoppingOutcome.noMissingIngredients =>
-          'วัตถุดิบใน Pantry เพียงพอสำหรับสูตรนี้แล้ว',
+          'Pantry พร้อมสำหรับสูตรนี้แล้ว',
         RecipeMissingShoppingOutcome.unchanged =>
-          'วัตถุดิบที่ขาดอยู่ใน Shopping แล้ว',
+          'วัตถุดิบที่แนะนำมีอยู่ใน Shopping แล้ว',
         RecipeMissingShoppingOutcome.notCandidateRecipe =>
-          'สูตรนี้ยังไม่สัมพันธ์กับวัตถุดิบหลักใน Pantry จึงยังสร้าง Shopping ไม่ได้',
+          'ยังไม่พบวัตถุดิบหลักของสูตรนี้ใน Pantry คุณยังเริ่มทำอาหารได้และวางแผนซื้อภายหลังได้',
         RecipeMissingShoppingOutcome.failed =>
-          'เพิ่มรายการไม่ได้ ข้อมูลเดิมไม่ถูกเปลี่ยนแปลง',
+          'เพิ่มรายการไม่สำเร็จ ข้อมูลเดิมยังคงปลอดภัย',
       };
       _showMessage(message);
     } on Object {
       if (mounted) {
-        _showMessage('เพิ่มรายการไม่ได้ ข้อมูลเดิมไม่ถูกเปลี่ยนแปลง');
+        _showMessage('เพิ่มรายการไม่สำเร็จ ข้อมูลเดิมยังคงปลอดภัย');
       }
     } finally {
       if (mounted) {
