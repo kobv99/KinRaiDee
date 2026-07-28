@@ -12,7 +12,7 @@ import '../../domain/entities/recipe_readiness.dart';
 import '../../domain/entities/smart_recommendation.dart';
 import '../../domain/repositories/hero_selection_repository.dart';
 import '../../domain/repositories/recipe_repository.dart';
-import '../../domain/services/recipe_matcher.dart';
+import '../../domain/services/recipe_candidate_service.dart';
 import '../../domain/services/recipe_readiness_service.dart';
 import '../../domain/services/smart_recommendation_engine.dart';
 
@@ -32,6 +32,13 @@ final recipeReadinessServiceProvider = Provider<RecipeReadinessService?>((ref) {
           registry: registry,
           unitEngine: ref.watch(unitConversionEngineProvider),
         );
+});
+
+final recipeCandidateServiceProvider = Provider<RecipeCandidateService?>((ref) {
+  final readinessService = ref.watch(recipeReadinessServiceProvider);
+  return readinessService == null
+      ? null
+      : RecipeCandidateService(readinessService: readinessService);
 });
 
 class RecipeReadinessRequest {
@@ -88,12 +95,16 @@ final heroSelectionRepositoryProvider = Provider<HeroSelectionRepository>((
 });
 
 final recipeMatchesProvider = FutureProvider<List<RecipeMatch>>((ref) async {
+  final service = ref.watch(recipeCandidateServiceProvider);
+  if (service == null) {
+    return const <RecipeMatch>[];
+  }
   final recipes = await ref.watch(recipesProvider.future);
-  final pantry = ref.watch(pantryProvider);
-
-  return RecipeMatcher(
-    registry: ref.watch(canonicalIngredientRegistryProvider),
-  ).match(recipes: recipes, pantry: pantry);
+  return service.findCandidates(
+    recipes: recipes,
+    pantry: ref.watch(pantryProvider),
+    evaluatedAt: ref.watch(appClockProvider).now(),
+  );
 });
 
 class RecommendationSessionState {
