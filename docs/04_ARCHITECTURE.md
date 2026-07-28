@@ -196,3 +196,43 @@ Shopping-specific Hive box or direct storage access from presentation.
 
 See [Shopping Foundation Domain Model](11_SHOPPING_FOUNDATION_DOMAIN.md) and
 [Shopping UI and Pantry Completion Workflow](12_SHOPPING_UI.md).
+
+---
+
+## Smart Shopping Recommendation Flow
+
+```text
+Pantry
+  |
+  v
+RecipeReadinessService
+  |
+  v
+ShoppingRecommendationService
+  |-- RecommendationScoreCalculator
+  `-- RecommendationExplanationBuilder
+  |
+  v
+Advisory recommendation UI
+  |
+  v
+Explicit Add to Shopping
+```
+
+- Pantry is the origin of every recommendation calculation.
+- `ShoppingRecommendationService` owns candidate discovery, canonical grouping,
+  quantity simulation, impact evidence, deterministic ordering, and active
+  Shopping coverage.
+- `RecommendationScoreCalculator` owns the named impact weights for Recipes
+  unlocked, readiness improvement, Primary/Secondary importance, ingredient
+  frequency, Pantry synergy, and impacted Recipes.
+- `RecommendationExplanationBuilder` converts verified domain evidence into
+  recommendation types and a user-facing reason. Presentation code never
+  derives scores, ranking, or explanations.
+- Riverpod recomputes from Pantry, Recipe repository, and active Shopping
+  projections. No mutable recommendation cache is maintained.
+- Viewing or dismissing recommendations has no persistence effect. Only an
+  explicit user action enters the existing canonical and duplicate-safe
+  Shopping transaction workflow.
+
+See [Smart Shopping Recommendation Engine](15_SMART_SHOPPING_RECOMMENDATION.md).

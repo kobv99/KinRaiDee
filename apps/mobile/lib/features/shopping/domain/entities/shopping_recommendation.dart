@@ -11,6 +11,13 @@ enum RecommendationReasonCode {
   alreadyPartiallyAvailable,
 }
 
+enum ShoppingRecommendationType {
+  unlockMostRecipes,
+  improveRecipeReadiness,
+  completeAlmostReadyRecipes,
+  frequentlyUsedIngredient,
+}
+
 class RecommendationRecipeImpact {
   const RecommendationRecipeImpact({
     required this.recipeId,
@@ -66,6 +73,8 @@ class RecommendationEvidence {
     required this.secondaryRecipeCount,
     required this.ingredientFrequency,
     required List<RecommendationReasonCode> reasonCodes,
+    this.almostReadyRecipeCount = 0,
+    this.hasPantrySynergy = false,
   }) : reasonCodes = List<RecommendationReasonCode>.unmodifiable(reasonCodes);
 
   final int impactedRecipeCount;
@@ -77,6 +86,8 @@ class RecommendationEvidence {
   final int primaryRecipeCount;
   final int secondaryRecipeCount;
   final int ingredientFrequency;
+  final int almostReadyRecipeCount;
+  final bool hasPantrySynergy;
   final List<RecommendationReasonCode> reasonCodes;
 
   int get averageReadinessBeforePercent =>
@@ -97,6 +108,8 @@ class RecommendationEvidence {
       'primaryRecipeCount': primaryRecipeCount,
       'secondaryRecipeCount': secondaryRecipeCount,
       'ingredientFrequency': ingredientFrequency,
+      'almostReadyRecipeCount': almostReadyRecipeCount,
+      'hasPantrySynergy': hasPantrySynergy,
       'reasonCodes': reasonCodes.map((reason) => reason.name).toList(),
     };
   }
@@ -114,7 +127,11 @@ class ShoppingRecommendation {
     required this.score,
     required this.evidence,
     required List<RecommendationRecipeImpact> topRecipes,
-  }) : topRecipes = List<RecommendationRecipeImpact>.unmodifiable(topRecipes);
+    List<ShoppingRecommendationType> types =
+        const <ShoppingRecommendationType>[],
+    this.reason = '',
+  }) : topRecipes = List<RecommendationRecipeImpact>.unmodifiable(topRecipes),
+       types = List<ShoppingRecommendationType>.unmodifiable(types);
 
   final String canonicalIngredientId;
   final String displayName;
@@ -132,6 +149,8 @@ class ShoppingRecommendation {
   final double score;
   final RecommendationEvidence evidence;
   final List<RecommendationRecipeImpact> topRecipes;
+  final List<ShoppingRecommendationType> types;
+  final String reason;
 
   bool get hasExistingShoppingCoverage => existingShoppingQuantity > 0;
 
@@ -147,6 +166,8 @@ class ShoppingRecommendation {
       'score': score,
       'evidence': evidence.toJson(),
       'topRecipes': topRecipes.map((impact) => impact.toJson()).toList(),
+      'types': types.map((type) => type.name).toList(),
+      'reason': reason,
     };
   }
 }
