@@ -31,6 +31,7 @@ class ShoppingItemFactory {
     required String unit,
     required ShoppingSource source,
     String? sourceReferenceId,
+    List<String> sourceReferenceIds = const <String>[],
     required DateTime createdAt,
   }) {
     final canonical = registry.byId(canonicalIngredientId);
@@ -59,7 +60,11 @@ class ShoppingItemFactory {
         'Shopping item ID is required.',
       );
     }
-    final sourceId = sourceReferenceId?.trim();
+    final sourceIds = <String>{
+      ...sourceReferenceIds.map((value) => value.trim()),
+      if (sourceReferenceId != null) sourceReferenceId.trim(),
+    }.where((value) => value.isNotEmpty).toList()..sort();
+    final sourceId = sourceIds.isEmpty ? null : sourceIds.first;
     if (source != ShoppingSource.manual &&
         (sourceId == null || sourceId.isEmpty)) {
       throw const ShoppingDomainException(
@@ -86,6 +91,7 @@ class ShoppingItemFactory {
       category: ShoppingCategory.fromCanonicalCategory(canonical.category),
       source: source,
       sourceReferenceId: sourceId,
+      sourceReferenceIds: sourceIds,
       createdAt: createdAt.toUtc(),
       updatedAt: createdAt.toUtc(),
     );

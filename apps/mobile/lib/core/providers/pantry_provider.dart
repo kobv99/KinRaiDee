@@ -280,10 +280,16 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
 
   Future<void> reload() async {
     final snapshot = await _coordinator.loadSnapshot();
-    state = _applyFavoriteFlags(snapshot.pantry, _favoriteNames);
+    replaceFromCommittedSnapshot(snapshot.pantry);
     ref
         .read(cookingHistoryProvider.notifier)
         .replaceFromCommittedSnapshot(snapshot.history);
+  }
+
+  void replaceFromCommittedSnapshot(List<Ingredient> pantry) {
+    state = List<Ingredient>.unmodifiable(
+      _applyFavoriteFlags(pantry, _favoriteNames),
+    );
   }
 
   Ingredient? _findIngredientById(String id) {

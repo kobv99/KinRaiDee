@@ -4,8 +4,9 @@
 
 The Canonical Ingredient System gives Pantry, Recipe, Recommendation, and
 Shopping one deterministic offline identity and one unit contract. SF-001
-introduces Shopping lists and items while continuing to exclude Shopping UI and
-purchasing.
+introduces Shopping lists and items; SF-002 adds aggregation and atomic
+purchase-to-Pantry synchronization while continuing to exclude Shopping UI,
+retailer catalogs, and pricing.
 
 ## Canonical Ingredient
 
@@ -83,6 +84,8 @@ construction.
 - Transaction and history changes store lot and canonical identities.
 - Shopping items reference `canonicalIngredientId` and canonical `unitId`;
   Shopping does not create a second ingredient master.
+- Shopping Engine aggregation converts every requirement to the canonical
+  default purchase unit before subtracting Pantry or merging list entries.
 
 ## Validation Evidence
 

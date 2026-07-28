@@ -1,193 +1,229 @@
-# Shopping Foundation Domain Model
+# Shopping Domain and Engine
 
 ## Scope
 
-SF-001 implements the offline core Shopping domain and its durable transaction
-boundary. It does not implement Shopping UI, purchase completion, package
-sizing, retailer identity, price, cloud synchronization, AI, or Recommendation
-changes.
+SF-001 established the offline Shopping aggregate and repository boundary.
+SF-002 adds deterministic generation, item lifecycle mutations, and
+transaction-safe Pantry synchronization. It does not add Shopping UI, retailer
+integration, price, package sizing, barcode scanning, cloud synchronization,
+AI, or Recommendation changes.
 
-## Entities
+## Aggregate
 
-### ShoppingList
+`ShoppingList` is the aggregate root. It owns:
 
-`ShoppingList` is the aggregate root:
-
-- globally unique `id`;
-- user-facing `name`;
-- `ShoppingStatus` (`active` or `archived`);
-- aggregate `revision` for optimistic concurrency;
-- immutable collection of `ShoppingItem`;
-- `createdAt` and `updatedAt`; and
-- metadata version.
-
-Deleting a list removes the aggregate. Archiving is planning metadata only and
-does not represent purchasing.
-
-### ShoppingItem
-
-`ShoppingItem` contains:
-
-- list-scoped unique `id`;
-- `canonicalIngredientId`;
-- user-facing display name derived from the canonical registry;
-- positive quantity;
-- canonical `unitId`;
-- `ShoppingCategory` derived from the canonical ingredient category;
-- `ShoppingSource`;
-- optional source reference;
+- globally unique list ID;
+- name and planning status;
+- optimistic-concurrency revision;
+- immutable `ShoppingItem` collection;
 - timestamps; and
 - metadata version.
 
-One list cannot contain the same canonical ingredient and unit pair twice.
-Package aggregation is deferred, so items with different canonical units are
-not automatically merged.
+`ShoppingItem` version 2 contains:
 
-### ShoppingCategory
+- list-scoped item ID;
+- canonical ingredient and unit IDs;
+- deterministic display name and category;
+- positive, unit-rounded quantity;
+- source plus sorted source Recipe IDs;
+- lifecycle status: `active`, `purchased`, or `archived`;
+- optional `ShoppingPurchase` receipt;
+- timestamps; and
+- metadata version.
 
-Categories are deterministic projections used for organization:
+One list may contain at most one active item for a canonical ingredient.
+Purchased and archived entries may coexist with a new active requirement
+because completed entries are audit records, not outstanding demand.
 
-- produce;
-- protein;
-- seafood;
-- dairy and eggs;
-- grains;
-- seasonings;
-- beverages;
-- frozen;
-- household; and
-- other.
+## Purchase Receipt
 
-### ShoppingStatus
+Every purchased or archived item owns one immutable `ShoppingPurchase`:
 
-Only planning lifecycle is modeled:
+- purchase transaction ID;
+- affected Pantry lot ID;
+- whether the transaction created that lot;
+- Pantry canonical unit ID;
+- quantity before and after purchase; and
+- purchase timestamp.
 
-- `active`;
-- `archived`.
-
-Purchase states are excluded from SF-001.
-
-### ShoppingSource
-
-- `manual`: created directly from a canonical ingredient;
-- `pantryShortage`: derived from Pantry analysis;
-- `recipe`: derived from a Recipe and current Pantry.
-
-Derived sources require `sourceReferenceId`. No AI or Recommendation source is
-defined.
+The receipt is sufficient to undo without restoring an entire stale Pantry
+snapshot. Undo succeeds only when the affected Pantry lot still matches the
+recorded post-purchase state. If Pantry changed later, undo fails closed rather
+than overwriting newer inventory.
 
 ## Relationships
 
 ```mermaid
 erDiagram
     SHOPPING_LIST ||--o{ SHOPPING_ITEM : "owns"
+    SHOPPING_ITEM ||--o| SHOPPING_PURCHASE : "records"
     CANONICAL_INGREDIENT ||--o{ SHOPPING_ITEM : "identifies"
     UNIT_DEFINITION ||--o{ SHOPPING_ITEM : "measures"
-    RECIPE o|--o{ SHOPPING_ITEM : "may source"
-    PANTRY_LOT o{--o{ SHOPPING_ITEM : "determines shortage"
+    RECIPE o{--o{ SHOPPING_ITEM : "contributes demand"
+    PANTRY_LOT o{--o{ SHOPPING_ITEM : "offsets demand"
+    PANTRY_LOT ||--o{ SHOPPING_PURCHASE : "receives quantity"
+```
+
+## Shopping Engine
+
+`ShoppingEngine.generate` is a pure domain operation. It accepts one or more
+Recipe/serving selections, current Pantry, and an optional existing list.
+
+Deterministic generation order:
+
+1. Resolve Recipe ingredient IDs, aliases, and localized names through the
+   canonical registry.
+2. Scale every included ingredient by requested servings.
+3. Convert each requirement to the ingredient's default purchase unit.
+4. Sum all Recipe requirements by canonical ingredient ID.
+5. Sum non-expired Pantry quantities in the same target unit.
+6. Calculate `max(total requirement - Pantry quantity, 0)`.
+7. Merge existing active Shopping entries by canonical ID and compatible unit.
+8. Preserve a larger manual quantity; otherwise replace generated demand with
+   the current shortage.
+9. Remove generated demand now fully covered by Pantry.
+10. Round once with the target unit precision and sort deterministically.
+
+Invalid or incompatible conversions fail the complete generation. The engine
+never partially returns a list and never mutates Recipe, Pantry, Shopping, or
+Recommendation state.
+
+```mermaid
+flowchart LR
+    R["One or more Recipes"] --> N["Canonical resolution"]
+    N --> U["Convert to purchase units"]
+    U --> A["Aggregate Recipe demand"]
+    P["Non-expired Pantry"] --> S["Aggregate available quantity"]
+    E["Existing active Shopping"] --> M["Merge canonical duplicates"]
+    A --> D["Demand minus Pantry"]
+    S --> D
+    D --> M
+    M --> O["Deterministic ShoppingList draft"]
 ```
 
 ## Repository Boundary
 
-`ShoppingRepository` exposes only reads:
+`ShoppingRepository` remains read-only:
 
 - `getLists`;
 - `getList`.
 
-`LocalShoppingRepository` reads the consistent snapshot from
-`InventoryCommitRepository`. There is intentionally no Shopping repository
-write method, preventing application or presentation code from bypassing the
-transaction engine.
+`LocalShoppingRepository` projects lists from the consistent
+`InventoryStateEnvelope`. It has no `save`, `put`, or `delete` API.
+`InventoryTransactionCoordinator.mutateShopping` is the only durable write
+boundary.
 
 ## Mutation Contract
 
 `ShoppingMutation` supports:
 
-- `upsertList`;
-- `removeList`.
+| Mutation | Behavior |
+|---|---|
+| `upsertList` | Create a list or commit an engine-generated aggregate |
+| `removeList` | Remove a list without purchase receipts |
+| `addItem` | Add one active canonical item |
+| `removeItem` | Remove one active item |
+| `updateQuantity` | Apply a positive compatible quantity and unit |
+| `markPurchased` | Atomically mark purchased and add quantity to Pantry |
+| `markUnpurchased` | Atomically restore Pantry and reactivate the item |
+| `archiveCompleted` | Move all purchased items to archived |
+| `restoreArchived` | Move all archived items back to purchased |
+| `clearCompleted` | Remove purchased and archived entries without changing Pantry |
 
-Each command carries:
+Every command carries a transaction ID, expected envelope revision, expected
+list revision, list/item identity, and command timestamp. Completed entries
+cannot be changed through generic upsert/remove operations.
+`clearCompleted` is terminal for local purchase undo because it deliberately
+removes the completed entry and its receipt; undo must run before clearing.
 
-- explicit or coordinator-generated transaction ID;
-- expected global envelope revision;
-- list ID;
-- expected list revision;
-- command timestamp; and
-- the list payload when upserting.
+## Purchase Commit and Undo
 
 ```mermaid
 sequenceDiagram
     participant Caller
-    participant Controller as ShoppingMutationController
     participant Coordinator as InventoryTransactionCoordinator
+    participant Registry as Canonical and Unit Contracts
     participant Journal as Durable Journal
-    participant Envelope as InventoryStateEnvelope
+    participant Envelope as Pantry and Shopping Envelope
     participant Riverpod
 
-    Caller->>Controller: execute ShoppingMutation
-    Controller->>Coordinator: mutateShopping(command)
-    Coordinator->>Coordinator: validate revisions, IDs, units, quantities
-    Coordinator->>Journal: persist prepared command
-    Journal->>Envelope: write checksummed Pantry + History + Shopping state
-    Envelope-->>Journal: verify durable target
+    Caller->>Coordinator: markPurchased(command)
+    Coordinator->>Registry: validate identity, unit, revision
+    Coordinator->>Coordinator: select or create Pantry lot
+    Coordinator->>Journal: persist before and after envelopes
+    Journal->>Envelope: write Shopping status and Pantry quantity
+    Envelope-->>Journal: checksum verified
     Journal-->>Coordinator: committed
-    Coordinator-->>Controller: durable snapshot
-    Controller->>Journal: complete transaction
-    Controller->>Riverpod: invalidate Shopping projection
+    Coordinator-->>Caller: durable snapshot
+    Caller->>Riverpod: publish Pantry and Shopping
+
+    Caller->>Coordinator: markUnpurchased(command)
+    Coordinator->>Coordinator: verify purchase receipt and Pantry state
+    Coordinator->>Journal: persist reverse before and after envelopes
+    Journal->>Envelope: restore Pantry and active item
+    Envelope-->>Journal: checksum verified
+    Journal-->>Coordinator: committed
 ```
 
-No Riverpod Shopping state is invalidated or refreshed for a failed commit.
+For an existing compatible Pantry lot, purchase increments that lot. If none
+exists, purchase creates a mapped lot with an ID derived from the globally
+unique transaction ID. Undo restores the prior quantity or removes the lot
+created by that purchase.
 
-## Persistence and Recovery
+## Idempotency and Recovery
 
-Shopping lists are serialized inside `InventoryStateEnvelope` under capability
-`shopping.v1`.
+- Repeating the same transaction ID and command returns the original durable
+  result.
+- Reusing a transaction ID for different content fails closed.
+- A second purchase command for an already purchased/archived item is a
+  semantic no-op.
+- A second unpurchase command for an active item is a semantic no-op.
+- Archive, restore, and clear commands are semantic no-ops when their target
+  set is already empty.
+- All other stale global or list revisions conflict.
+- Startup recovery uses the RFC-0003 journal before providers are created.
+- Crash recovery and rollback operate on the complete Pantry + History +
+  Shopping envelope, never on one projection alone.
 
-- Envelope schema version remains `1`.
-- Current minimum reader version is `2` after Shopping is written.
-- Pre-Shopping envelopes omit both the capability and Shopping payload, so
-  their existing checksums remain valid.
-- First Shopping mutation adds `shopping.v1`, advances the global revision,
-  and commits through the RFC-0003 journal.
-- Before/after journal envelopes include Shopping state, so rollback and
-  restart recovery restore the whole state.
-- No cloud, network dependency, or Shopping-specific Hive box exists.
+## Persistence and Versioning
 
-## Recipe and Pantry Integration
+Shopping remains inside the checksummed `InventoryStateEnvelope`; there is no
+Shopping-specific Hive box.
 
-`ShoppingDraftBuilder.fromRecipe`:
-
-1. scales Recipe quantities for requested servings;
-2. compares them with non-expired Pantry quantities;
-3. uses canonical ingredient matching and the shared unit contract;
-4. creates items only for shortages;
-5. omits optional shortages by default; and
-6. records the Recipe ID as the source reference.
-
-This is a pure planning operation. It does not mutate Pantry, Recipe, Shopping,
-or Recommendation state.
+- Envelope schema version: `1`.
+- Reader version `1`: Pantry and History.
+- Reader version `2`: `shopping.v1` from SF-001.
+- Reader version `3`: `shopping.engine.v1`, item lifecycle, purchase receipts,
+  and Pantry synchronization.
+- SF-002 reads version-1 and version-2 envelopes without rewriting them.
+- The first SF-002 Shopping mutation upgrades Shopping items and adds both
+  Shopping capabilities in one journaled commit.
 
 ## Invariants
 
-- Shopping list IDs are unique and non-empty.
-- Item IDs are unique within a list.
-- Every item has a registry-backed canonical ingredient ID.
-- Redirected and unknown IDs are rejected at the durable write boundary.
-- Every item has a canonical unit ID.
-- Quantities are finite and greater than zero.
-- Item category matches canonical ingredient metadata.
-- Derived items have a source reference.
-- Global and list revisions must both match before update or removal.
-- Duplicate transaction IDs with the same command are idempotent.
-- A duplicate transaction ID with different content fails closed.
-- Every Shopping mutation is persisted through
-  `InventoryTransactionCoordinator`.
+- Quantities are finite, positive, and deterministic at unit precision.
+- Unknown or redirected canonical IDs cannot be durably written.
+- Item units must convert to the canonical default purchase unit.
+- Active canonical ingredient IDs are unique within a list.
+- Purchased and archived items always have a valid purchase receipt.
+- Active items never have a purchase receipt.
+- A purchase changes Shopping and Pantry in the same commit.
+- Undo never overwrites a Pantry lot changed after purchase.
+- Generic upsert/remove cannot erase completed purchase records.
+- Riverpod publishes Shopping and Pantry only after durable success.
 
 ## Validation Evidence
 
+- `test/features/shopping/shopping_engine_test.dart`
+- `test/features/shopping/shopping_engine_transaction_test.dart`
 - `test/features/shopping/shopping_entities_test.dart`
-- `test/features/shopping/shopping_draft_builder_test.dart`
 - `test/features/shopping/shopping_transaction_integration_test.dart`
-- `test/features/shopping/shopping_provider_test.dart`
 - `test/features/shopping/shopping_hive_integration_test.dart`
-- `test/features/pantry/domain/inventory_transaction_model_test.dart`
+- `test/features/shopping/shopping_provider_test.dart`
+- `test/features/pantry/data/hive_inventory_commit_repository_test.dart`
+
+## Deferred Work
+
+Package-size rounding, retailer/catalog identity, pricing, barcode input,
+Shopping UI, cloud synchronization, and cross-device conflict resolution remain
+out of scope.

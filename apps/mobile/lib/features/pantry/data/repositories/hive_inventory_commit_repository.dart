@@ -1,4 +1,7 @@
 import '../../../../core/time/app_clock.dart';
+import '../../../shopping/domain/entities/shopping_item.dart';
+import '../../../shopping/domain/entities/shopping_item_status.dart';
+import '../../../shopping/domain/entities/shopping_purchase.dart';
 import '../../domain/models/cooking_history_entry.dart';
 import '../../domain/models/inventory_state_envelope.dart';
 import '../../domain/models/inventory_transaction_record.dart';
@@ -543,8 +546,13 @@ class HiveInventoryCommitRepository implements InventoryCommitRepository {
       }
     }
     final hasShopping = envelope.capabilities.contains(shoppingStateCapability);
+    final hasShoppingEngine = envelope.capabilities.contains(
+      shoppingEngineCapability,
+    );
     if ((!hasShopping && envelope.shoppingLists.isNotEmpty) ||
-        (hasShopping && envelope.minimumReaderVersion < 2)) {
+        (hasShopping && envelope.minimumReaderVersion < 2) ||
+        (hasShoppingEngine && !hasShopping) ||
+        (hasShoppingEngine && envelope.minimumReaderVersion < 3)) {
       throw const FormatException('Invalid Shopping capability in envelope.');
     }
     final shoppingListIds = <String>{};
@@ -558,9 +566,34 @@ class HiveInventoryCommitRepository implements InventoryCommitRepository {
         throw const FormatException('Invalid Shopping list in envelope.');
       }
       final itemIds = <String>{};
-      final identities = <String>{};
+      final activeIdentities = <String>{};
+      final legacyIdentities = <String>{};
       for (final item in list.items) {
-        if (item.metadataVersion != 1 ||
+        final supportedItemVersion = hasShoppingEngine
+            ? item.metadataVersion == currentShoppingItemVersion
+            : item.metadataVersion == 1;
+        final sourceIsValid =
+            item.source.name == 'manual' || item.sourceReferenceIds.isNotEmpty;
+        final purchase = item.purchase;
+        final purchaseIsValid = item.status == ShoppingItemStatus.active
+            ? purchase == null
+            : purchase != null &&
+                  purchase.metadataVersion == currentShoppingPurchaseVersion &&
+                  purchase.transactionId.isNotEmpty &&
+                  purchase.pantryLotId.isNotEmpty &&
+                  purchase.pantryUnitId.isNotEmpty &&
+                  purchase.beforeQuantity.isFinite &&
+                  purchase.afterQuantity.isFinite &&
+                  purchase.beforeQuantity >= 0 &&
+                  purchase.afterQuantity > purchase.beforeQuantity;
+        final activeIdentityIsUnique =
+            item.status != ShoppingItemStatus.active ||
+            (hasShoppingEngine
+                ? activeIdentities.add(item.canonicalIngredientId)
+                : legacyIdentities.add(
+                    '${item.canonicalIngredientId}::${item.unitId}',
+                  ));
+        if (!supportedItemVersion ||
             item.id.isEmpty ||
             !itemIds.add(item.id) ||
             item.canonicalIngredientId.isEmpty ||
@@ -569,10 +602,9 @@ class HiveInventoryCommitRepository implements InventoryCommitRepository {
             !item.quantity.isFinite ||
             item.quantity <= 0 ||
             item.updatedAt.toUtc().isBefore(item.createdAt.toUtc()) ||
-            !identities.add('${item.canonicalIngredientId}::${item.unitId}') ||
-            (item.source.name != 'manual' &&
-                (item.sourceReferenceId == null ||
-                    item.sourceReferenceId!.trim().isEmpty))) {
+            !sourceIsValid ||
+            !purchaseIsValid ||
+            !activeIdentityIsUnique) {
           throw const FormatException('Invalid Shopping item in envelope.');
         }
       }

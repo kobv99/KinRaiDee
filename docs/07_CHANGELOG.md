@@ -4,6 +4,15 @@
 
 ### Added
 
+- SF-002 `ShoppingEngine` for deterministic multi-Recipe aggregation, Pantry
+  subtraction, canonical alias resolution, unit conversion, and merging
+  existing Shopping demand.
+- Shopping item lifecycle mutations for add, remove, quantity update,
+  purchase, unpurchase, archive, restore, and clear completed.
+- Atomic purchase-to-Pantry synchronization with immutable purchase receipts
+  and conflict-safe undo.
+- Shopping Engine aggregation, mutation, purchase, undo, idempotency,
+  crash-recovery, rollback, and legacy-reader tests.
 - SF-001 Shopping domain entities: `ShoppingList`, `ShoppingItem`,
   `ShoppingCategory`, `ShoppingStatus`, and `ShoppingSource`.
 - Read-only Shopping repository backed by the durable transaction envelope.
@@ -29,6 +38,12 @@
 
 ### Changed
 
+- `ShoppingItem` metadata version 2 adds active/purchased/archived state,
+  multiple Recipe source references, and optional purchase receipt.
+- Inventory reader version 3 adds capability `shopping.engine.v1`; reader-v2
+  SF-001 envelopes remain readable.
+- Shopping validation now forbids duplicate active canonical ingredients and
+  incompatible purchase units.
 - `InventoryStateEnvelope` now supports capability-gated `shopping.v1` state
   while retaining checksum compatibility with pre-Shopping envelopes.
 - Current envelope reader version is `2`; envelope schema remains version `1`.
@@ -47,12 +62,12 @@
 
 ### Quality
 
-- `dart format --output=none --set-exit-if-changed .`: 130 files pass
+- `dart format --output=none --set-exit-if-changed .`: 135 files pass
   without changes.
 - `flutter analyze`: pass, no issues.
-- `flutter test --coverage`: 123 tests pass.
-- Line coverage: 81.47% (4,521/5,549).
-- Focused Shopping Foundation suite: 15 tests pass.
+- `flutter test --coverage`: 138 tests pass.
+- Line coverage: 82.54% (5,078/6,152).
+- Focused Shopping Engine suite: 30 tests pass.
 - Focused Transaction Engine regression: 23 tests pass.
 
 ## v0.1.0

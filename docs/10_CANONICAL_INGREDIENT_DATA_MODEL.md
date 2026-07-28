@@ -13,6 +13,8 @@ erDiagram
     UNIT_DEFINITION ||--o{ SHOPPING_ITEM : "measures"
     PANTRY_LOT ||--o{ HISTORY_CHANGE : "mutated by"
     SHOPPING_LIST ||--o{ SHOPPING_ITEM : "owns"
+    SHOPPING_ITEM ||--o| SHOPPING_PURCHASE : "records"
+    PANTRY_LOT ||--o{ SHOPPING_PURCHASE : "receives quantity"
     CANONICAL_INGREDIENT o|--o{ CANONICAL_INGREDIENT : "parent family"
 ```
 
@@ -26,7 +28,8 @@ erDiagram
 | `RecipeIngredient` | canonical `id` | Bundled recipe assets | recipe version |
 | `CookingHistoryChange` | Pantry `ingredientId` plus canonical ID | `InventoryStateEnvelope` in Hive | parent history schema 2 |
 | `ShoppingList` | `id` | `InventoryStateEnvelope.shoppingLists` under `shopping.v1` | metadata version 1 + list revision |
-| `ShoppingItem` | list-scoped `id` plus canonical ingredient/unit identity | parent Shopping list | metadata version 1 |
+| `ShoppingItem` | list-scoped `id` plus canonical ingredient/unit identity | parent Shopping list | metadata version 2 |
+| `ShoppingPurchase` | purchase transaction ID | parent Shopping item | metadata version 1 |
 | Migration diagnostics | record ID and issue type | startup provider for support | migration version 2 |
 
 The durable transaction journal stores complete before/after envelopes, so
@@ -84,13 +87,16 @@ and undo preserve those IDs.
 
 ## Shopping Compatibility
 
-Shopping Foundation references the same canonical ingredient and unit IDs.
-`ShoppingDraftBuilder` converts Recipe shortages into versioned Shopping items,
-and `InventoryTransactionCoordinator` rejects unknown or redirected IDs,
-unknown units, duplicate ingredient/unit pairs, and category mismatches.
+`ShoppingEngine` resolves Recipe aliases, converts multiple Recipe units to the
+canonical default purchase unit, subtracts Pantry, and merges existing active
+items by canonical ingredient ID. `InventoryTransactionCoordinator` rejects
+unknown or redirected IDs, incompatible units, duplicate active canonical
+entries, negative quantities, and category mismatches.
 
-Package sizing, retailer/catalog identity, price, purchase state, and advanced
-aggregation remain intentionally unmodeled.
+`ShoppingPurchase` stores the exact affected Pantry lot and before/after
+quantity. Purchase and undo update Pantry and Shopping inside one versioned
+envelope. Package sizing, retailer/catalog identity, and price remain
+intentionally unmodeled.
 
 Unknown legacy records do not silently participate in Recipe or Shopping joins
 until mapped. This preserves data while preventing false identity.

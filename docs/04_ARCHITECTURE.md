@@ -70,18 +70,21 @@ Those operations therefore cannot bypass the durable envelope.
 ### Versioning
 
 - Envelope version: `1`
-- Current reader version: `2`
+- Current reader version: `3`
 - Transaction schema version: `1`
 - Every successful mutation increments the envelope revision exactly once.
 - Transaction IDs are secure UUID v4 values.
 - Reader version `2` adds the capability-gated `shopping.v1` projection.
   Envelopes written before Shopping remain checksum-compatible and readable.
+- Reader version `3` adds `shopping.engine.v1`, item lifecycle state, purchase
+  receipts, and atomic Shopping/Pantry synchronization. Reader-v2 Shopping
+  envelopes remain readable until their first engine mutation.
 
 ---
 
 ## Canonical Ingredient System
 
-Pantry, Recipe, Recommendation, and future Shopping code share one stable
+Pantry, Recipe, Recommendation, and Shopping code share one stable
 ingredient identity:
 
 1. `IngredientCatalog` validates the bundled master data and constructs
@@ -124,26 +127,27 @@ See [Canonical Ingredient Domain](09_CANONICAL_INGREDIENT_DOMAIN.md) and
 
 ---
 
-## Shopping Foundation
+## Shopping Foundation and Engine
 
-SF-001 adds a local-only Shopping domain without implementing a purchase
-workflow or Shopping UI:
+SF-001 adds the local Shopping aggregate. SF-002 adds generation and inventory
+synchronization without implementing Shopping UI:
 
 1. `ShoppingList` owns versioned `ShoppingItem` records.
 2. Every item references a valid canonical ingredient ID and canonical unit ID.
-3. `ShoppingDraftBuilder` compares Recipe requirements with current Pantry
-   quantities and creates shortage items without changing Recipe or
-   Recommendation behavior.
+3. `ShoppingEngine` aggregates one or more Recipes by canonical ingredient ID,
+   converts to default purchase units, subtracts non-expired Pantry, and merges
+   existing active Shopping quantities.
 4. `ShoppingRepository` is deliberately read-only. It projects Shopping lists
    from the durable envelope and exposes no write method.
 5. `InventoryTransactionCoordinator.mutateShopping` is the only Shopping write
-   boundary. It validates global and list revisions, canonical identity, units,
-   categories, quantities, source metadata, and duplicate identities.
-6. Shopping is persisted inside the checksummed `InventoryStateEnvelope` under
-   capability `shopping.v1`, so the existing journal supplies commit,
+   boundary for list/item edits, purchase, undo purchase, archive, restore, and
+   clearing completed entries.
+6. Purchase commits the Shopping status, immutable purchase receipt, and Pantry
+   quantity inside one checksummed envelope.
+7. `shopping.v1` and `shopping.engine.v1` use the existing durable journal for
    idempotency, rollback, and restart recovery.
-7. `ShoppingMutationController` invalidates Riverpod state only after the
-   repository confirms a durable commit.
+8. `ShoppingMutationController` publishes Pantry and invalidates Shopping only
+   after the repository confirms a durable commit.
 
 The transaction envelope remains the only Hive persistence path. There is no
 Shopping-specific Hive box or direct storage access from presentation.

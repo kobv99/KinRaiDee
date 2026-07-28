@@ -1,10 +1,12 @@
 import 'shopping_category.dart';
+import 'shopping_item_status.dart';
+import 'shopping_purchase.dart';
 import 'shopping_source.dart';
 
-const int currentShoppingItemVersion = 1;
+const int currentShoppingItemVersion = 2;
 
 class ShoppingItem {
-  const ShoppingItem({
+  ShoppingItem({
     this.metadataVersion = currentShoppingItemVersion,
     required this.id,
     required this.canonicalIngredientId,
@@ -14,9 +16,15 @@ class ShoppingItem {
     required this.category,
     required this.source,
     this.sourceReferenceId,
+    List<String> sourceReferenceIds = const <String>[],
+    this.status = ShoppingItemStatus.active,
+    this.purchase,
     required this.createdAt,
     required this.updatedAt,
-  });
+  }) : sourceReferenceIds = _normalizedReferences(
+         sourceReferenceId,
+         sourceReferenceIds,
+       );
 
   final int metadataVersion;
   final String id;
@@ -27,20 +35,28 @@ class ShoppingItem {
   final ShoppingCategory category;
   final ShoppingSource source;
   final String? sourceReferenceId;
+  final List<String> sourceReferenceIds;
+  final ShoppingItemStatus status;
+  final ShoppingPurchase? purchase;
   final DateTime createdAt;
   final DateTime updatedAt;
 
   ShoppingItem copyWith({
+    int? metadataVersion,
     double? quantity,
     String? displayName,
     String? unitId,
     ShoppingCategory? category,
     ShoppingSource? source,
     String? sourceReferenceId,
+    List<String>? sourceReferenceIds,
+    ShoppingItemStatus? status,
+    ShoppingPurchase? purchase,
+    bool clearPurchase = false,
     DateTime? updatedAt,
   }) {
     return ShoppingItem(
-      metadataVersion: metadataVersion,
+      metadataVersion: metadataVersion ?? this.metadataVersion,
       id: id,
       canonicalIngredientId: canonicalIngredientId,
       displayName: displayName ?? this.displayName,
@@ -49,6 +65,9 @@ class ShoppingItem {
       category: category ?? this.category,
       source: source ?? this.source,
       sourceReferenceId: sourceReferenceId ?? this.sourceReferenceId,
+      sourceReferenceIds: sourceReferenceIds ?? this.sourceReferenceIds,
+      status: status ?? this.status,
+      purchase: clearPurchase ? null : purchase ?? this.purchase,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -65,6 +84,9 @@ class ShoppingItem {
       'category': category.name,
       'source': source.name,
       'sourceReferenceId': sourceReferenceId,
+      'sourceReferenceIds': sourceReferenceIds,
+      'status': status.name,
+      'purchase': purchase?.toJson(),
       'createdAt': createdAt.toUtc().toIso8601String(),
       'updatedAt': updatedAt.toUtc().toIso8601String(),
     };
@@ -72,6 +94,17 @@ class ShoppingItem {
 
   factory ShoppingItem.fromJson(Map<String, dynamic> json) {
     final createdAt = _date(json['createdAt']);
+    final rawPurchase = json['purchase'];
+    final rawSourceReferenceIds = json['sourceReferenceIds'];
+    final legacySourceReference = _optionalString(json['sourceReferenceId']);
+    final sourceReferences = rawSourceReferenceIds is List
+        ? rawSourceReferenceIds
+              .map((value) => value.toString().trim())
+              .where((value) => value.isNotEmpty)
+              .toSet()
+              .toList()
+        : <String>[?legacySourceReference];
+    sourceReferences.sort();
     return ShoppingItem(
       metadataVersion: _integer(json['metadataVersion'], fallback: -1),
       id: json['id']?.toString() ?? '',
@@ -87,7 +120,17 @@ class ShoppingItem {
         (source) => source.name == json['source']?.toString(),
         orElse: () => throw const FormatException('Unknown Shopping source.'),
       ),
-      sourceReferenceId: _optionalString(json['sourceReferenceId']),
+      sourceReferenceId:
+          legacySourceReference ??
+          (sourceReferences.isEmpty ? null : sourceReferences.first),
+      sourceReferenceIds: List<String>.unmodifiable(sourceReferences),
+      status: ShoppingItemStatus.values.firstWhere(
+        (status) => status.name == json['status']?.toString(),
+        orElse: () => ShoppingItemStatus.active,
+      ),
+      purchase: rawPurchase is Map
+          ? ShoppingPurchase.fromJson(Map<String, dynamic>.from(rawPurchase))
+          : null,
       createdAt: createdAt,
       updatedAt: _date(json['updatedAt'], fallback: createdAt),
     );
@@ -117,4 +160,15 @@ DateTime _date(dynamic value, {DateTime? fallback}) {
 String? _optionalString(dynamic value) {
   final text = value?.toString();
   return text == null || text.isEmpty ? null : text;
+}
+
+List<String> _normalizedReferences(
+  String? legacyReference,
+  List<String> references,
+) {
+  final normalized = <String>{
+    ...references.map((value) => value.trim()),
+    if (legacyReference != null) legacyReference.trim(),
+  }.where((value) => value.isNotEmpty).toList()..sort();
+  return List<String>.unmodifiable(normalized);
 }

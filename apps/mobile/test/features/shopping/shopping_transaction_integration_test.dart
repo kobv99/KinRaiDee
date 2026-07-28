@@ -38,8 +38,9 @@ void main() {
 
       expect(created.outcome, InventoryTransactionOutcome.committed);
       expect(created.snapshot.revision, 1);
-      expect(created.snapshot.minimumReaderVersion, 2);
+      expect(created.snapshot.minimumReaderVersion, 3);
       expect(created.snapshot.capabilities, contains(shoppingStateCapability));
+      expect(created.snapshot.capabilities, contains(shoppingEngineCapability));
       expect(created.snapshot.shoppingLists.single.id, 'weekly');
       await harness.coordinator.completePresentation(_transactionIds[0]);
 
@@ -240,6 +241,56 @@ void main() {
       expect(restored.capabilities, isNot(contains(shoppingStateCapability)));
     },
   );
+
+  test('SF-001 reader-v2 Shopping envelope remains readable', () async {
+    final legacyList = ShoppingList(
+      id: 'legacy-shopping',
+      name: 'Legacy Shopping',
+      items: <ShoppingItem>[
+        ShoppingItem(
+          metadataVersion: 1,
+          id: 'legacy-piece',
+          canonicalIngredientId: 'egg',
+          displayName: 'Egg',
+          quantity: 2,
+          unitId: 'piece',
+          category: ShoppingCategory.protein,
+          source: ShoppingSource.manual,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      ],
+      createdAt: now,
+      updatedAt: now,
+    );
+    final legacy = InventoryStateEnvelope(
+      minimumReaderVersion: 2,
+      capabilities: const <String>[shoppingStateCapability],
+      revision: 0,
+      lastAppliedTransactionId: '',
+      updatedAt: now,
+      pantry: const [],
+      history: const [],
+      shoppingLists: <ShoppingList>[legacyList],
+    ).withComputedChecksum();
+    final repository = HiveInventoryCommitRepository(
+      store: InMemoryInventoryStore(envelope: legacy.toJson()),
+      clock: FixedAppClock(now),
+    );
+
+    final recovery = await repository.recoverPendingTransactions();
+
+    expect(recovery.allowsMutation, isTrue);
+    expect(recovery.snapshot.minimumReaderVersion, 2);
+    expect(
+      recovery.snapshot.shoppingLists.single.items.single.metadataVersion,
+      1,
+    );
+    expect(
+      recovery.snapshot.capabilities,
+      isNot(contains(shoppingEngineCapability)),
+    );
+  });
 
   test('failed Shopping commit rolls back the complete envelope', () async {
     final store = InMemoryInventoryStore();
