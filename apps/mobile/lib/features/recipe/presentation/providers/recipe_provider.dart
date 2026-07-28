@@ -44,11 +44,12 @@ class RecipeReadinessRequest {
   bool operator ==(Object other) {
     return other is RecipeReadinessRequest &&
         other.recipe.id == recipe.id &&
+        other.recipe.version == recipe.version &&
         other.servings == servings;
   }
 
   @override
-  int get hashCode => Object.hash(recipe.id, servings);
+  int get hashCode => Object.hash(recipe.id, recipe.version, servings);
 }
 
 final recipeReadinessProvider =
