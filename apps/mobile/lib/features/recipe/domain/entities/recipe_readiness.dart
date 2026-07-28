@@ -37,12 +37,12 @@ class RecipeIngredientReadiness {
 }
 
 class RecipeReadiness {
-  const RecipeReadiness({
+  RecipeReadiness({
     required this.recipe,
     required this.servings,
     required this.score,
-    required this.ingredients,
-  });
+    required List<RecipeIngredientReadiness> ingredients,
+  }) : ingredients = List<RecipeIngredientReadiness>.unmodifiable(ingredients);
 
   final Recipe recipe;
   final int servings;
@@ -51,21 +51,29 @@ class RecipeReadiness {
 
   int get scorePercent => (score.clamp(0, 1) * 100).round();
 
-  List<RecipeIngredientReadiness> get availableIngredients => ingredients
-      .where((item) => item.isAvailable)
-      .toList(growable: false);
+  List<RecipeIngredientReadiness> get availableIngredients => _select(
+    (item) => item.isAvailable,
+  );
 
-  List<RecipeIngredientReadiness> get missingIngredients => ingredients
-      .where((item) => item.needsShopping)
-      .toList(growable: false);
+  List<RecipeIngredientReadiness> get missingIngredients => _select(
+    (item) => item.needsShopping,
+  );
 
-  List<RecipeIngredientReadiness> get optionalIngredients => ingredients
-      .where((item) => item.isOptional)
-      .toList(growable: false);
+  List<RecipeIngredientReadiness> get optionalIngredients => _select(
+    (item) => item.isOptional,
+  );
 
-  List<RecipeIngredientReadiness> get missingOptionalIngredients => ingredients
-      .where((item) => item.isOptional && !item.isAvailable)
-      .toList(growable: false);
+  List<RecipeIngredientReadiness> get missingOptionalIngredients => _select(
+    (item) => item.isOptional && !item.isAvailable,
+  );
 
-  bool get canCook => missingIngredients.isEmpty;
+  bool get canCook => !ingredients.any((item) => item.needsShopping);
+
+  List<RecipeIngredientReadiness> _select(
+    bool Function(RecipeIngredientReadiness item) predicate,
+  ) {
+    return List<RecipeIngredientReadiness>.unmodifiable(
+      ingredients.where(predicate),
+    );
+  }
 }
