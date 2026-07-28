@@ -89,12 +89,21 @@ class RecipeMissingShoppingController {
       );
     }
 
-    final transactionResult = await _executeShoppingMutation(
-      ShoppingMutation.upsert(
-        list: generation.list,
-        createdAt: generatedAt,
-      ),
-    );
+    InventoryTransactionResult transactionResult;
+    try {
+      transactionResult = await _executeShoppingMutation(
+        ShoppingMutation.upsert(
+          list: generation.list,
+          createdAt: generatedAt,
+        ),
+      );
+    } on Object {
+      return const RecipeMissingShoppingResult(
+        outcome: RecipeMissingShoppingOutcome.failed,
+        changedItemCount: 0,
+        code: 'shopping_transaction_exception',
+      );
+    }
     if (!transactionResult.isSuccess) {
       return RecipeMissingShoppingResult(
         outcome: RecipeMissingShoppingOutcome.failed,
