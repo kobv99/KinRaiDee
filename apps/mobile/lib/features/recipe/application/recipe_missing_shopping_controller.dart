@@ -7,6 +7,7 @@ import '../../shopping/domain/models/shopping_mutation.dart';
 import '../../shopping/domain/repositories/shopping_repository.dart';
 import '../../shopping/domain/services/shopping_engine.dart';
 import '../domain/entities/recipe.dart';
+import '../domain/services/recipe_candidate_service.dart';
 
 typedef ShoppingMutationExecutor =
     Future<InventoryTransactionResult> Function(ShoppingMutation mutation);
@@ -15,6 +16,7 @@ enum RecipeMissingShoppingOutcome {
   committed,
   noMissingIngredients,
   unchanged,
+  notCandidateRecipe,
   failed,
 }
 
@@ -40,12 +42,14 @@ class RecipeMissingShoppingResult {
 class RecipeMissingShoppingController {
   const RecipeMissingShoppingController({
     required ShoppingEngine engine,
+    required RecipeCandidateService candidateService,
     required ShoppingRepository shoppingRepository,
     required ShoppingMutationExecutor executeShoppingMutation,
     required List<Ingredient> Function() readPantry,
     required AppClock clock,
   }) : this._(
          engine,
+         candidateService,
          shoppingRepository,
          executeShoppingMutation,
          readPantry,
@@ -54,6 +58,7 @@ class RecipeMissingShoppingController {
 
   const RecipeMissingShoppingController._(
     this._engine,
+    this._candidateService,
     this._shoppingRepository,
     this._executeShoppingMutation,
     this._readPantry,
@@ -61,6 +66,7 @@ class RecipeMissingShoppingController {
   );
 
   final ShoppingEngine _engine;
+  final RecipeCandidateService _candidateService;
   final ShoppingRepository _shoppingRepository;
   final ShoppingMutationExecutor _executeShoppingMutation;
   final List<Ingredient> Function() _readPantry;
@@ -70,16 +76,30 @@ class RecipeMissingShoppingController {
     required Recipe recipe,
     required int servings,
   }) async {
+    final generatedAt = _clock.now().toUtc();
+    final pantry = _readPantry();
+    if (!_candidateService.isCandidate(
+      recipe: recipe,
+      pantry: pantry,
+      servings: servings,
+      evaluatedAt: generatedAt,
+    )) {
+      return const RecipeMissingShoppingResult(
+        outcome: RecipeMissingShoppingOutcome.notCandidateRecipe,
+        changedItemCount: 0,
+        code: 'recipe_not_candidate',
+      );
+    }
+
     final lists = await _shoppingRepository.getLists();
     final existing = lists.firstOrNull;
-    final generatedAt = _clock.now().toUtc();
     final generation = _engine.generate(
       listId: existing?.id ?? 'primary-shopping-list',
       name: existing?.name ?? 'รายการซื้อของของฉัน',
       recipes: <ShoppingRecipeRequest>[
         ShoppingRecipeRequest(recipe: recipe, servings: servings),
       ],
-      pantry: _readPantry(),
+      pantry: pantry,
       generatedAt: generatedAt,
       existingList: existing,
     );
