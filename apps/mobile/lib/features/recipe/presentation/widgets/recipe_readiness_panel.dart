@@ -41,16 +41,10 @@ class RecipeReadinessPanel extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        Icons.auto_awesome_outlined,
-                        size: 21,
-                        color: colors.primary,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final useNarrowHeader = constraints.maxWidth < 320;
+                      final summary = Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -70,21 +64,8 @@ class RecipeReadinessPanel extends StatelessWidget {
                             ),
                           ],
                         ),
-                      ),
-                      IconButton(
-                        key: const ValueKey<String>(
-                          'recipe-readiness-toggle',
-                        ),
-                        visualDensity: VisualDensity.compact,
-                        tooltip: expanded ? 'ย่อรายละเอียด' : 'ดูรายละเอียด',
-                        onPressed: onToggle,
-                        icon: Icon(
-                          expanded
-                              ? Icons.keyboard_arrow_up_rounded
-                              : Icons.keyboard_arrow_down_rounded,
-                        ),
-                      ),
-                      IconButton(
+                      );
+                      final dismissButton = IconButton(
                         key: const ValueKey<String>(
                           'recipe-readiness-dismiss',
                         ),
@@ -92,8 +73,73 @@ class RecipeReadinessPanel extends StatelessWidget {
                         tooltip: 'ปิดคำแนะนำสำหรับครั้งนี้',
                         onPressed: onDismiss,
                         icon: const Icon(Icons.close_rounded),
-                      ),
-                    ],
+                      );
+                      if (useNarrowHeader) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(
+                                  Icons.auto_awesome_outlined,
+                                  size: 21,
+                                  color: colors.primary,
+                                ),
+                                const SizedBox(width: 10),
+                                summary,
+                                dismissButton,
+                              ],
+                            ),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton.icon(
+                                key: const ValueKey<String>(
+                                  'recipe-readiness-toggle',
+                                ),
+                                onPressed: onToggle,
+                                icon: Icon(
+                                  expanded
+                                      ? Icons.keyboard_arrow_up_rounded
+                                      : Icons.keyboard_arrow_down_rounded,
+                                ),
+                                label: Text(
+                                  expanded ? 'ย่อรายละเอียด' : 'ดูรายละเอียด',
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      }
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.auto_awesome_outlined,
+                            size: 21,
+                            color: colors.primary,
+                          ),
+                          const SizedBox(width: 10),
+                          summary,
+                          IconButton(
+                            key: const ValueKey<String>(
+                              'recipe-readiness-toggle',
+                            ),
+                            visualDensity: VisualDensity.compact,
+                            tooltip: expanded
+                                ? 'ย่อรายละเอียด'
+                                : 'ดูรายละเอียด',
+                            onPressed: onToggle,
+                            icon: Icon(
+                              expanded
+                                  ? Icons.keyboard_arrow_up_rounded
+                                  : Icons.keyboard_arrow_down_rounded,
+                            ),
+                          ),
+                          dismissButton,
+                        ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 6),
                   LinearProgressIndicator(
