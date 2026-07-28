@@ -33,17 +33,18 @@ class IngredientCatalog {
   }) async {
     final source = await _bundle.loadString(assetPath);
     final decoded = jsonDecode(source) as List<dynamic>;
-    final bundled = decoded
+
+    return decoded
         .map((item) => _fromJson(Map<String, dynamic>.from(item as Map)))
         .toList(growable: false);
-    return applyPantryCatalogCanonicalCoverage(bundled);
   }
 
   Future<CanonicalIngredientRegistry> loadRegistry({
     String assetPath = 'assets/ingredients/thai_ingredients.json',
   }) async {
+    final bundled = await load(assetPath: assetPath);
     return CanonicalIngredientRegistry(
-      ingredients: await load(assetPath: assetPath),
+      ingredients: applyPantryCatalogCanonicalCoverage(bundled),
       redirects: defaultCanonicalIngredientRedirects,
     );
   }
