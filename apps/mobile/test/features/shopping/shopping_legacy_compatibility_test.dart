@@ -20,7 +20,8 @@ void main() {
     addTearDown(harness.dispose);
 
     final projected = await harness.lists();
-    expect(projected.single.items, [active]);
+    expect(projected.single.items, hasLength(1));
+    expect(projected.single.items.single.toJson(), active.toJson());
 
     final regenerated = projected.single.copyWith(
       revision: projected.single.revision,
