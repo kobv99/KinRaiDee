@@ -23,14 +23,26 @@ class ShoppingCompletionCoordinator {
     required UnitConversionEngine unitEngine,
     AppClock clock = systemAppClock,
     TransactionIdGenerator? transactionIdGenerator,
-  }) : _repository = repository,
-       _mergeService = PantryCanonicalMergeService(
-         registry: registry,
-         unitEngine: unitEngine,
-       ),
-       _clock = clock,
-       _transactionIdGenerator =
-           transactionIdGenerator ?? SecureTransactionIdGenerator();
+  }) : this._(
+         repository,
+         registry,
+         unitEngine,
+         clock,
+         transactionIdGenerator,
+       );
+
+  ShoppingCompletionCoordinator._(
+    this._repository,
+    CanonicalIngredientRegistry registry,
+    UnitConversionEngine unitEngine,
+    this._clock,
+    TransactionIdGenerator? transactionIdGenerator,
+  ) : _mergeService = PantryCanonicalMergeService(
+        registry: registry,
+        unitEngine: unitEngine,
+      ),
+      _transactionIdGenerator =
+          transactionIdGenerator ?? SecureTransactionIdGenerator();
 
   final InventoryCommitRepository _repository;
   final PantryCanonicalMergeService _mergeService;
