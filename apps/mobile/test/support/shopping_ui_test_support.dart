@@ -10,6 +10,7 @@ import 'package:mobile/core/providers/pantry_provider.dart';
 import 'package:mobile/core/time/app_clock.dart';
 import 'package:mobile/features/pantry/application/inventory_transaction_providers.dart';
 import 'package:mobile/features/pantry/data/repositories/hive_inventory_commit_repository.dart';
+import 'package:mobile/features/pantry/domain/models/inventory_state_envelope.dart';
 import 'package:mobile/features/pantry/domain/repositories/pantry_repository.dart';
 import 'package:mobile/features/recipe/domain/entities/recipe.dart';
 import 'package:mobile/features/recipe/presentation/providers/recipe_provider.dart';
@@ -43,9 +44,18 @@ class ShoppingUiHarness {
     List<Recipe> recipes = const <Recipe>[],
     ShoppingList? list,
     DateTime? at,
+    bool seedLegacyShoppingState = false,
   }) async {
     final now = at ?? DateTime.utc(2026, 7, 26, 10);
-    final store = InMemoryInventoryStore(legacyPantry: pantry);
+    final store = list != null && seedLegacyShoppingState
+        ? InMemoryInventoryStore(
+            envelope: InventoryStateEnvelope.initial(
+              createdAt: now,
+              pantry: pantry,
+              shoppingLists: <ShoppingList>[list],
+            ).toJson(),
+          )
+        : InMemoryInventoryStore(legacyPantry: pantry);
     final repository = HiveInventoryCommitRepository(
       store: store,
       clock: FixedAppClock(now),
@@ -72,7 +82,7 @@ class ShoppingUiHarness {
         recipesProvider.overrideWith((ref) async => recipes),
       ],
     );
-    if (list != null) {
+    if (list != null && !seedLegacyShoppingState) {
       final controller = container.read(shoppingMutationControllerProvider);
       final result = await controller.execute(
         ShoppingMutation.upsert(list: list, createdAt: now),
