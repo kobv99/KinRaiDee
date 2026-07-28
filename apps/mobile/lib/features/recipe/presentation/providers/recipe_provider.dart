@@ -2,15 +2,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/providers/canonical_ingredient_providers.dart';
 import '../../../../core/providers/pantry_provider.dart';
+import '../../../pantry/application/inventory_transaction_providers.dart';
 import '../../data/datasources/local_recipe_datasource.dart';
 import '../../data/repositories/local_hero_selection_repository.dart';
 import '../../data/repositories/local_recipe_repository.dart';
 import '../../domain/entities/recipe.dart';
 import '../../domain/entities/recipe_match.dart';
+import '../../domain/entities/recipe_readiness.dart';
 import '../../domain/entities/smart_recommendation.dart';
 import '../../domain/repositories/hero_selection_repository.dart';
 import '../../domain/repositories/recipe_repository.dart';
 import '../../domain/services/recipe_matcher.dart';
+import '../../domain/services/recipe_readiness_service.dart';
 import '../../domain/services/smart_recommendation_engine.dart';
 
 final recipeRepositoryProvider = Provider<RecipeRepository>((ref) {
@@ -19,6 +22,62 @@ final recipeRepositoryProvider = Provider<RecipeRepository>((ref) {
 
 final recipesProvider = FutureProvider<List<Recipe>>((ref) {
   return ref.read(recipeRepositoryProvider).getRecipes();
+});
+
+final recipeReadinessServiceProvider = Provider<RecipeReadinessService?>((ref) {
+  final registry = ref.watch(canonicalIngredientRegistryProvider);
+  return registry == null
+      ? null
+      : RecipeReadinessService(
+          registry: registry,
+          unitEngine: ref.watch(unitConversionEngineProvider),
+        );
+});
+
+class RecipeReadinessRequest {
+  const RecipeReadinessRequest({required this.recipe, required this.servings});
+
+  final Recipe recipe;
+  final int servings;
+
+  @override
+  bool operator ==(Object other) {
+    return other is RecipeReadinessRequest &&
+        other.recipe.id == recipe.id &&
+        other.servings == servings;
+  }
+
+  @override
+  int get hashCode => Object.hash(recipe.id, servings);
+}
+
+final recipeReadinessProvider =
+    Provider.family<RecipeReadiness?, RecipeReadinessRequest>((ref, request) {
+      final service = ref.watch(recipeReadinessServiceProvider);
+      if (service == null) {
+        return null;
+      }
+      return service.evaluate(
+        recipe: request.recipe,
+        pantry: ref.watch(pantryProvider),
+        servings: request.servings,
+        evaluatedAt: ref.watch(appClockProvider).now(),
+      );
+    });
+
+final recipeReadinessListProvider = FutureProvider<List<RecipeReadiness>>((
+  ref,
+) async {
+  final service = ref.watch(recipeReadinessServiceProvider);
+  if (service == null) {
+    return const <RecipeReadiness>[];
+  }
+  final recipes = await ref.watch(recipesProvider.future);
+  return service.evaluateAll(
+    recipes: recipes,
+    pantry: ref.watch(pantryProvider),
+    evaluatedAt: ref.watch(appClockProvider).now(),
+  );
 });
 
 final heroSelectionRepositoryProvider = Provider<HeroSelectionRepository>((
