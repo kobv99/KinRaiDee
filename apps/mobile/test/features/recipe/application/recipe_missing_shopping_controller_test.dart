@@ -1,7 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mobile/core/providers/pantry_provider.dart';
 import 'package:mobile/features/recipe/domain/entities/recipe.dart';
 import 'package:mobile/features/recipe/domain/entities/recipe_ingredient.dart';
 import 'package:mobile/features/recipe/presentation/providers/recipe_shopping_provider.dart';
+import 'package:mobile/features/shopping/application/shopping_providers.dart';
 import 'package:mobile/features/shopping/domain/entities/shopping_category.dart';
 
 import '../../../support/shopping_ui_test_support.dart';
@@ -125,6 +127,49 @@ void main() {
     expect(result.changedItemCount, 0);
     expect(await harness.lists(), isEmpty);
   });
+
+  test('purchased Recipe shortage merges the existing canonical Pantry record', () async {
+    final now = DateTime.utc(2026, 7, 28, 8);
+    final harness = await ShoppingUiHarness.create(
+      at: now,
+      pantry: [
+        testPantryLot(
+          id: 'egg-lot',
+          canonicalId: 'egg',
+          name: 'Egg',
+          quantity: 2,
+          unit: 'piece',
+          now: now,
+        ),
+      ],
+    );
+    addTearDown(harness.dispose);
+
+    final added = await harness.container
+        .read(recipeMissingShoppingControllerProvider)!
+        .addMissingIngredients(recipe: _eggRecipe, servings: 2);
+    expect(added.isSuccess, isTrue);
+    final list = (await harness.lists()).single;
+    final item = list.items.single;
+    expect(item.quantity, 4);
+
+    final completed = await harness.container
+        .read(shoppingCompletionControllerProvider)
+        .complete(
+          listId: list.id,
+          expectedListRevision: list.revision,
+          itemId: item.id,
+          createdAt: now.add(const Duration(minutes: 1)),
+        );
+
+    expect(completed.isSuccess, isTrue);
+    final pantry = harness.container.read(pantryProvider);
+    expect(pantry, hasLength(1));
+    expect(pantry.single.id, 'egg-lot');
+    expect(pantry.single.canonicalIngredientId, 'egg');
+    expect(pantry.single.quantity, 6);
+    expect((await harness.lists()).single.items, isEmpty);
+  });
 }
 
 const Recipe _recipe = Recipe(
@@ -145,6 +190,23 @@ const Recipe _recipe = Recipe(
       name: 'Rice',
       quantity: 1,
       unit: 'kilogram',
+    ),
+  ],
+  steps: <String>[],
+);
+
+const Recipe _eggRecipe = Recipe(
+  id: 'omelette',
+  name: 'Omelette',
+  category: 'test',
+  servings: 2,
+  heroIngredientId: 'egg',
+  ingredients: <RecipeIngredient>[
+    RecipeIngredient(
+      id: 'egg',
+      name: 'Egg',
+      quantity: 6,
+      unit: 'piece',
     ),
   ],
   steps: <String>[],
