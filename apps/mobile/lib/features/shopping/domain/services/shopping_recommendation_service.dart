@@ -9,28 +9,18 @@ import '../entities/shopping_item.dart';
 import '../entities/shopping_item_status.dart';
 import '../entities/shopping_list.dart';
 import '../entities/shopping_recommendation.dart';
+import 'recommendation_explanation_builder.dart';
+import 'recommendation_score_calculator.dart';
 
 class ShoppingRecommendationPolicy {
   const ShoppingRecommendationPolicy({
-    this.unlockedRecipeWeight = 1000,
-    this.totalReadinessIncreaseWeight = 200,
-    this.averageReadinessIncreaseWeight = 100,
-    this.primaryRecipeWeight = 40,
-    this.secondaryRecipeWeight = 15,
-    this.impactedRecipeWeight = 5,
     this.unlocksManyRecipesThreshold = 2,
     this.highRecipeFrequencyThreshold = 3,
     this.primaryIngredientThreshold = 2,
     this.nearlyReadyThreshold = 0.7,
     this.highAverageReadinessIncreaseThreshold = 0.15,
     this.topRecipeLimit = 4,
-  }) : assert(unlockedRecipeWeight >= 0),
-       assert(totalReadinessIncreaseWeight >= 0),
-       assert(averageReadinessIncreaseWeight >= 0),
-       assert(primaryRecipeWeight >= 0),
-       assert(secondaryRecipeWeight >= 0),
-       assert(impactedRecipeWeight >= 0),
-       assert(unlocksManyRecipesThreshold > 0),
+  }) : assert(unlocksManyRecipesThreshold > 0),
        assert(highRecipeFrequencyThreshold > 0),
        assert(primaryIngredientThreshold > 0),
        assert(nearlyReadyThreshold >= 0 && nearlyReadyThreshold <= 1),
@@ -40,28 +30,12 @@ class ShoppingRecommendationPolicy {
        ),
        assert(topRecipeLimit > 0);
 
-  final double unlockedRecipeWeight;
-  final double totalReadinessIncreaseWeight;
-  final double averageReadinessIncreaseWeight;
-  final double primaryRecipeWeight;
-  final double secondaryRecipeWeight;
-  final double impactedRecipeWeight;
-
   final int unlocksManyRecipesThreshold;
   final int highRecipeFrequencyThreshold;
   final int primaryIngredientThreshold;
   final double nearlyReadyThreshold;
   final double highAverageReadinessIncreaseThreshold;
   final int topRecipeLimit;
-
-  double score(RecommendationEvidence evidence) {
-    return (evidence.recipesUnlocked * unlockedRecipeWeight) +
-        (evidence.totalReadinessIncrease * totalReadinessIncreaseWeight) +
-        (evidence.averageReadinessIncrease * averageReadinessIncreaseWeight) +
-        (evidence.primaryRecipeCount * primaryRecipeWeight) +
-        (evidence.secondaryRecipeCount * secondaryRecipeWeight) +
-        (evidence.impactedRecipeCount * impactedRecipeWeight);
-  }
 }
 
 class ShoppingRecommendationService {
@@ -70,12 +44,16 @@ class ShoppingRecommendationService {
     required this.registry,
     required this.unitEngine,
     this.policy = const ShoppingRecommendationPolicy(),
+    this.scoreCalculator = const RecommendationScoreCalculator(),
+    this.explanationBuilder = const RecommendationExplanationBuilder(),
   });
 
   final RecipeReadinessService readinessService;
   final CanonicalIngredientRegistry registry;
   final UnitConversionEngine unitEngine;
   final ShoppingRecommendationPolicy policy;
+  final RecommendationScoreCalculator scoreCalculator;
+  final RecommendationExplanationBuilder explanationBuilder;
 
   List<ShoppingRecommendation> recommend({
     required List<Recipe> recipes,
@@ -307,6 +285,13 @@ class ShoppingRecommendationService {
       targetUnitId: purchaseUnitId,
       evaluatedAt: evaluatedAt,
     );
+    final almostReadyRecipeCount = impacts
+        .where(
+          (impact) =>
+              impact.becomesUnlocked &&
+              impact.readinessBefore >= policy.nearlyReadyThreshold,
+        )
+        .length;
     final reasonCodes = _reasonCodes(
       impacts: impacts,
       recipesUnlocked: recipesUnlocked,
@@ -325,7 +310,14 @@ class ShoppingRecommendationService {
       primaryRecipeCount: primaryCount,
       secondaryRecipeCount: secondaryCount,
       ingredientFrequency: recipeAggregates.length,
+      almostReadyRecipeCount: almostReadyRecipeCount,
+      hasPantrySynergy: hasPartialPantry,
       reasonCodes: reasonCodes,
+    );
+    final explanation = explanationBuilder.build(
+      ingredientName: canonical.displayName(),
+      evidence: evidence,
+      impacts: impacts,
     );
 
     return ShoppingRecommendation(
@@ -336,9 +328,11 @@ class ShoppingRecommendationService {
       targetShoppingQuantity: targetShoppingQuantity,
       existingShoppingQuantity: existingShoppingQuantity,
       recommendedUnitId: purchaseUnitId,
-      score: policy.score(evidence),
+      score: scoreCalculator.calculate(evidence),
       evidence: evidence,
       topRecipes: impacts.take(policy.topRecipeLimit).toList(growable: false),
+      types: explanation.types,
+      reason: explanation.reason,
     );
   }
 

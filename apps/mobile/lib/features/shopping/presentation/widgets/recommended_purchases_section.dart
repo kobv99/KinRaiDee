@@ -190,6 +190,15 @@ class _RecommendedPurchasesSectionState
                   '${recommendation.recommendedUnitId}',
                 ),
                 const SizedBox(height: AppSpacing.md),
+                Text(
+                  recommendation.reason,
+                  key: const ValueKey<String>('recommendation-reason'),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                _MetricRow(
+                  label: 'Impact Score',
+                  value: recommendation.score.toStringAsFixed(1),
+                ),
                 _MetricRow(
                   label: 'เมนูที่พร้อมเพิ่มขึ้น',
                   value: '${evidence.recipesUnlocked} เมนู',

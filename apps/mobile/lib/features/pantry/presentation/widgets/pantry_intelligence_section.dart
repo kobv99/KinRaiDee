@@ -168,8 +168,12 @@ class _PantryIntelligenceSectionState
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xs),
-                Text(_reason(recommendation)),
+                Text(recommendation.reason),
                 const SizedBox(height: AppSpacing.md),
+                _MetricRow(
+                  label: 'Impact Score',
+                  value: recommendation.score.toStringAsFixed(1),
+                ),
                 _MetricRow(
                   label: 'เมนูที่พร้อมเพิ่มขึ้น',
                   value: '${evidence.recipesUnlocked} เมนู',
@@ -559,21 +563,6 @@ class _InsightUnavailable extends StatelessWidget {
       ],
     );
   }
-}
-
-String _reason(ShoppingRecommendation recommendation) {
-  final evidence = recommendation.evidence;
-  if (evidence.recipesUnlocked > 0) {
-    return 'ช่วยให้พร้อมทำเพิ่ม ${evidence.recipesUnlocked} เมนู '
-        'และเพิ่มความพร้อมเฉลี่ยจาก '
-        '${evidence.averageReadinessBeforePercent}% เป็น '
-        '${evidence.averageReadinessAfterPercent}%';
-  }
-
-  return 'ช่วยเพิ่มความพร้อมเฉลี่ยของ '
-      '${evidence.impactedRecipeCount} เมนู จาก '
-      '${evidence.averageReadinessBeforePercent}% เป็น '
-      '${evidence.averageReadinessAfterPercent}%';
 }
 
 String _quantity(double value) {

@@ -7,6 +7,7 @@ import 'package:mobile/features/recipe/domain/entities/recipe.dart';
 import 'package:mobile/features/recipe/domain/entities/recipe_ingredient.dart';
 import 'package:mobile/features/recipe/domain/services/recipe_readiness_service.dart';
 import 'package:mobile/features/shopping/domain/entities/shopping_list.dart';
+import 'package:mobile/features/shopping/domain/entities/shopping_recommendation.dart';
 import 'package:mobile/features/shopping/domain/entities/shopping_source.dart';
 import 'package:mobile/features/shopping/domain/services/shopping_draft_builder.dart';
 import 'package:mobile/features/shopping/domain/services/shopping_recommendation_service.dart';
@@ -58,6 +59,13 @@ void main() {
         egg.evidence.reasonCodes.map((reason) => reason.name),
         contains('unlocksManyRecipes'),
       );
+      expect(egg.types, contains(ShoppingRecommendationType.unlockMostRecipes));
+      expect(
+        egg.types,
+        contains(ShoppingRecommendationType.improveRecipeReadiness),
+      );
+      expect(egg.reason, contains('Egg'));
+      expect(egg.reason, contains('2'));
       expect(
         first.where((item) => item.canonicalIngredientId == 'cinnamon'),
         isEmpty,
@@ -107,6 +115,24 @@ void main() {
     );
 
     expect(recommendations, isEmpty);
+  });
+
+  test('partial Pantry contributes deterministic synergy evidence', () {
+    final recommendations = service.recommend(
+      recipes: _recipes,
+      pantry: <Ingredient>[
+        _pantry('rice', 100, 'gram', now),
+        _pantry('egg', 0.5, 'piece', now),
+      ],
+      shoppingLists: const <ShoppingList>[],
+      evaluatedAt: now,
+    );
+
+    final egg = recommendations.firstWhere(
+      (item) => item.canonicalIngredientId == 'egg',
+    );
+    expect(egg.evidence.hasPantrySynergy, isTrue);
+    expect(egg.reason, contains('Pantry'));
   });
 }
 

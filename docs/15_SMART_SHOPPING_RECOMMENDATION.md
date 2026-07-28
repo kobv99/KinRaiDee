@@ -16,9 +16,13 @@ Pantry + Recipes + active Shopping
               |
               v
  ShoppingRecommendationService
+       |               |
+       v               v
+RecommendationScore  RecommendationExplanation
+    Calculator              Builder
               |
               v
- Structured recommendation evidence
+ Structured recommendation + evidence + reason
               |
               v
  Optional dashboard presentation
@@ -54,22 +58,33 @@ Every candidate is simulated as a temporary Pantry quantity and each impacted Re
 
 The result records readiness before and after, Recipes unlocked, ingredient role, shortage quantity, and top impacted Recipes.
 
-The default named policy weights:
+`RecommendationScoreCalculator` applies the default named policy weights:
 
 - Recipes unlocked;
 - total readiness increase;
 - average readiness increase;
 - Primary Recipe count;
 - Secondary Recipe count;
+- ingredient frequency;
+- existing Pantry synergy;
 - impacted Recipe count.
 
 Stable tie-breaking uses score, Recipes unlocked, average readiness increase, then canonical ingredient ID.
 
-## Evidence model
+## Recommendation types and explanations
 
 ShoppingRecommendation, RecommendationEvidence, and RecommendationRecipeImpact are immutable domain models. They expose structured quantitative facts and future-compatible reason codes rather than a single formatted sentence.
 
-The richer Recommendation Reason feature is intentionally deferred to GitHub issue #8. Future explanations must use verified domain evidence and must not invent recommendation facts.
+`RecommendationExplanationBuilder` assigns any applicable advisory types:
+
+- Unlock Most Recipes;
+- Improve Recipe Readiness;
+- Complete Almost Ready Recipes;
+- Frequently Used Ingredient.
+
+It also builds the user-facing reason entirely from verified evidence: Recipes
+unlocked, readiness increase, almost-ready Recipes, frequency, and Pantry
+synergy. The UI renders this output and never reconstructs explanations.
 
 ## Reactive updates
 
