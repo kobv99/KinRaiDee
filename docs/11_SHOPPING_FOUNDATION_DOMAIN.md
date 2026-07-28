@@ -3,65 +3,71 @@
 ## Scope
 
 SF-001 established the offline Shopping aggregate and repository boundary.
-SF-002 adds deterministic generation, item lifecycle mutations, and
-transaction-safe Pantry synchronization. It does not add Shopping UI, retailer
-integration, price, package sizing, barcode scanning, cloud synchronization,
-AI, or Recommendation changes.
+SF-002 added deterministic generation and durable Pantry synchronization.
+SF-003 exposes the user workflow. The current product direction defines Shopping
+as unfinished work only and Purchase History as the separate audit projection.
 
-## Aggregate
+Retailer integration, pricing, package sizing, barcode scanning, cloud
+synchronization, AI, and Recommendation behavior remain out of scope.
 
-`ShoppingList` is the aggregate root. It owns:
+## Actionable Aggregate
+
+`ShoppingList` remains the aggregate root and owns:
 
 - globally unique list ID;
-- name and planning status;
+- name;
 - optimistic-concurrency revision;
-- immutable `ShoppingItem` collection;
+- immutable active `ShoppingItem` collection;
 - timestamps; and
 - metadata version.
 
-`ShoppingItem` version 2 contains:
+The persisted `ShoppingItem` version remains backward compatible with legacy
+`active`, `purchased`, and `archived` records plus optional `ShoppingPurchase`
+receipts. The current aggregate projection exposes active items only:
 
 - list-scoped item ID;
-- canonical ingredient and unit IDs;
+- resolved canonical ingredient and unit IDs;
 - deterministic display name and category;
 - positive, unit-rounded quantity;
-- source plus sorted source Recipe IDs;
-- lifecycle status: `active`, `purchased`, or `archived`;
-- optional `ShoppingPurchase` receipt;
+- source plus sorted Recipe source IDs;
 - timestamps; and
 - metadata version.
 
-One list may contain at most one active item for a canonical ingredient.
-Purchased and archived entries may coexist with a new active requirement
-because completed entries are audit records, not outstanding demand.
+One list may contain at most one active item for a resolved canonical ingredient.
+Legacy non-active records remain readable but are not outstanding demand, are
+not rendered, and are not copied into regenerated lists.
 
-## Purchase Receipt
+## Purchase History
 
-Every purchased or archived item owns one immutable `ShoppingPurchase`:
+A completed purchase is represented by a committed `shoppingPurchase`
+transaction, not by a Completed Shopping item.
 
-- purchase transaction ID;
-- affected Pantry lot ID;
-- whether the transaction created that lot;
-- Pantry canonical unit ID;
-- quantity before and after purchase; and
-- purchase timestamp.
+`PurchaseHistoryProjector` derives `PurchaseHistoryEntry` from the durable
+journal's before/after envelopes:
 
-The receipt is sufficient to undo without restoring an entire stale Pantry
-snapshot. Undo succeeds only when the affected Pantry lot still matches the
-recorded post-purchase state. If Pantry changed later, undo fails closed rather
-than overwriting newer inventory.
+- purchase transaction ID and timestamp;
+- resolved canonical ingredient identity and display name;
+- purchased quantity and unit;
+- source Recipe IDs;
+- Shopping list and item IDs; and
+- affected Pantry record IDs.
+
+The journal snapshots already contain the complete data required for restart
+recovery and Undo, so Purchase History does not own another Hive box or duplicate
+write model. Legacy embedded `ShoppingPurchase` receipts remain projectable when
+a journal record is unavailable.
 
 ## Relationships
 
 ```mermaid
 erDiagram
-    SHOPPING_LIST ||--o{ SHOPPING_ITEM : "owns"
-    SHOPPING_ITEM ||--o| SHOPPING_PURCHASE : "records"
+    SHOPPING_LIST ||--o{ SHOPPING_ITEM : "owns active work"
     CANONICAL_INGREDIENT ||--o{ SHOPPING_ITEM : "identifies"
     UNIT_DEFINITION ||--o{ SHOPPING_ITEM : "measures"
     RECIPE o{--o{ SHOPPING_ITEM : "contributes demand"
-    PANTRY_LOT o{--o{ SHOPPING_ITEM : "offsets demand"
-    PANTRY_LOT ||--o{ SHOPPING_PURCHASE : "receives quantity"
+    INVENTORY_TRANSACTION ||--o| PURCHASE_HISTORY : "projects"
+    INVENTORY_TRANSACTION ||--o{ PANTRY_RECORD : "changes"
+    INVENTORY_TRANSACTION ||--o| SHOPPING_ITEM : "removes or restores"
 ```
 
 ## Shopping Engine
@@ -79,10 +85,11 @@ Deterministic generation order:
 5. Sum non-expired Pantry quantities in the same target unit.
 6. Calculate `max(total requirement - Pantry quantity, 0)`.
 7. Merge existing active Shopping entries by canonical ID and compatible unit.
-8. Preserve a larger manual quantity; otherwise replace generated demand with
-   the current shortage.
-9. Remove generated demand now fully covered by Pantry.
-10. Round once with the target unit precision and sort deterministically.
+8. Preserve a larger active manual quantity; otherwise replace generated demand
+   with the current shortage.
+9. Remove demand fully covered by Pantry.
+10. Drop legacy purchased/archived records from the regenerated projection.
+11. Round once at target-unit precision and sort deterministically.
 
 Invalid or incompatible conversions fail the complete generation. The engine
 never partially returns a list and never mutates Recipe, Pantry, Shopping, or
@@ -94,136 +101,177 @@ flowchart LR
     N --> U["Convert to purchase units"]
     U --> A["Aggregate Recipe demand"]
     P["Non-expired Pantry"] --> S["Aggregate available quantity"]
-    E["Existing active Shopping"] --> M["Merge canonical duplicates"]
+    E["Existing active Shopping"] --> M["Merge canonical demand"]
     A --> D["Demand minus Pantry"]
     S --> D
     D --> M
-    M --> O["Deterministic ShoppingList draft"]
+    M --> O["Active-only ShoppingList draft"]
 ```
 
 ## Repository Boundary
 
 `ShoppingRepository` remains read-only:
 
-- `getLists`;
-- `getList`.
+- `getLists` returns active-only list projections;
+- `getList` returns one active-only list projection; and
+- `getPurchaseHistory` returns the durable Purchase History projection.
 
-`LocalShoppingRepository` projects lists from the consistent
-`InventoryStateEnvelope`. It has no `save`, `put`, or `delete` API.
-`InventoryTransactionCoordinator.mutateShopping` is the only durable write
-boundary.
+`LocalShoppingRepository` reads the consistent `InventoryStateEnvelope` and
+transaction journal. It has no `save`, `put`, or `delete` API.
 
-## Mutation Contract
+## Mutation Boundaries
 
-`ShoppingMutation` supports:
+`InventoryTransactionCoordinator.mutateShopping` remains the durable boundary
+for active list maintenance:
 
-| Mutation | Behavior |
+| Mutation | Current behavior |
 |---|---|
-| `upsertList` | Create a list or commit an engine-generated aggregate |
-| `removeList` | Remove a list without purchase receipts |
+| `upsertList` | Create or replace an active engine-generated aggregate |
+| `removeList` | Remove a list allowed by legacy compatibility validation |
 | `addItem` | Add one active canonical item |
 | `removeItem` | Remove one active item |
 | `updateQuantity` | Apply a positive compatible quantity and unit |
-| `markPurchased` | Atomically mark purchased and add quantity to Pantry |
-| `markUnpurchased` | Atomically restore Pantry and reactivate the item |
-| `archiveCompleted` | Move all purchased items to archived |
-| `restoreArchived` | Move all archived items back to purchased |
-| `clearCompleted` | Remove purchased and archived entries without changing Pantry |
 
-Every command carries a transaction ID, expected envelope revision, expected
-list revision, list/item identity, and command timestamp. Completed entries
-cannot be changed through generic upsert/remove operations.
-`clearCompleted` is terminal for local purchase undo because it deliberately
-removes the completed entry and its receipt; undo must run before clearing.
+Legacy `markPurchased`, `markUnpurchased`, `archiveCompleted`,
+`restoreArchived`, and `clearCompleted` APIs remain implemented only so existing
+data, older tests, and reader-version compatibility are not broken. The current
+Shopping UI does not call them.
 
-## Purchase Commit and Undo
+`ShoppingCompletionCoordinator` owns the current product workflow:
+
+- `completeItem`;
+- `undoCompletion`; and
+- durable presentation completion.
+
+## Complete Item Contract
 
 ```mermaid
 sequenceDiagram
     participant Caller
-    participant Coordinator as InventoryTransactionCoordinator
-    participant Registry as Canonical and Unit Contracts
+    participant Completion as ShoppingCompletionCoordinator
+    participant Merge as PantryCanonicalMergeService
     participant Journal as Durable Journal
-    participant Envelope as Pantry and Shopping Envelope
+    participant Envelope as Inventory Envelope
     participant Riverpod
 
-    Caller->>Coordinator: markPurchased(command)
-    Coordinator->>Registry: validate identity, unit, revision
-    Coordinator->>Coordinator: select or create Pantry lot
-    Coordinator->>Journal: persist before and after envelopes
-    Journal->>Envelope: write Shopping status and Pantry quantity
+    Caller->>Completion: completeItem(listId, revision, itemId)
+    Completion->>Completion: validate active item and revision
+    Completion->>Merge: resolve and merge canonical inventory
+    Merge-->>Completion: one Pantry snapshot or typed failure
+    Completion->>Completion: remove Shopping item
+    Completion->>Journal: commit before and after envelopes
+    Journal->>Envelope: write Pantry plus active Shopping
     Envelope-->>Journal: checksum verified
-    Journal-->>Coordinator: committed
-    Coordinator-->>Caller: durable snapshot
-    Caller->>Riverpod: publish Pantry and Shopping
-
-    Caller->>Coordinator: markUnpurchased(command)
-    Coordinator->>Coordinator: verify purchase receipt and Pantry state
-    Coordinator->>Journal: persist reverse before and after envelopes
-    Journal->>Envelope: restore Pantry and active item
-    Envelope-->>Journal: checksum verified
-    Journal-->>Coordinator: committed
+    Journal-->>Completion: committed
+    Completion-->>Caller: durable snapshot and transaction ID
+    Caller->>Riverpod: publish Pantry; invalidate Shopping/history
 ```
 
-For an existing compatible Pantry lot, purchase increments that lot. If none
-exists, purchase creates a mapped lot with an ID derived from the globally
-unique transaction ID. Undo restores the prior quantity or removes the lot
-created by that purchase.
+The complete operation is atomic. A successful transaction:
+
+1. resolves canonical identity by canonical ID redirect, stable registry key,
+   then localized/alias registry lookup;
+2. converts every compatible Pantry candidate and the purchase into one
+   deterministic primary unit;
+3. consolidates compatible canonical duplicates into one Pantry record;
+4. removes the active Shopping item; and
+5. creates a durable Purchase History projection through the journal record.
+
+Unknown or incompatible units return a typed validation failure. No partial
+Pantry, Shopping, or history state is published.
+
+## Pantry Canonical Merge Contract
+
+`PantryCanonicalMergeService` is shared by Shopping completion and manual Pantry
+add/update. It owns:
+
+- canonical resolution;
+- compatible-unit conversion;
+- deterministic primary-record selection;
+- quantity rounding;
+- duplicate consolidation;
+- favorite/metadata preservation; and
+- typed failure for unknown or incompatible units.
+
+Display-name equality is never an identity rule. A localized display name may
+only be passed into the registry's alias compatibility lookup.
+
+Manual update uses replace semantics: the edited record's old quantity is
+removed before the new value is merged. Manual add and Shopping completion use
+add semantics.
+
+## Undo Contract
+
+Undo accepts the original purchase transaction ID. It:
+
+1. reads the original before/after envelopes;
+2. derives the removed Shopping item and affected Pantry record IDs;
+3. verifies those Pantry records still equal the purchase's post-state;
+4. rejects an equivalent active Shopping item recreated after completion;
+5. restores only the affected Pantry records;
+6. restores the Shopping item as active; and
+7. commits an `undoShoppingPurchase` inverse transaction.
+
+The inverse journal record removes the projected Purchase History entry. Undo
+fails closed when newer Pantry or Shopping state would be overwritten.
 
 ## Idempotency and Recovery
 
 - Repeating the same transaction ID and command returns the original durable
   result.
 - Reusing a transaction ID for different content fails closed.
-- A second purchase command for an already purchased/archived item is a
-  semantic no-op.
-- A second unpurchase command for an active item is a semantic no-op.
-- Archive, restore, and clear commands are semantic no-ops when their target
-  set is already empty.
-- All other stale global or list revisions conflict.
+- Completing an item already represented by open Purchase History returns an
+  already-completed result.
+- Repeating Undo after the item and Pantry state are restored returns
+  already-undone.
+- Stale envelope or list revisions conflict.
 - Startup recovery uses the RFC-0003 journal before providers are created.
-- Crash recovery and rollback operate on the complete Pantry + History +
+- Crash recovery and rollback operate on the complete Pantry + Cooking History +
   Shopping envelope, never on one projection alone.
 
 ## Persistence and Versioning
 
 Shopping remains inside the checksummed `InventoryStateEnvelope`; there is no
-Shopping-specific Hive box.
+Shopping-specific or Purchase-History-specific Hive box.
 
 - Envelope schema version: `1`.
-- Reader version `1`: Pantry and History.
+- Reader version `1`: Pantry and Cooking History.
 - Reader version `2`: `shopping.v1` from SF-001.
-- Reader version `3`: `shopping.engine.v1`, item lifecycle, purchase receipts,
-  and Pantry synchronization.
-- SF-002 reads version-1 and version-2 envelopes without rewriting them.
-- The first SF-002 Shopping mutation upgrades Shopping items and adds both
-  Shopping capabilities in one journaled commit.
+- Reader version `3`: `shopping.engine.v1` and atomic Pantry synchronization.
+- Legacy lifecycle fields and embedded receipts remain readable.
+- The actionable-only redesign uses existing transaction kinds and journal
+  snapshots, so it does not require a reader or envelope version increase.
 
-## Invariants
+## Current Invariants
 
+- Shopping projections contain unfinished active work only.
 - Quantities are finite, positive, and deterministic at unit precision.
-- Unknown or redirected canonical IDs cannot be durably written.
-- Item units must convert to the canonical default purchase unit.
 - Active canonical ingredient IDs are unique within a list.
-- Purchased and archived items always have a valid purchase receipt.
-- Active items never have a purchase receipt.
-- A purchase changes Shopping and Pantry in the same commit.
-- Undo never overwrites a Pantry lot changed after purchase.
-- Generic upsert/remove cannot erase completed purchase records.
-- Riverpod publishes Shopping and Pantry only after durable success.
+- Completion changes Pantry and removes Shopping in the same commit.
+- Purchase History exists only for committed, not-undone purchases.
+- Compatible Pantry records for the completed/added/updated canonical ingredient
+  are consolidated into one record.
+- Incompatible units do not silently merge.
+- Undo never overwrites Pantry or Shopping state changed after purchase.
+- Riverpod publishes only after durable success.
 
 ## Validation Evidence
 
+- `test/features/shopping/shopping_completion_coordinator_test.dart`
 - `test/features/shopping/shopping_engine_test.dart`
 - `test/features/shopping/shopping_engine_transaction_test.dart`
-- `test/features/shopping/shopping_entities_test.dart`
-- `test/features/shopping/shopping_transaction_integration_test.dart`
-- `test/features/shopping/shopping_hive_integration_test.dart`
-- `test/features/shopping/shopping_provider_test.dart`
-- `test/features/pantry/data/hive_inventory_commit_repository_test.dart`
+- `test/features/shopping/shopping_ui_test.dart`
+- `test/features/shopping/shopping_ui_integration_test.dart`
+- `test/features/shopping/shopping_view_provider_test.dart`
+- `test/core/providers/pantry_canonical_merge_provider_test.dart`
+- existing transaction, repository, Hive, recovery, and provider suites
 
 ## Deferred Work
 
-Package-size rounding, retailer/catalog identity, pricing, barcode input,
-Shopping UI, cloud synchronization, and cross-device conflict resolution remain
-out of scope.
+Package-size rounding, retailer/catalog identity, pricing, barcode input, cloud
+synchronization, cross-device conflict resolution, and a dedicated Purchase
+History screen remain outside this change. The Purchase History read boundary is
+available for that future surface.
+
+The SF-003 presentation workflow is documented in
+[Shopping UI and Pantry Completion Workflow](12_SHOPPING_UI.md).

@@ -391,7 +391,7 @@ const List<UnitDefinition> standardUnitDefinitions = <UnitDefinition>[
     displayName: 'ต้น',
     parentUnitId: 'piece',
     factorToParent: 1,
-    aliases: <String>['stalks'],
+    aliases: <String>['stalks', 'stem', 'stems'],
     decimalPlaces: 0,
   ),
   UnitDefinition(
@@ -401,6 +401,15 @@ const List<UnitDefinition> standardUnitDefinitions = <UnitDefinition>[
     parentUnitId: 'piece',
     factorToParent: 1,
     aliases: <String>['cloves'],
+    decimalPlaces: 0,
+  ),
+  UnitDefinition(
+    id: 'bulb',
+    dimension: 'count',
+    displayName: 'หัวกระเทียม',
+    parentUnitId: 'piece',
+    factorToParent: 1,
+    aliases: <String>['bulbs'],
     decimalPlaces: 0,
   ),
   UnitDefinition(
@@ -497,6 +506,14 @@ const List<UnitDefinition> standardUnitDefinitions = <UnitDefinition>[
     displayName: 'แพ็ก',
     factorToParent: 1,
     aliases: <String>['packs', 'แพ็ค'],
+    decimalPlaces: 1,
+  ),
+  UnitDefinition(
+    id: 'can',
+    dimension: 'package',
+    displayName: 'กระป๋อง',
+    factorToParent: 1,
+    aliases: <String>['cans'],
     decimalPlaces: 1,
   ),
 ];

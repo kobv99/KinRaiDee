@@ -20,16 +20,17 @@ Status: complete.
 - Multi-Recipe aggregation and duplicate merging
 - Transaction-safe Shopping mutations
 - Purchase-to-Pantry synchronization and undo
+- Shopping list, Recipe generation preview, search, filters, and item actions
 
-Status: SF-001 approved. SF-002 Shopping Engine is implemented and awaiting CTO
-review. Shopping UI, retailer, pricing, package sizing, and cloud
-synchronization remain outside the current scope.
+Status: SF-001 and SF-002 approved. SF-003 Shopping UI is implemented and
+awaiting CTO review. Retailer, pricing, package sizing, barcode scanning, and
+cloud synchronization remain outside the current scope.
 
 ---
 
 ## Phase 3
 
-- Shopping UI and extended purchase experience
+- Extended purchase experience
 - Meal Planner
 
 ---

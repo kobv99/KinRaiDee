@@ -120,9 +120,7 @@ class ShoppingItem {
         (source) => source.name == json['source']?.toString(),
         orElse: () => throw const FormatException('Unknown Shopping source.'),
       ),
-      sourceReferenceId:
-          legacySourceReference ??
-          (sourceReferences.isEmpty ? null : sourceReferences.first),
+      sourceReferenceId: legacySourceReference,
       sourceReferenceIds: List<String>.unmodifiable(sourceReferences),
       status: ShoppingItemStatus.values.firstWhere(
         (status) => status.name == json['status']?.toString(),

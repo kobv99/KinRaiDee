@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/providers/canonical_ingredient_providers.dart';
 import '../../../../core/providers/pantry_provider.dart';
+import '../../../../core/presentation/unit_presentation.dart';
 import '../../../pantry/domain/models/pantry_quantity_transaction.dart';
 import '../../domain/entities/recipe.dart';
 import '../../domain/services/pantry_deduction_planner.dart';
@@ -612,7 +613,7 @@ class _DeductionConfirmationSheetState
                     ),
                     decoration: InputDecoration(
                       labelText: 'ปริมาณที่จะหัก',
-                      suffixText: line.unit,
+                      suffixText: UnitPresentation.label(line.unit),
                       isDense: true,
                       border: const OutlineInputBorder(),
                     ),
@@ -1145,20 +1146,24 @@ String _pantryStatusLabel(ScaledRecipeIngredient item) {
           : 'ยังไม่มีใน Pantry • ไม่ใส่ก็ได้';
     case PantryQuantityStatus.incompatibleUnit:
       final pantryQuantity = item.pantryDisplayQuantity ?? 0;
-      final pantryUnit = item.pantryDisplayUnit ?? '';
+      final pantryUnit = UnitPresentation.label(item.pantryDisplayUnit ?? '');
       return 'มี ${_formatNumber(pantryQuantity)} $pantryUnit • หน่วยไม่ตรง กรุณาตรวจจำนวนเอง';
   }
 }
 
 String _formatQuantity(double quantity, String unit) {
-  final normalizedUnit = unit.trim();
+  final normalizedUnit = UnitPresentation.label(unit);
   if (normalizedUnit == 'กรัม' && quantity >= 1000) {
     return '${_formatNumber(quantity / 1000)} กิโลกรัม';
   }
   if (normalizedUnit == 'มิลลิลิตร' && quantity >= 1000) {
     return '${_formatNumber(quantity / 1000)} ลิตร';
   }
-  return '${_formatNumber(quantity)} $normalizedUnit'.trim();
+  return UnitPresentation.quantity(
+    quantity,
+    normalizedUnit,
+    maximumFractionDigits: 2,
+  );
 }
 
 String _formatNumber(double value) {

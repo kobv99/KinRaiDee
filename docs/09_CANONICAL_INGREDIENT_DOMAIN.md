@@ -20,6 +20,9 @@ retailer catalogs, and pricing.
 - default storage type;
 - default purchase unit ID;
 - default inventory unit ID;
+- preferred unit ID for new Pantry input;
+- ordered recommended unit IDs;
+- optional ingredient unit family;
 - optional parent ingredient ID for compatible ingredient families; and
 - metadata schema version, revision, and source.
 
@@ -74,6 +77,23 @@ Negative and non-finite quantities fail. Unknown and incompatible units return
 typed failures. Duplicate aliases and circular conversions prevent contract
 construction.
 
+### Ingredient-aware Unit Selection
+
+`IngredientUnitPolicy` derives practical unit metadata from canonical identity
+and category when the master record does not override it. Presentation widgets
+consume `CanonicalIngredient.preferredUnitId` and
+`CanonicalIngredient.recommendedUnitIds`; they do not inspect ingredient names.
+
+The primary Pantry selector contains only recommended units and automatically
+selects the preferred unit for a newly selected ingredient. Changing the
+ingredient recalculates the list immediately. A compatible current unit may be
+retained; an invalid current unit switches to the new preferred unit.
+
+`Other unit…` opens the complete Unit Contract only on demand. Existing lots
+whose unit is unusual or no longer recommended remain visible and editable.
+Their display and canonical unit values are preserved unless the user explicitly
+changes the unit.
+
 ## Feature Contracts
 
 - Pantry normalizes new and edited lots before durable mutation.
@@ -92,7 +112,9 @@ construction.
 Relevant tests:
 
 - `test/core/domain/ingredients/canonical_ingredient_registry_test.dart`
+- `test/core/domain/units/ingredient_unit_policy_test.dart`
 - `test/core/domain/units/unit_contract_test.dart`
+- `test/features/pantry/presentation/add_ingredient_dialog_test.dart`
 - `test/features/pantry/application/canonical_ingredient_migration_test.dart`
 - `test/features/recipe/canonical_ingredient_compatibility_test.dart`
 - `test/features/recipe/ingredient_catalog_test.dart`

@@ -337,6 +337,108 @@ class InventoryTransactionCoordinator {
     });
   }
 
+  Future<InventoryTransactionResult> deleteCookingHistory(String entryId) {
+    return _serialized(() async {
+      final before = await _repository.loadConsistentSnapshot();
+      final normalizedEntryId = entryId.trim();
+      if (normalizedEntryId.isEmpty) {
+        final invalid = PantryQuantityTransaction(
+          transactionId: _transactionIdGenerator.generate(),
+          expectedRevision: before.revision,
+          kind: InventoryTransactionKind.deleteCookingHistory,
+          recipeId: 'history-retention',
+          recipeName: 'Cooking history retention',
+          servings: 1,
+          changes: const <PantryQuantityChange>[],
+          createdAt: _clock.now(),
+        );
+        return _failure(
+          InventoryTransactionOutcome.validationFailure,
+          'missing_history_entry_id',
+          before,
+          invalid,
+        );
+      }
+      if (!before.history.any((entry) => entry.id == normalizedEntryId)) {
+        return InventoryTransactionResult(
+          outcome: InventoryTransactionOutcome.alreadyCommitted,
+          code: 'history_entry_already_deleted',
+          snapshot: before,
+        );
+      }
+
+      final committedAt = _clock.now();
+      final transaction = PantryQuantityTransaction(
+        transactionId: _transactionIdGenerator.generate(),
+        expectedRevision: before.revision,
+        kind: InventoryTransactionKind.deleteCookingHistory,
+        targetHistoryEntryId: normalizedEntryId,
+        recipeId: 'history-retention',
+        recipeName: 'Cooking history retention',
+        servings: 1,
+        changes: const <PantryQuantityChange>[],
+        createdAt: committedAt,
+      );
+      final afterHistory = before.history
+          .where((entry) => entry.id != normalizedEntryId)
+          .toList(growable: false);
+      final after = _targetEnvelope(
+        before,
+        transaction.transactionId,
+        committedAt,
+        pantry: before.pantry,
+        history: afterHistory,
+      );
+      final checksum = calculateChecksum(<String, dynamic>{
+        'transaction': transaction.toJson(),
+        'retainedHistoryIds': afterHistory
+            .map((entry) => entry.id)
+            .toList(growable: false),
+      });
+      return _commit(transaction, checksum, before, after);
+    });
+  }
+
+  Future<InventoryTransactionResult> clearCookingHistory() {
+    return _serialized(() async {
+      final before = await _repository.loadConsistentSnapshot();
+      if (before.history.isEmpty) {
+        return InventoryTransactionResult(
+          outcome: InventoryTransactionOutcome.alreadyCommitted,
+          code: 'history_already_empty',
+          snapshot: before,
+        );
+      }
+
+      final committedAt = _clock.now();
+      final transaction = PantryQuantityTransaction(
+        transactionId: _transactionIdGenerator.generate(),
+        expectedRevision: before.revision,
+        kind: InventoryTransactionKind.clearCookingHistory,
+        targetHistoryEntryId: '*',
+        recipeId: 'history-retention',
+        recipeName: 'Cooking history retention',
+        servings: 1,
+        changes: const <PantryQuantityChange>[],
+        createdAt: committedAt,
+      );
+      final checksum = calculateChecksum(<String, dynamic>{
+        'transaction': transaction.toJson(),
+        'deletedHistoryIds': before.history
+            .map((entry) => entry.id)
+            .toList(growable: false),
+      });
+      final after = _targetEnvelope(
+        before,
+        transaction.transactionId,
+        committedAt,
+        pantry: before.pantry,
+        history: const <CookingHistoryEntry>[],
+      );
+      return _commit(transaction, checksum, before, after);
+    });
+  }
+
   Future<InventoryTransactionResult> replacePantry(
     List<Ingredient> pantry, {
     String source = 'pantryMutation',
@@ -1532,9 +1634,9 @@ class InventoryTransactionCoordinator {
       id: pantryLotId,
       name: canonical.displayName(),
       category: canonical.category,
-      emoji: '',
+      emoji: canonical.emoji,
       quantity: item.quantity,
-      unit: item.unitId,
+      unit: unitEngine.resolveUnit(item.unitId)!.displayName,
       createdAt: committedAt,
       updatedAt: committedAt,
       canonicalIngredientId: canonical.id,
