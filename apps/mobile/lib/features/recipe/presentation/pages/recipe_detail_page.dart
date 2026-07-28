@@ -69,7 +69,7 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
     }
     final controller = ref.read(recipeMissingShoppingControllerProvider);
     if (controller == null) {
-      _showMessage('กำลังโหลดข้อมูลวัตถุดิบ กรุณาลองอีกครั้ง');
+      _showMessage('ข้อมูล Pantry ยังไม่พร้อม กรุณาลองอีกครั้ง');
       return;
     }
     setState(() => _isAddingMissing = true);
@@ -88,8 +88,10 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
           'วัตถุดิบใน Pantry เพียงพอสำหรับสูตรนี้แล้ว',
         RecipeMissingShoppingOutcome.unchanged =>
           'วัตถุดิบที่ขาดอยู่ใน Shopping แล้ว',
+        RecipeMissingShoppingOutcome.notCandidateRecipe =>
+          'สูตรนี้ยังไม่สัมพันธ์กับวัตถุดิบหลักใน Pantry จึงยังสร้าง Shopping ไม่ได้',
         RecipeMissingShoppingOutcome.failed =>
-          'เพิ่มรายการไม่ได้ (${result.code}) ข้อมูลเดิมไม่ถูกเปลี่ยนแปลง',
+          'เพิ่มรายการไม่ได้ ข้อมูลเดิมไม่ถูกเปลี่ยนแปลง',
       };
       _showMessage(message);
     } on Object {
