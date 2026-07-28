@@ -1,8 +1,14 @@
 import 'dart:async';
 
+import '../../../core/domain/ingredients/canonical_ingredient_registry.dart';
+import '../../../core/domain/units/unit_contract.dart';
 import '../../../core/models/ingredient.dart';
 import '../../../core/time/app_clock.dart';
 import '../../../core/utils/transaction_id_generator.dart';
+import '../../shopping/domain/entities/shopping_category.dart';
+import '../../shopping/domain/entities/shopping_list.dart';
+import '../../shopping/domain/entities/shopping_source.dart';
+import '../../shopping/domain/models/shopping_mutation.dart';
 import '../domain/models/cooking_history_entry.dart';
 import '../domain/models/inventory_state_envelope.dart';
 import '../domain/models/inventory_transaction_record.dart';
@@ -47,19 +53,27 @@ class InventoryTransactionCoordinator {
     required InventoryCommitRepository repository,
     AppClock clock = systemAppClock,
     TransactionIdGenerator? transactionIdGenerator,
+    CanonicalIngredientRegistry? canonicalIngredientRegistry,
+    UnitConversionEngine? unitConversionEngine,
   }) : // Private fields keep the coordinator contract intentionally narrow.
        // ignore: prefer_initializing_formals
        _repository = repository,
        // ignore: prefer_initializing_formals
        _clock = clock,
        _transactionIdGenerator =
-           transactionIdGenerator ?? SecureTransactionIdGenerator();
+           transactionIdGenerator ?? SecureTransactionIdGenerator(),
+       // ignore: prefer_initializing_formals
+       _canonicalIngredientRegistry = canonicalIngredientRegistry,
+       // ignore: prefer_initializing_formals
+       _unitConversionEngine = unitConversionEngine;
 
   static const double quantityTolerance = 0.000001;
 
   final InventoryCommitRepository _repository;
   final AppClock _clock;
   final TransactionIdGenerator _transactionIdGenerator;
+  final CanonicalIngredientRegistry? _canonicalIngredientRegistry;
+  final UnitConversionEngine? _unitConversionEngine;
   Future<void> _tail = Future<void>.value();
 
   Future<InventoryStateEnvelope> loadSnapshot() {
@@ -362,6 +376,85 @@ class InventoryTransactionCoordinator {
     });
   }
 
+  /// Applies Shopping state through the same durable journal and envelope used
+  /// by Pantry and Cooking History.
+  Future<InventoryTransactionResult> mutateShopping(
+    ShoppingMutation requested,
+  ) {
+    return _serialized(() async {
+      final before = await _repository.loadConsistentSnapshot();
+      final command = requested.copyWith(
+        transactionId: requested.transactionId.isEmpty
+            ? _transactionIdGenerator.generate()
+            : requested.transactionId,
+        expectedRevision: requested.expectedRevision < 0
+            ? before.revision
+            : requested.expectedRevision,
+      );
+      final transaction = PantryQuantityTransaction(
+        transactionId: command.transactionId,
+        expectedRevision: command.expectedRevision,
+        kind: InventoryTransactionKind.shoppingMutation,
+        recipeId: 'shopping:${command.type.name}:${command.listId}',
+        recipeName: 'Shopping ${command.type.name}',
+        servings: 1,
+        changes: const <PantryQuantityChange>[],
+        createdAt: command.createdAt,
+      );
+      final checksum = calculateChecksum(<String, dynamic>{
+        'shoppingMutation': command.toJson(),
+      });
+      final existing = await _existingResult(transaction, checksum, before);
+      if (existing != null) {
+        return existing;
+      }
+      if (command.expectedRevision != before.revision) {
+        return _failure(
+          InventoryTransactionOutcome.conflict,
+          'stale_inventory_revision',
+          before,
+          transaction,
+        );
+      }
+
+      final validation = _validateShoppingMutation(command, before);
+      if (validation != null) {
+        return _failure(validation.$1, validation.$2, before, transaction);
+      }
+
+      final committedAt = _clock.now();
+      final lists = List<ShoppingList>.of(before.shoppingLists);
+      final index = lists.indexWhere((list) => list.id == command.listId);
+      switch (command.type) {
+        case ShoppingMutationType.upsertList:
+          final requestedList = command.list!;
+          final persisted = requestedList.copyWith(
+            revision: index < 0 ? 0 : lists[index].revision + 1,
+            updatedAt: committedAt,
+          );
+          if (index < 0) {
+            lists.add(persisted);
+          } else {
+            lists[index] = persisted;
+          }
+        case ShoppingMutationType.removeList:
+          lists.removeAt(index);
+      }
+      lists.sort(
+        (first, second) => second.updatedAt.compareTo(first.updatedAt),
+      );
+      final after = _targetEnvelope(
+        before,
+        transaction.transactionId,
+        committedAt,
+        pantry: before.pantry,
+        history: before.history,
+        shoppingLists: lists,
+      );
+      return _commit(transaction, checksum, before, after);
+    });
+  }
+
   /// Persists the canonical identity projection through the same durable
   /// journal as cooking transactions, before Riverpod publishes the state.
   Future<InventoryTransactionResult> migrateCanonicalIngredients({
@@ -631,6 +724,139 @@ class InventoryTransactionCoordinator {
     return null;
   }
 
+  (InventoryTransactionOutcome, String)? _validateShoppingMutation(
+    ShoppingMutation command,
+    InventoryStateEnvelope before,
+  ) {
+    final registry = _canonicalIngredientRegistry;
+    final unitEngine = _unitConversionEngine;
+    if (registry == null || unitEngine == null) {
+      return (
+        InventoryTransactionOutcome.validationFailure,
+        'shopping_contract_unavailable',
+      );
+    }
+    if (command.listId.trim().isEmpty) {
+      return (
+        InventoryTransactionOutcome.validationFailure,
+        'missing_shopping_list_id',
+      );
+    }
+    final listIds = <String>{};
+    for (final list in before.shoppingLists) {
+      if (list.id.isEmpty || !listIds.add(list.id)) {
+        return (
+          InventoryTransactionOutcome.recoveryRequired,
+          'invalid_durable_shopping_state',
+        );
+      }
+    }
+    final existing = before.shoppingLists
+        .where((list) => list.id == command.listId)
+        .firstOrNull;
+    switch (command.type) {
+      case ShoppingMutationType.removeList:
+        if (existing == null) {
+          return (
+            InventoryTransactionOutcome.conflict,
+            'shopping_list_not_found',
+          );
+        }
+        if (command.expectedListRevision != existing.revision) {
+          return (
+            InventoryTransactionOutcome.conflict,
+            'stale_shopping_list_revision',
+          );
+        }
+      case ShoppingMutationType.upsertList:
+        final list = command.list;
+        if (list == null || list.id != command.listId) {
+          return (
+            InventoryTransactionOutcome.validationFailure,
+            'shopping_list_identity_mismatch',
+          );
+        }
+        if (command.expectedListRevision != list.revision) {
+          return (
+            InventoryTransactionOutcome.validationFailure,
+            'shopping_list_revision_mismatch',
+          );
+        }
+        if (existing == null && list.revision != 0) {
+          return (
+            InventoryTransactionOutcome.conflict,
+            'invalid_new_shopping_list_revision',
+          );
+        }
+        if (existing != null &&
+            (list.revision != existing.revision ||
+                list.createdAt.toUtc() != existing.createdAt.toUtc())) {
+          return (
+            InventoryTransactionOutcome.conflict,
+            'stale_shopping_list_revision',
+          );
+        }
+        final listError = _validateShoppingList(
+          list,
+          registry: registry,
+          unitEngine: unitEngine,
+        );
+        if (listError != null) {
+          return (InventoryTransactionOutcome.validationFailure, listError);
+        }
+    }
+    return null;
+  }
+
+  String? _validateShoppingList(
+    ShoppingList list, {
+    required CanonicalIngredientRegistry registry,
+    required UnitConversionEngine unitEngine,
+  }) {
+    if (list.metadataVersion != 1 ||
+        list.id.trim().isEmpty ||
+        list.name.trim().isEmpty ||
+        list.revision < 0 ||
+        list.updatedAt.toUtc().isBefore(list.createdAt.toUtc())) {
+      return 'invalid_shopping_list';
+    }
+    final itemIds = <String>{};
+    final identities = <String>{};
+    for (final item in list.items) {
+      final canonicalId = registry.canonicalIdFor(item.canonicalIngredientId);
+      final unitId = unitEngine.resolveUnitId(item.unitId);
+      if (item.metadataVersion != 1 ||
+          item.id.trim().isEmpty ||
+          !itemIds.add(item.id) ||
+          item.displayName.trim().isEmpty ||
+          !item.quantity.isFinite ||
+          item.quantity <= 0 ||
+          item.updatedAt.toUtc().isBefore(item.createdAt.toUtc())) {
+        return 'invalid_shopping_item';
+      }
+      if (canonicalId == null || canonicalId != item.canonicalIngredientId) {
+        return 'unknown_canonical_shopping_ingredient';
+      }
+      if (unitId == null || unitId != item.unitId) {
+        return 'unknown_canonical_shopping_unit';
+      }
+      if (!identities.add('$canonicalId::$unitId')) {
+        return 'duplicate_shopping_ingredient_unit';
+      }
+      final canonical = registry.byId(canonicalId)!;
+      if (item.category !=
+          ShoppingCategory.fromCanonicalCategory(canonical.category)) {
+        return 'shopping_category_mismatch';
+      }
+      if (item.source != ShoppingSource.manual &&
+          (item.sourceReferenceId == null ||
+              item.sourceReferenceId!.trim().isEmpty)) {
+        return 'missing_shopping_source_reference';
+      }
+    }
+    return null;
+  }
+
   List<Ingredient> _applyChanges(
     List<Ingredient> pantry,
     List<PantryQuantityChange> changes,
@@ -658,16 +884,24 @@ class InventoryTransactionCoordinator {
     DateTime updatedAt, {
     required List<Ingredient> pantry,
     required List<CookingHistoryEntry> history,
+    List<ShoppingList>? shoppingLists,
   }) {
+    final targetCapabilities = <String>{...before.capabilities};
+    if (shoppingLists != null) {
+      targetCapabilities.add(shoppingStateCapability);
+    }
     return InventoryStateEnvelope(
       envelopeVersion: before.envelopeVersion,
-      minimumReaderVersion: before.minimumReaderVersion,
-      capabilities: before.capabilities,
+      minimumReaderVersion: shoppingLists == null
+          ? before.minimumReaderVersion
+          : currentInventoryReaderVersion,
+      capabilities: targetCapabilities.toList()..sort(),
       revision: before.revision + 1,
       lastAppliedTransactionId: transactionId,
       updatedAt: updatedAt,
       pantry: pantry,
       history: history,
+      shoppingLists: shoppingLists ?? before.shoppingLists,
     ).withComputedChecksum();
   }
 

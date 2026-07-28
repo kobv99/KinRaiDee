@@ -70,10 +70,12 @@ Those operations therefore cannot bypass the durable envelope.
 ### Versioning
 
 - Envelope version: `1`
-- Minimum readable envelope version: `1`
+- Current reader version: `2`
 - Transaction schema version: `1`
 - Every successful mutation increments the envelope revision exactly once.
 - Transaction IDs are secure UUID v4 values.
+- Reader version `2` adds the capability-gated `shopping.v1` projection.
+  Envelopes written before Shopping remain checksum-compatible and readable.
 
 ---
 
@@ -119,3 +121,31 @@ mutating inventory.
 
 See [Canonical Ingredient Domain](09_CANONICAL_INGREDIENT_DOMAIN.md) and
 [Canonical Ingredient Data Model](10_CANONICAL_INGREDIENT_DATA_MODEL.md).
+
+---
+
+## Shopping Foundation
+
+SF-001 adds a local-only Shopping domain without implementing a purchase
+workflow or Shopping UI:
+
+1. `ShoppingList` owns versioned `ShoppingItem` records.
+2. Every item references a valid canonical ingredient ID and canonical unit ID.
+3. `ShoppingDraftBuilder` compares Recipe requirements with current Pantry
+   quantities and creates shortage items without changing Recipe or
+   Recommendation behavior.
+4. `ShoppingRepository` is deliberately read-only. It projects Shopping lists
+   from the durable envelope and exposes no write method.
+5. `InventoryTransactionCoordinator.mutateShopping` is the only Shopping write
+   boundary. It validates global and list revisions, canonical identity, units,
+   categories, quantities, source metadata, and duplicate identities.
+6. Shopping is persisted inside the checksummed `InventoryStateEnvelope` under
+   capability `shopping.v1`, so the existing journal supplies commit,
+   idempotency, rollback, and restart recovery.
+7. `ShoppingMutationController` invalidates Riverpod state only after the
+   repository confirms a durable commit.
+
+The transaction envelope remains the only Hive persistence path. There is no
+Shopping-specific Hive box or direct storage access from presentation.
+
+See [Shopping Foundation Domain Model](11_SHOPPING_FOUNDATION_DOMAIN.md).

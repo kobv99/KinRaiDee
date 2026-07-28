@@ -542,6 +542,41 @@ class HiveInventoryCommitRepository implements InventoryCommitRepository {
         throw const FormatException('Invalid History state in envelope.');
       }
     }
+    final hasShopping = envelope.capabilities.contains(shoppingStateCapability);
+    if ((!hasShopping && envelope.shoppingLists.isNotEmpty) ||
+        (hasShopping && envelope.minimumReaderVersion < 2)) {
+      throw const FormatException('Invalid Shopping capability in envelope.');
+    }
+    final shoppingListIds = <String>{};
+    for (final list in envelope.shoppingLists) {
+      if (list.metadataVersion != 1 ||
+          list.id.isEmpty ||
+          !shoppingListIds.add(list.id) ||
+          list.name.trim().isEmpty ||
+          list.revision < 0 ||
+          list.updatedAt.toUtc().isBefore(list.createdAt.toUtc())) {
+        throw const FormatException('Invalid Shopping list in envelope.');
+      }
+      final itemIds = <String>{};
+      final identities = <String>{};
+      for (final item in list.items) {
+        if (item.metadataVersion != 1 ||
+            item.id.isEmpty ||
+            !itemIds.add(item.id) ||
+            item.canonicalIngredientId.isEmpty ||
+            item.unitId.isEmpty ||
+            item.displayName.trim().isEmpty ||
+            !item.quantity.isFinite ||
+            item.quantity <= 0 ||
+            item.updatedAt.toUtc().isBefore(item.createdAt.toUtc()) ||
+            !identities.add('${item.canonicalIngredientId}::${item.unitId}') ||
+            (item.source.name != 'manual' &&
+                (item.sourceReferenceId == null ||
+                    item.sourceReferenceId!.trim().isEmpty))) {
+          throw const FormatException('Invalid Shopping item in envelope.');
+        }
+      }
+    }
   }
 
   Future<Map<String, InventoryTransactionRecord>> _loadJournalMap() async {

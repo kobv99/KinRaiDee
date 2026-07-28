@@ -3,10 +3,12 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 
 import '../../../../core/models/ingredient.dart';
+import '../../../shopping/domain/entities/shopping_list.dart';
 import 'cooking_history_entry.dart';
 
 const int currentInventoryEnvelopeVersion = 1;
-const int currentInventoryReaderVersion = 1;
+const int currentInventoryReaderVersion = 2;
+const String shoppingStateCapability = 'shopping.v1';
 
 class InventoryStateEnvelope {
   InventoryStateEnvelope({
@@ -18,9 +20,11 @@ class InventoryStateEnvelope {
     required this.updatedAt,
     required List<Ingredient> pantry,
     required List<CookingHistoryEntry> history,
+    List<ShoppingList> shoppingLists = const <ShoppingList>[],
     String? checksum,
   }) : pantry = List<Ingredient>.unmodifiable(pantry),
        history = List<CookingHistoryEntry>.unmodifiable(history),
+       shoppingLists = List<ShoppingList>.unmodifiable(shoppingLists),
        checksum = checksum ?? '';
 
   final int envelopeVersion;
@@ -31,19 +35,28 @@ class InventoryStateEnvelope {
   final DateTime updatedAt;
   final List<Ingredient> pantry;
   final List<CookingHistoryEntry> history;
+  final List<ShoppingList> shoppingLists;
   final String checksum;
 
   factory InventoryStateEnvelope.initial({
     required DateTime createdAt,
     List<Ingredient> pantry = const <Ingredient>[],
     List<CookingHistoryEntry> history = const <CookingHistoryEntry>[],
+    List<ShoppingList> shoppingLists = const <ShoppingList>[],
   }) {
     return InventoryStateEnvelope(
+      minimumReaderVersion: shoppingLists.isEmpty
+          ? 1
+          : currentInventoryReaderVersion,
+      capabilities: shoppingLists.isEmpty
+          ? const <String>[]
+          : const <String>[shoppingStateCapability],
       revision: 0,
       lastAppliedTransactionId: '',
       updatedAt: createdAt,
       pantry: pantry,
       history: history,
+      shoppingLists: shoppingLists,
     ).withComputedChecksum();
   }
 
@@ -53,6 +66,7 @@ class InventoryStateEnvelope {
     DateTime? updatedAt,
     List<Ingredient>? pantry,
     List<CookingHistoryEntry>? history,
+    List<ShoppingList>? shoppingLists,
     List<String>? capabilities,
     String? checksum,
   }) {
@@ -66,6 +80,7 @@ class InventoryStateEnvelope {
       updatedAt: updatedAt ?? this.updatedAt,
       pantry: pantry ?? this.pantry,
       history: history ?? this.history,
+      shoppingLists: shoppingLists ?? this.shoppingLists,
       checksum: checksum ?? this.checksum,
     );
   }
@@ -80,6 +95,7 @@ class InventoryStateEnvelope {
       updatedAt: updatedAt,
       pantry: pantry,
       history: history,
+      shoppingLists: shoppingLists,
       checksum: calculateChecksum(unsignedJson),
     );
   }
@@ -97,6 +113,10 @@ class InventoryStateEnvelope {
       'updatedAt': updatedAt.toUtc().toIso8601String(),
       'pantry': pantry.map((item) => item.toJson()).toList(growable: false),
       'history': history.map((item) => item.toJson()).toList(growable: false),
+      if (capabilities.contains(shoppingStateCapability))
+        'shoppingLists': shoppingLists
+            .map((list) => list.toJson())
+            .toList(growable: false),
     };
   }
 
@@ -107,6 +127,7 @@ class InventoryStateEnvelope {
   factory InventoryStateEnvelope.fromJson(Map<String, dynamic> json) {
     final rawPantry = json['pantry'];
     final rawHistory = json['history'];
+    final rawShoppingLists = json['shoppingLists'];
     final rawCapabilities = json['capabilities'];
     return InventoryStateEnvelope(
       envelopeVersion: _parseInt(json['envelopeVersion'], fallback: -1),
@@ -144,6 +165,15 @@ class InventoryStateEnvelope {
                 )
                 .toList(growable: false)
           : const <CookingHistoryEntry>[],
+      shoppingLists: rawShoppingLists is List
+          ? rawShoppingLists
+                .whereType<Map>()
+                .map(
+                  (item) =>
+                      ShoppingList.fromJson(Map<String, dynamic>.from(item)),
+                )
+                .toList(growable: false)
+          : const <ShoppingList>[],
       checksum: json['checksum']?.toString() ?? '',
     );
   }
