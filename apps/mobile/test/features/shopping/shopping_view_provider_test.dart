@@ -57,10 +57,11 @@ void main() {
       'ไข่ไก่',
       'breakfast protein',
     ]) {
-      final result = projector.project(
-        <ShoppingItem>[egg, rice, legacyCompleted],
-        ShoppingViewState(query: query),
-      );
+      final result = projector.project(<ShoppingItem>[
+        egg,
+        rice,
+        legacyCompleted,
+      ], ShoppingViewState(query: query));
       expect(result.items, <ShoppingItem>[egg], reason: query);
     }
   });

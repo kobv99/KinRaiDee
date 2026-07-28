@@ -253,7 +253,8 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
     final now = ref.read(appClockProvider).now();
     final updatedIngredients = state
         .map((ingredient) {
-          if (normalizePantryIngredientName(ingredient.name) != normalizedName) {
+          if (normalizePantryIngredientName(ingredient.name) !=
+              normalizedName) {
             return ingredient;
           }
 
@@ -276,7 +277,8 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
     final now = ref.read(appClockProvider).now();
     final updatedIngredients = state
         .map((ingredient) {
-          if (normalizePantryIngredientName(ingredient.name) != normalizedName) {
+          if (normalizePantryIngredientName(ingredient.name) !=
+              normalizedName) {
             return ingredient;
           }
 

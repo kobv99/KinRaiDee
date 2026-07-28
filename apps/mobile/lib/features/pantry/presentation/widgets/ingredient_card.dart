@@ -50,10 +50,7 @@ class IngredientCard extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           _IngredientEmoji(
-            emoji: IngredientPresentation.emoji(
-              ingredient,
-              canonicalRegistry,
-            ),
+            emoji: IngredientPresentation.emoji(ingredient, canonicalRegistry),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(

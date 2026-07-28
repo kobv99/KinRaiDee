@@ -15,9 +15,8 @@ class AllRecipesPage extends ConsumerWidget {
       appBar: AppBar(title: const Text('สูตรทั้งหมด')),
       body: recipes.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stackTrace) => _LoadError(
-          onRetry: () => ref.invalidate(recipesProvider),
-        ),
+        error: (error, stackTrace) =>
+            _LoadError(onRetry: () => ref.invalidate(recipesProvider)),
         data: (items) {
           final sorted = List<Recipe>.of(items)
             ..sort((first, second) => first.name.compareTo(second.name));
@@ -61,9 +60,7 @@ class AllRecipesPage extends ConsumerWidget {
 
   void _openRecipe(BuildContext context, Recipe recipe) {
     Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        builder: (_) => RecipeDetailPage(recipe: recipe),
-      ),
+      MaterialPageRoute<void>(builder: (_) => RecipeDetailPage(recipe: recipe)),
     );
   }
 
@@ -75,7 +72,9 @@ class AllRecipesPage extends ConsumerWidget {
     if (recipe.cookTimeMinutes > 0) {
       parts.add('${recipe.cookTimeMinutes} นาที');
     }
-    return parts.isEmpty ? 'เปิดสูตรและตัดสินใจได้ตามต้องการ' : parts.join(' · ');
+    return parts.isEmpty
+        ? 'เปิดสูตรและตัดสินใจได้ตามต้องการ'
+        : parts.join(' · ');
   }
 }
 

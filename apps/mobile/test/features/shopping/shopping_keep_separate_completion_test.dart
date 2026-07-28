@@ -15,97 +15,100 @@ import 'package:mobile/features/shopping/domain/entities/shopping_source.dart';
 import '../../support/inventory_test_support.dart';
 
 void main() {
-  test('explicit keep separate preserves both incompatible Pantry units', () async {
-    final now = DateTime.utc(2026, 7, 28, 8);
-    final existing = Ingredient(
-      id: 'fish-sauce-bottle',
-      name: 'Fish Sauce',
-      category: 'seasoning',
-      emoji: '',
-      quantity: 1,
-      unit: 'bottle',
-      createdAt: now,
-      updatedAt: now,
-      canonicalIngredientId: 'fish_sauce',
-      canonicalUnitId: 'bottle',
-      canonicalMappingStatus: CanonicalMappingStatus.mapped,
-    );
-    final item = ShoppingItem(
-      id: 'fish-sauce-item',
-      canonicalIngredientId: 'fish_sauce',
-      displayName: 'Fish Sauce',
-      quantity: 250,
-      unitId: 'milliliter',
-      category: ShoppingCategory.seasonings,
-      source: ShoppingSource.recipe,
-      sourceReferenceIds: const <String>['tom-yum'],
-      createdAt: now,
-      updatedAt: now,
-    );
-    final envelope = InventoryStateEnvelope.initial(
-      createdAt: now,
-      pantry: <Ingredient>[existing],
-      shoppingLists: <ShoppingList>[
-        ShoppingList(
-          id: 'weekly',
-          name: 'Weekly',
-          items: <ShoppingItem>[item],
-          createdAt: now,
-          updatedAt: now,
-        ),
-      ],
-    );
-    final repository = HiveInventoryCommitRepository(
-      store: InMemoryInventoryStore(envelope: envelope.toJson()),
-      clock: FixedAppClock(now),
-    );
-    final coordinator = ShoppingCompletionCoordinator(
-      repository: repository,
-      registry: _registry,
-      unitEngine: UnitConversionEngine.standard(),
-      clock: FixedAppClock(now),
-      transactionIdGenerator: SequenceTransactionIdGenerator(),
-    );
+  test(
+    'explicit keep separate preserves both incompatible Pantry units',
+    () async {
+      final now = DateTime.utc(2026, 7, 28, 8);
+      final existing = Ingredient(
+        id: 'fish-sauce-bottle',
+        name: 'Fish Sauce',
+        category: 'seasoning',
+        emoji: '',
+        quantity: 1,
+        unit: 'bottle',
+        createdAt: now,
+        updatedAt: now,
+        canonicalIngredientId: 'fish_sauce',
+        canonicalUnitId: 'bottle',
+        canonicalMappingStatus: CanonicalMappingStatus.mapped,
+      );
+      final item = ShoppingItem(
+        id: 'fish-sauce-item',
+        canonicalIngredientId: 'fish_sauce',
+        displayName: 'Fish Sauce',
+        quantity: 250,
+        unitId: 'milliliter',
+        category: ShoppingCategory.seasonings,
+        source: ShoppingSource.recipe,
+        sourceReferenceIds: const <String>['tom-yum'],
+        createdAt: now,
+        updatedAt: now,
+      );
+      final envelope = InventoryStateEnvelope.initial(
+        createdAt: now,
+        pantry: <Ingredient>[existing],
+        shoppingLists: <ShoppingList>[
+          ShoppingList(
+            id: 'weekly',
+            name: 'Weekly',
+            items: <ShoppingItem>[item],
+            createdAt: now,
+            updatedAt: now,
+          ),
+        ],
+      );
+      final repository = HiveInventoryCommitRepository(
+        store: InMemoryInventoryStore(envelope: envelope.toJson()),
+        clock: FixedAppClock(now),
+      );
+      final coordinator = ShoppingCompletionCoordinator(
+        repository: repository,
+        registry: _registry,
+        unitEngine: UnitConversionEngine.standard(),
+        clock: FixedAppClock(now),
+        transactionIdGenerator: SequenceTransactionIdGenerator(),
+      );
 
-    final normal = await coordinator.completeItem(
-      listId: 'weekly',
-      expectedListRevision: 0,
-      itemId: item.id,
-      createdAt: now,
-    );
-    expect(normal.isSuccess, isFalse);
-    expect(normal.code, 'shopping_unit_conversion_required');
+      final normal = await coordinator.completeItem(
+        listId: 'weekly',
+        expectedListRevision: 0,
+        itemId: item.id,
+        createdAt: now,
+      );
+      expect(normal.isSuccess, isFalse);
+      expect(normal.code, 'shopping_unit_conversion_required');
 
-    final separate = await coordinator.completeItem(
-      listId: 'weekly',
-      expectedListRevision: 0,
-      itemId: item.id,
-      createdAt: now,
-      keepSeparate: true,
-    );
+      final separate = await coordinator.completeItem(
+        listId: 'weekly',
+        expectedListRevision: 0,
+        itemId: item.id,
+        createdAt: now,
+        keepSeparate: true,
+      );
 
-    expect(separate.isSuccess, isTrue);
-    expect(separate.snapshot.shoppingLists.single.items, isEmpty);
-    expect(separate.snapshot.pantry, hasLength(2));
-    expect(
-      separate.snapshot.pantry.map((lot) => lot.canonicalUnitId).toSet(),
-      <String>{'bottle', 'milliliter'},
-    );
-    expect(
-      separate.snapshot.pantry
-          .where((lot) => lot.canonicalUnitId == 'bottle')
-          .single
-          .quantity,
-      1,
-    );
-    expect(
-      separate.snapshot.pantry
-          .where((lot) => lot.canonicalUnitId == 'milliliter')
-          .single
-          .quantity,
-      250,
-    );
-  });
+      expect(separate.isSuccess, isTrue);
+      expect(separate.snapshot.shoppingLists.single.items, isEmpty);
+      expect(separate.snapshot.pantry, hasLength(2));
+      expect(
+        separate.snapshot.pantry.map((lot) => lot.canonicalUnitId).toSet(),
+        <String>{'bottle', 'milliliter'},
+      );
+      expect(
+        separate.snapshot.pantry
+            .where((lot) => lot.canonicalUnitId == 'bottle')
+            .single
+            .quantity,
+        1,
+      );
+      expect(
+        separate.snapshot.pantry
+            .where((lot) => lot.canonicalUnitId == 'milliliter')
+            .single
+            .quantity,
+        250,
+      );
+    },
+  );
 }
 
 final CanonicalIngredientRegistry _registry = CanonicalIngredientRegistry(

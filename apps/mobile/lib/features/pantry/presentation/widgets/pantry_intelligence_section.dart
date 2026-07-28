@@ -74,9 +74,7 @@ class _PantryIntelligenceSectionState
     );
   }
 
-  Future<void> _showAll(
-    List<ShoppingRecommendation> recommendations,
-  ) async {
+  Future<void> _showAll(List<ShoppingRecommendation> recommendations) async {
     final selected = await showModalBottomSheet<ShoppingRecommendation>(
       context: context,
       isScrollControlled: true,
@@ -115,8 +113,7 @@ class _PantryIntelligenceSectionState
                       final recommendation = recommendations[index];
                       return _RecommendationTile(
                         recommendation: recommendation,
-                        onTap: () =>
-                            Navigator.of(context).pop(recommendation),
+                        onTap: () => Navigator.of(context).pop(recommendation),
                       );
                     },
                   ),
@@ -133,9 +130,7 @@ class _PantryIntelligenceSectionState
     }
   }
 
-  Future<void> _showDetails(
-    ShoppingRecommendation recommendation,
-  ) async {
+  Future<void> _showDetails(ShoppingRecommendation recommendation) async {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -236,9 +231,7 @@ class _PantryIntelligenceSectionState
     );
   }
 
-  Future<void> _addRecommendation(
-    ShoppingRecommendation recommendation,
-  ) async {
+  Future<void> _addRecommendation(ShoppingRecommendation recommendation) async {
     if (_busyIngredientId != null) {
       return;
     }
@@ -430,9 +423,7 @@ class _RecommendationPreview extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  key: const ValueKey<String>(
-                    'pantry-recommendations-dismiss',
-                  ),
+                  key: const ValueKey<String>('pantry-recommendations-dismiss'),
                   tooltip: 'ซ่อนคำแนะนำครั้งนี้',
                   onPressed: onDismiss,
                   icon: const Icon(Icons.close),
@@ -451,9 +442,7 @@ class _RecommendationPreview extends StatelessWidget {
           Align(
             alignment: Alignment.centerRight,
             child: TextButton(
-              key: const ValueKey<String>(
-                'pantry-recommendations-view-all',
-              ),
+              key: const ValueKey<String>('pantry-recommendations-view-all'),
               onPressed: onViewAll,
               child: const Text('ดูทั้งหมด →'),
             ),
@@ -524,9 +513,9 @@ class _InsightMetric extends StatelessWidget {
             children: [
               Text(
                 '$value',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               Text(label, style: Theme.of(context).textTheme.bodySmall),
             ],

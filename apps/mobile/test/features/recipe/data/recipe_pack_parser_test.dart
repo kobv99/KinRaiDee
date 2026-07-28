@@ -27,38 +27,36 @@ void main() {
     });
     final parser = RecipePackParser(catalog: catalog);
 
-    final recipe = parser
-        .parse(<String, dynamic>{
-          'version': 2,
-          'hero': <String, dynamic>{
-            'id': 'pork',
-            'name': 'Pork',
-            'quantity': 1,
-            'unit': 'piece',
-            'role': 'primary',
-            'weight': 40,
-          },
-          'recipes': <Map<String, dynamic>>[
+    final recipe = parser.parse(<String, dynamic>{
+      'version': 2,
+      'hero': <String, dynamic>{
+        'id': 'pork',
+        'name': 'Pork',
+        'quantity': 1,
+        'unit': 'piece',
+        'role': 'primary',
+        'weight': 40,
+      },
+      'recipes': <Map<String, dynamic>>[
+        <String, dynamic>{
+          'id': 'pad-kra-pao',
+          'name': 'Pad Kra Pao',
+          'method': 'ผัด',
+          'ingredients': <Object>[
             <String, dynamic>{
-              'id': 'pad-kra-pao',
-              'name': 'Pad Kra Pao',
-              'method': 'ผัด',
-              'ingredients': <Object>[
-                <String, dynamic>{
-                  'id': 'holy_basil',
-                  'role': 'primary',
-                  'weight': 35,
-                },
-                <String, dynamic>{
-                  'id': 'garlic',
-                  'role': 'secondary',
-                  'weight': 10,
-                },
-              ],
+              'id': 'holy_basil',
+              'role': 'primary',
+              'weight': 35,
+            },
+            <String, dynamic>{
+              'id': 'garlic',
+              'role': 'secondary',
+              'weight': 10,
             },
           ],
-        })
-        .single;
+        },
+      ],
+    }).single;
 
     expect(recipe.ingredients[0].role, RecipeIngredientRole.primary);
     expect(recipe.ingredients[0].weight, 40);

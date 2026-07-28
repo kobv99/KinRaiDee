@@ -58,8 +58,7 @@ class RecipeMatch {
     final hero = recipe.heroIngredient;
     return source
         .where(
-          (item) =>
-              item.effectiveRole(isHero: identical(item, hero)) == role,
+          (item) => item.effectiveRole(isHero: identical(item, hero)) == role,
         )
         .toList(growable: false);
   }

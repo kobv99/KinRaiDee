@@ -91,8 +91,7 @@ RecipeIngredientRole? recipeIngredientRoleFromJson(Object? value) {
   }
   return switch (name) {
     'primary' || 'main' || 'hero' => RecipeIngredientRole.primary,
-    'secondary' || 'supporting' || 'required' =>
-      RecipeIngredientRole.secondary,
+    'secondary' || 'supporting' || 'required' => RecipeIngredientRole.secondary,
     'optional' || 'garnish' => RecipeIngredientRole.optional,
     _ => null,
   };

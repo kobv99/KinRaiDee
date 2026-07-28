@@ -17,8 +17,7 @@ class PurchaseHistoryProjector {
     final openByIdentity = <String, List<PurchaseHistoryEntry>>{};
     final journalPurchaseIds = ordered
         .where(
-          (record) =>
-              record.kind == InventoryTransactionKind.shoppingPurchase,
+          (record) => record.kind == InventoryTransactionKind.shoppingPurchase,
         )
         .map((record) => record.transactionId)
         .toSet();
@@ -34,13 +33,14 @@ class PurchaseHistoryProjector {
         legacySnapshots.add(after);
       }
     }
-    final legacyEntries = _legacyEntries(
-      legacySnapshots,
-      excludedTransactionIds: journalPurchaseIds,
-    )..sort((first, second) {
-        final time = first.purchasedAt.compareTo(second.purchasedAt);
-        return time != 0 ? time : first.id.compareTo(second.id);
-      });
+    final legacyEntries =
+        _legacyEntries(
+          legacySnapshots,
+          excludedTransactionIds: journalPurchaseIds,
+        )..sort((first, second) {
+          final time = first.purchasedAt.compareTo(second.purchasedAt);
+          return time != 0 ? time : first.id.compareTo(second.id);
+        });
     for (final entry in legacyEntries) {
       openByIdentity
           .putIfAbsent(
@@ -124,9 +124,7 @@ class PurchaseHistoryProjector {
     return entries;
   }
 
-  PurchaseHistoryEntry? _purchaseFromRecord(
-    InventoryTransactionRecord record,
-  ) {
+  PurchaseHistoryEntry? _purchaseFromRecord(InventoryTransactionRecord record) {
     final before = record.beforeEnvelope;
     final after = record.afterEnvelope;
     if (before == null || after == null) {
@@ -143,7 +141,8 @@ class PurchaseHistoryProjector {
         final afterItem = afterList?.items
             .where((candidate) => candidate.id == item.id)
             .firstOrNull;
-        if (afterItem != null && afterItem.status == ShoppingItemStatus.active) {
+        if (afterItem != null &&
+            afterItem.status == ShoppingItemStatus.active) {
           continue;
         }
         final changedPantryLotIds = _changedPantryLotIds(before, after);
@@ -220,14 +219,11 @@ class PurchaseHistoryProjector {
     final beforeById = {
       for (final item in before.pantry) item.id: item.toJson(),
     };
-    final afterById = {
-      for (final item in after.pantry) item.id: item.toJson(),
-    };
+    final afterById = {for (final item in after.pantry) item.id: item.toJson()};
     final ids = <String>{...beforeById.keys, ...afterById.keys};
-    final changed = ids
-        .where((id) => !_mapsEqual(beforeById[id], afterById[id]))
-        .toList()
-      ..sort();
+    final changed =
+        ids.where((id) => !_mapsEqual(beforeById[id], afterById[id])).toList()
+          ..sort();
     return List<String>.unmodifiable(changed);
   }
 }

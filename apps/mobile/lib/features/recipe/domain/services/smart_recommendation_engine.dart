@@ -288,7 +288,9 @@ class SmartRecommendationEngine {
   ) {
     final hero = recipe.heroIngredient;
     return recipe.ingredients.any((ingredient) {
-      final role = ingredient.effectiveRole(isHero: identical(ingredient, hero));
+      final role = ingredient.effectiveRole(
+        isHero: identical(ingredient, hero),
+      );
       return role == RecipeIngredientRole.primary &&
           _ingredientMatches(ingredient, pantryIngredient, registry);
     });

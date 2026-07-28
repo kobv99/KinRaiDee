@@ -16,72 +16,82 @@ import '../../support/inventory_test_support.dart';
 void main() {
   final now = DateTime.utc(2026, 7, 27, 10);
 
-  test('add merges convertible quantity into one canonical Pantry record', () async {
-    final existing = _ingredient(
-      id: 'fish-sauce-liter',
-      name: 'น้ำปลา',
-      canonicalId: 'fish_sauce',
-      quantity: 0.4,
-      unit: 'liter',
-      now: now,
-    );
-    final harness = await _createHarness(<Ingredient>[existing], now);
-    addTearDown(harness.container.dispose);
+  test(
+    'add merges convertible quantity into one canonical Pantry record',
+    () async {
+      final existing = _ingredient(
+        id: 'fish-sauce-liter',
+        name: 'น้ำปลา',
+        canonicalId: 'fish_sauce',
+        quantity: 0.4,
+        unit: 'liter',
+        now: now,
+      );
+      final harness = await _createHarness(<Ingredient>[existing], now);
+      addTearDown(harness.container.dispose);
 
-    await harness.container.read(pantryProvider.notifier).addIngredient(
-      _ingredient(
-        id: 'fish-sauce-ml',
-        name: 'Fish Sauce',
-        canonicalId: 'Fish Sauce',
-        quantity: 250,
-        unit: 'milliliter',
-        now: now.add(const Duration(minutes: 1)),
-      ),
-    );
+      await harness.container
+          .read(pantryProvider.notifier)
+          .addIngredient(
+            _ingredient(
+              id: 'fish-sauce-ml',
+              name: 'Fish Sauce',
+              canonicalId: 'Fish Sauce',
+              quantity: 250,
+              unit: 'milliliter',
+              now: now.add(const Duration(minutes: 1)),
+            ),
+          );
 
-    final pantry = harness.container.read(pantryProvider);
-    expect(pantry, hasLength(1));
-    expect(pantry.single.id, 'fish-sauce-liter');
-    expect(pantry.single.canonicalIngredientId, 'fish_sauce');
-    expect(pantry.single.canonicalUnitId, 'liter');
-    expect(pantry.single.quantity, closeTo(0.65, 0.000001));
-  });
+      final pantry = harness.container.read(pantryProvider);
+      expect(pantry, hasLength(1));
+      expect(pantry.single.id, 'fish-sauce-liter');
+      expect(pantry.single.canonicalIngredientId, 'fish_sauce');
+      expect(pantry.single.canonicalUnitId, 'liter');
+      expect(pantry.single.quantity, closeTo(0.65, 0.000001));
+    },
+  );
 
-  test('update into an existing canonical identity consolidates records', () async {
-    final egg = _ingredient(
-      id: 'egg-existing',
-      name: 'ไข่',
-      canonicalId: 'egg',
-      quantity: 6,
-      unit: 'egg',
-      now: now,
-    );
-    final edited = _ingredient(
-      id: 'custom-record',
-      name: 'รายการเดิม',
-      canonicalId: 'fish_sauce',
-      quantity: 1,
-      unit: 'liter',
-      now: now,
-    );
-    final harness = await _createHarness(<Ingredient>[egg, edited], now);
-    addTearDown(harness.container.dispose);
+  test(
+    'update into an existing canonical identity consolidates records',
+    () async {
+      final egg = _ingredient(
+        id: 'egg-existing',
+        name: 'ไข่',
+        canonicalId: 'egg',
+        quantity: 6,
+        unit: 'egg',
+        now: now,
+      );
+      final edited = _ingredient(
+        id: 'custom-record',
+        name: 'รายการเดิม',
+        canonicalId: 'fish_sauce',
+        quantity: 1,
+        unit: 'liter',
+        now: now,
+      );
+      final harness = await _createHarness(<Ingredient>[egg, edited], now);
+      addTearDown(harness.container.dispose);
 
-    await harness.container.read(pantryProvider.notifier).updateIngredient(
-      edited.copyWith(
-        name: 'ไข่ไก่',
-        quantity: 2,
-        unit: 'ฟอง',
-        canonicalIngredientId: 'egg',
-        canonicalUnitId: 'egg',
-      ),
-    );
+      await harness.container
+          .read(pantryProvider.notifier)
+          .updateIngredient(
+            edited.copyWith(
+              name: 'ไข่ไก่',
+              quantity: 2,
+              unit: 'ฟอง',
+              canonicalIngredientId: 'egg',
+              canonicalUnitId: 'egg',
+            ),
+          );
 
-    final pantry = harness.container.read(pantryProvider);
-    expect(pantry, hasLength(1));
-    expect(pantry.single.canonicalIngredientId, 'egg');
-    expect(pantry.single.quantity, 8);
-  });
+      final pantry = harness.container.read(pantryProvider);
+      expect(pantry, hasLength(1));
+      expect(pantry.single.canonicalIngredientId, 'egg');
+      expect(pantry.single.quantity, 8);
+    },
+  );
 
   test('incompatible add fails without creating a duplicate', () async {
     final existing = _ingredient(
@@ -96,16 +106,18 @@ void main() {
     addTearDown(harness.container.dispose);
 
     await expectLater(
-      harness.container.read(pantryProvider.notifier).addIngredient(
-        _ingredient(
-          id: 'fish-sauce-ml',
-          name: 'น้ำปลา',
-          canonicalId: 'fish_sauce',
-          quantity: 250,
-          unit: 'milliliter',
-          now: now,
-        ),
-      ),
+      harness.container
+          .read(pantryProvider.notifier)
+          .addIngredient(
+            _ingredient(
+              id: 'fish-sauce-ml',
+              name: 'น้ำปลา',
+              canonicalId: 'fish_sauce',
+              quantity: 250,
+              unit: 'milliliter',
+              now: now,
+            ),
+          ),
       throwsA(
         isA<InventoryTransactionException>().having(
           (error) => error.code,

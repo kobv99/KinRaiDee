@@ -9,45 +9,48 @@ import '../../support/inventory_test_support.dart';
 import '../../support/shopping_ui_test_support.dart';
 
 void main() {
-  test('unfinished lists hide empty lists from the actionable projection', () async {
-    final now = DateTime.utc(2026, 7, 27, 10);
-    final activeItem = testShoppingItem(
-      id: 'egg-active',
-      canonicalId: 'egg',
-      name: 'Egg',
-      quantity: 2,
-      unit: 'piece',
-      category: testShoppingList(now: now).items.first.category,
-      recipeIds: const <String>['omelette'],
-      now: now,
-    );
-    final repository = HiveInventoryCommitRepository(
-      store: InMemoryInventoryStore(
-        envelope: InventoryStateEnvelope.initial(
-          createdAt: now,
-          shoppingLists: [
-            _list(
-              id: 'empty-list',
-              name: 'Empty list',
-              items: const [],
-              now: now,
-            ),
-            _list(
-              id: 'active-list',
-              name: 'Active list',
-              items: [activeItem],
-              now: now.subtract(const Duration(minutes: 1)),
-            ),
-          ],
-        ).toJson(),
-      ),
-    );
+  test(
+    'unfinished lists hide empty lists from the actionable projection',
+    () async {
+      final now = DateTime.utc(2026, 7, 27, 10);
+      final activeItem = testShoppingItem(
+        id: 'egg-active',
+        canonicalId: 'egg',
+        name: 'Egg',
+        quantity: 2,
+        unit: 'piece',
+        category: testShoppingList(now: now).items.first.category,
+        recipeIds: const <String>['omelette'],
+        now: now,
+      );
+      final repository = HiveInventoryCommitRepository(
+        store: InMemoryInventoryStore(
+          envelope: InventoryStateEnvelope.initial(
+            createdAt: now,
+            shoppingLists: [
+              _list(
+                id: 'empty-list',
+                name: 'Empty list',
+                items: const [],
+                now: now,
+              ),
+              _list(
+                id: 'active-list',
+                name: 'Active list',
+                items: [activeItem],
+                now: now.subtract(const Duration(minutes: 1)),
+              ),
+            ],
+          ).toJson(),
+        ),
+      );
 
-    final lists = await LocalShoppingRepository(repository).getLists();
+      final lists = await LocalShoppingRepository(repository).getLists();
 
-    expect(lists, hasLength(1));
-    expect(lists.single.id, 'active-list');
-  });
+      expect(lists, hasLength(1));
+      expect(lists.single.id, 'active-list');
+    },
+  );
 
   test('all-empty lists remain visible for the celebration state', () async {
     final now = DateTime.utc(2026, 7, 27, 10);

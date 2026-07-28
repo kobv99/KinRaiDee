@@ -23,13 +23,7 @@ class ShoppingCompletionCoordinator {
     required UnitConversionEngine unitEngine,
     AppClock clock = systemAppClock,
     TransactionIdGenerator? transactionIdGenerator,
-  }) : this._(
-         repository,
-         registry,
-         unitEngine,
-         clock,
-         transactionIdGenerator,
-       );
+  }) : this._(repository, registry, unitEngine, clock, transactionIdGenerator);
 
   ShoppingCompletionCoordinator._(
     this._repository,
@@ -191,10 +185,16 @@ class ShoppingCompletionCoordinator {
             .toList(growable: false),
         updatedAt: committedAt,
       );
-      final lists = before.shoppingLists
-          .map((candidate) => candidate.id == list.id ? updatedList : candidate)
-          .toList(growable: false)
-        ..sort((first, second) => second.updatedAt.compareTo(first.updatedAt));
+      final lists =
+          before.shoppingLists
+              .map(
+                (candidate) =>
+                    candidate.id == list.id ? updatedList : candidate,
+              )
+              .toList(growable: false)
+            ..sort(
+              (first, second) => second.updatedAt.compareTo(first.updatedAt),
+            );
       final after = _targetEnvelope(
         before,
         transactionId: id,
@@ -360,20 +360,18 @@ class ShoppingCompletionCoordinator {
         items: restoredItems,
         updatedAt: committedAt,
       );
-      final lists = current.shoppingLists
-          .map(
-            (candidate) => candidate.id == currentList.id
-                ? updatedList
-                : candidate,
-          )
-          .toList(growable: false)
-        ..sort((first, second) => second.updatedAt.compareTo(first.updatedAt));
+      final lists =
+          current.shoppingLists
+              .map(
+                (candidate) =>
+                    candidate.id == currentList.id ? updatedList : candidate,
+              )
+              .toList(growable: false)
+            ..sort(
+              (first, second) => second.updatedAt.compareTo(first.updatedAt),
+            );
       transaction = transaction.copyWith(
-        changes: _pantryChanges(
-          current.pantry,
-          restoredPantry,
-          affectedIds,
-        ),
+        changes: _pantryChanges(current.pantry, restoredPantry, affectedIds),
       );
       final after = _targetEnvelope(
         current,
@@ -412,8 +410,7 @@ class ShoppingCompletionCoordinator {
       null => null,
       'unknown_canonical_pantry_ingredient' =>
         'unknown_canonical_shopping_ingredient',
-      'pantry_unit_conversion_required' =>
-        'shopping_unit_conversion_required',
+      'pantry_unit_conversion_required' => 'shopping_unit_conversion_required',
       _ => errorCode,
     };
   }
@@ -432,7 +429,8 @@ class ShoppingCompletionCoordinator {
         final afterItem = afterList?.items
             .where((candidate) => candidate.id == item.id)
             .firstOrNull;
-        if (afterItem == null || afterItem.status != ShoppingItemStatus.active) {
+        if (afterItem == null ||
+            afterItem.status != ShoppingItemStatus.active) {
           return (beforeList.id, item);
         }
       }
@@ -446,9 +444,10 @@ class ShoppingCompletionCoordinator {
   ) {
     final beforeById = {for (final item in before.pantry) item.id: item};
     final afterById = {for (final item in after.pantry) item.id: item};
-    return <String>{...beforeById.keys, ...afterById.keys}
-        .where((id) => !_ingredientEqual(beforeById[id], afterById[id]))
-        .toSet();
+    return <String>{
+      ...beforeById.keys,
+      ...afterById.keys,
+    }.where((id) => !_ingredientEqual(beforeById[id], afterById[id])).toSet();
   }
 
   bool _pantryMatches(
@@ -564,8 +563,7 @@ class ShoppingCompletionCoordinator {
   }) async {
     final record = records
         .where(
-          (candidate) =>
-              candidate.transactionId == transaction.transactionId,
+          (candidate) => candidate.transactionId == transaction.transactionId,
         )
         .firstOrNull;
     if (record == null) {
@@ -598,8 +596,7 @@ class ShoppingCompletionCoordinator {
     }
     final refreshed = (await _repository.loadJournal())
         .where(
-          (candidate) =>
-              candidate.transactionId == transaction.transactionId,
+          (candidate) => candidate.transactionId == transaction.transactionId,
         )
         .firstOrNull;
     return refreshed != null && _isCommitted(refreshed)
@@ -640,7 +637,8 @@ class ShoppingCompletionCoordinator {
       InventoryCommitOutcome.conflict => InventoryTransactionOutcome.conflict,
       InventoryCommitOutcome.validationFailure =>
         InventoryTransactionOutcome.validationFailure,
-      InventoryCommitOutcome.storageFailure || InventoryCommitOutcome.rolledBack =>
+      InventoryCommitOutcome.storageFailure ||
+      InventoryCommitOutcome.rolledBack =>
         InventoryTransactionOutcome.storageFailure,
       InventoryCommitOutcome.recoveryRequired =>
         InventoryTransactionOutcome.recoveryRequired,
@@ -693,7 +691,8 @@ bool _ingredientEqual(Ingredient? first, Ingredient? second) {
   if (first == null || second == null) {
     return false;
   }
-  return calculateChecksum(first.toJson()) == calculateChecksum(second.toJson());
+  return calculateChecksum(first.toJson()) ==
+      calculateChecksum(second.toJson());
 }
 
 int _compareShoppingItems(ShoppingItem first, ShoppingItem second) {

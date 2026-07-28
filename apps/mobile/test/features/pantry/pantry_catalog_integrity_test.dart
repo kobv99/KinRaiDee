@@ -18,12 +18,15 @@ void main() {
     }
   });
 
-  test('critical English and localized aliases resolve deterministically', () async {
-    final registry = await IngredientCatalog().loadRegistry();
+  test(
+    'critical English and localized aliases resolve deterministically',
+    () async {
+      final registry = await IngredientCatalog().loadRegistry();
 
-    expect(registry.resolve('Chicken Breast').ingredient?.id, 'chicken');
-    expect(registry.resolve('Duck').ingredient?.id, 'duck');
-    expect(registry.resolve('Tilapia').ingredient?.id, 'tilapia');
-    expect(registry.resolve('ปลาทับทิม').ingredient?.id, 'tilapia');
-  });
+      expect(registry.resolve('Chicken Breast').ingredient?.id, 'chicken');
+      expect(registry.resolve('Duck').ingredient?.id, 'duck');
+      expect(registry.resolve('Tilapia').ingredient?.id, 'tilapia');
+      expect(registry.resolve('ปลาทับทิม').ingredient?.id, 'tilapia');
+    },
+  );
 }

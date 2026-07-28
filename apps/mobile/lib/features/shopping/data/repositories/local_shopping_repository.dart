@@ -24,16 +24,19 @@ class LocalShoppingRepository implements ShoppingRepository {
   @override
   Future<List<ShoppingList>> getLists() async {
     final snapshot = await _inventoryRepository.loadConsistentSnapshot();
-    final projected = snapshot.shoppingLists
-        .map(
-          (list) => list.copyWith(
-            items: list.items
-                .where((item) => item.status == ShoppingItemStatus.active)
-                .toList(growable: false),
-          ),
-        )
-        .toList()
-      ..sort((first, second) => second.updatedAt.compareTo(first.updatedAt));
+    final projected =
+        snapshot.shoppingLists
+            .map(
+              (list) => list.copyWith(
+                items: list.items
+                    .where((item) => item.status == ShoppingItemStatus.active)
+                    .toList(growable: false),
+              ),
+            )
+            .toList()
+          ..sort(
+            (first, second) => second.updatedAt.compareTo(first.updatedAt),
+          );
     final actionable = projected
         .where((list) => list.items.isNotEmpty)
         .toList(growable: false);

@@ -54,21 +54,17 @@ class RecipeReadiness {
 
   int get scorePercent => (score.clamp(0, 1) * 100).round();
 
-  List<RecipeIngredientReadiness> get availableIngredients => _select(
-    (item) => item.isAvailable,
-  );
+  List<RecipeIngredientReadiness> get availableIngredients =>
+      _select((item) => item.isAvailable);
 
-  List<RecipeIngredientReadiness> get missingIngredients => _select(
-    (item) => item.needsShopping,
-  );
+  List<RecipeIngredientReadiness> get missingIngredients =>
+      _select((item) => item.needsShopping);
 
-  List<RecipeIngredientReadiness> get optionalIngredients => _select(
-    (item) => item.isOptional,
-  );
+  List<RecipeIngredientReadiness> get optionalIngredients =>
+      _select((item) => item.isOptional);
 
-  List<RecipeIngredientReadiness> get missingOptionalIngredients => _select(
-    (item) => item.isOptional && !item.isAvailable,
-  );
+  List<RecipeIngredientReadiness> get missingOptionalIngredients =>
+      _select((item) => item.isOptional && !item.isAvailable);
 
   bool get canCook => !ingredients.any((item) => item.needsShopping);
 
