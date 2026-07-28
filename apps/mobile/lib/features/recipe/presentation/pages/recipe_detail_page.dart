@@ -37,8 +37,19 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
       ),
     );
     final theme = Theme.of(context);
+    final isNarrow = MediaQuery.sizeOf(context).width <= 360;
     final embeddedTheme = theme.copyWith(
       appBarTheme: theme.appBarTheme.copyWith(toolbarHeight: 0),
+      filledButtonTheme: isNarrow
+          ? FilledButtonThemeData(
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 12,
+                ),
+              ),
+            )
+          : theme.filledButtonTheme,
     );
 
     return Scaffold(
