@@ -188,7 +188,7 @@ class PantryCanonicalMergeService {
 
     final removedIds = <String>{
       ...candidates.map((ingredient) => ingredient.id),
-      if (replacementId != null) replacementId,
+      ?replacementId,
     };
     final pantry = _replaceAtFirstAffected(
       current,
