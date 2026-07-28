@@ -31,80 +31,87 @@ class _RecommendedPurchasesSectionState
         if (items.isEmpty) {
           return const SizedBox.shrink();
         }
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'วัตถุดิบที่ซื้อแล้วคุ้ม',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
+        return Padding(
+          padding: const EdgeInsets.only(top: AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'วัตถุดิบที่ซื้อแล้วคุ้ม',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: AppSpacing.xxs),
-                      Text(
-                        'เรียงจากผลต่อจำนวนเมนูและความพร้อมของสูตร',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurfaceVariant,
+                        const SizedBox(height: AppSpacing.xxs),
+                        Text(
+                          'เรียงจากผลต่อจำนวนเมนูและความพร้อมของสูตร',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                IconButton(
-                  key: const ValueKey<String>(
-                    'recommended-purchases-dismiss',
+                  IconButton(
+                    key: const ValueKey<String>(
+                      'recommended-purchases-dismiss',
+                    ),
+                    tooltip: 'ซ่อนคำแนะนำครั้งนี้',
+                    onPressed: () => setState(() => _dismissed = true),
+                    icon: const Icon(Icons.close),
                   ),
-                  tooltip: 'ซ่อนคำแนะนำครั้งนี้',
-                  onPressed: () => setState(() => _dismissed = true),
-                  icon: const Icon(Icons.close),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            ...items.take(3).map(
-              (recommendation) => Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                child: _RecommendationCard(
-                  recommendation: recommendation,
-                  isBusy:
-                      _busyIngredientId ==
-                      recommendation.canonicalIngredientId,
-                  onShowDetails: () => _showDetails(recommendation),
-                  onAdd: () => _addRecommendation(recommendation),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              ...items.take(3).map(
+                (recommendation) => Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  child: _RecommendationCard(
+                    recommendation: recommendation,
+                    isBusy:
+                        _busyIngredientId ==
+                        recommendation.canonicalIngredientId,
+                    onShowDetails: () => _showDetails(recommendation),
+                    onAdd: () => _addRecommendation(recommendation),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         );
       },
       loading: () => const Padding(
-        padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+        padding: EdgeInsets.only(top: AppSpacing.lg),
         child: LinearProgressIndicator(
           key: ValueKey<String>('recommended-purchases-loading'),
           minHeight: 2,
         ),
       ),
-      error: (error, stackTrace) => AppCard(
-        child: Row(
-          children: [
-            const Icon(Icons.info_outline),
-            const SizedBox(width: AppSpacing.sm),
-            const Expanded(
-              child: Text('ยังโหลดคำแนะนำการซื้อไม่ได้ในขณะนี้'),
-            ),
-            TextButton(
-              onPressed: () => ref.invalidate(shoppingRecommendationsProvider),
-              child: const Text('ลองใหม่'),
-            ),
-          ],
+      error: (error, stackTrace) => Padding(
+        padding: const EdgeInsets.only(top: AppSpacing.lg),
+        child: AppCard(
+          child: Row(
+            children: [
+              const Icon(Icons.info_outline),
+              const SizedBox(width: AppSpacing.sm),
+              const Expanded(
+                child: Text('ยังโหลดคำแนะนำการซื้อไม่ได้ในขณะนี้'),
+              ),
+              TextButton(
+                onPressed: () =>
+                    ref.invalidate(shoppingRecommendationsProvider),
+                child: const Text('ลองใหม่'),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -134,10 +141,13 @@ class _RecommendedPurchasesSectionState
         case ShoppingRecommendationAddOutcome.updated:
           _showMessage('เพิ่ม ${recommendation.displayName} ใน Shopping แล้ว');
           ref.invalidate(shoppingRecommendationsProvider);
+          break;
         case ShoppingRecommendationAddOutcome.unchanged:
           _showMessage('${recommendation.displayName} อยู่ใน Shopping เพียงพอแล้ว');
+          break;
         case ShoppingRecommendationAddOutcome.failed:
           _showMessage('เพิ่มรายการไม่สำเร็จ ข้อมูลเดิมยังคงปลอดภัย');
+          break;
       }
     } on Object {
       if (mounted) {
@@ -150,8 +160,8 @@ class _RecommendedPurchasesSectionState
     }
   }
 
-  Future<void> _showDetails(ShoppingRecommendation recommendation) {
-    return showModalBottomSheet<void>(
+  Future<void> _showDetails(ShoppingRecommendation recommendation) async {
+    await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
@@ -358,8 +368,8 @@ String _quantity(double value) {
   if (value == value.roundToDouble()) {
     return value.toInt().toString();
   }
-  return value.toStringAsFixed(2).replaceFirst(RegExp(r'0+$'), '').replaceFirst(
-    RegExp(r'\.$'),
-    '',
-  );
+  return value
+      .toStringAsFixed(2)
+      .replaceFirst(RegExp(r'0+$'), '')
+      .replaceFirst(RegExp(r'\.$'), '');
 }
