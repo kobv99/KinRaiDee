@@ -51,10 +51,10 @@ class _CookingHistoryPageState extends ConsumerState<CookingHistoryPage> {
       if (mounted) {
         _showRetentionMessage('ลบประวัติ ${entry.recipeName} แล้ว');
       }
-    } on InventoryTransactionException catch (error) {
+    } on Object {
       if (mounted) {
         _showRetentionMessage(
-          'ไม่สามารถลบประวัติได้ (${error.code})',
+          'ไม่สามารถลบประวัติได้ ข้อมูลเดิมยังคงปลอดภัย',
           isError: true,
         );
       }
@@ -97,10 +97,10 @@ class _CookingHistoryPageState extends ConsumerState<CookingHistoryPage> {
       if (mounted) {
         _showRetentionMessage('ล้างประวัติการทำอาหารทั้งหมดแล้ว');
       }
-    } on InventoryTransactionException catch (error) {
+    } on Object {
       if (mounted) {
         _showRetentionMessage(
-          'ไม่สามารถล้างประวัติได้ (${error.code})',
+          'ไม่สามารถล้างประวัติได้ ข้อมูลเดิมยังคงปลอดภัย',
           isError: true,
         );
       }
@@ -210,25 +210,27 @@ class _CookingHistoryPageState extends ConsumerState<CookingHistoryPage> {
           showCloseIcon: true,
         ),
       );
-    } on CookingHistoryAdjustmentException catch (error) {
+    } on CookingHistoryAdjustmentException {
       if (!mounted) {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error.message),
-          duration: const Duration(seconds: 6),
+        const SnackBar(
+          content: Text('ปรับปริมาณไม่ได้ กรุณาตรวจข้อมูลแล้วลองอีกครั้ง'),
+          duration: Duration(seconds: 6),
           showCloseIcon: true,
         ),
       );
-    } on InventoryTransactionException catch (error) {
+    } on Object {
       if (!mounted) {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('ไม่สามารถบันทึกการเปลี่ยนแปลงได้ (${error.code})'),
-          duration: const Duration(seconds: 6),
+        const SnackBar(
+          content: Text(
+            'ไม่สามารถบันทึกการเปลี่ยนแปลงได้ ข้อมูลเดิมยังคงปลอดภัย',
+          ),
+          duration: Duration(seconds: 6),
           showCloseIcon: true,
         ),
       );
@@ -332,8 +334,9 @@ class _HistoryCard extends StatelessWidget {
                     children: [
                       Text(
                         entry.recipeName,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 3),
                       Text(
