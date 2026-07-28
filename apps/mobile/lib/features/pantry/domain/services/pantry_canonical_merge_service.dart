@@ -116,16 +116,11 @@ class PantryCanonicalMergeService {
       );
     }
 
+    // Preserve the oldest durable Pantry record as the deterministic primary.
+    // A purchase in another compatible unit must not change its identity, unit,
+    // or metadata merely because the incoming item uses that unit.
     final sorted = List<Ingredient>.of(candidates)
       ..sort((first, second) {
-        final firstUnit = _unitId(first);
-        final secondUnit = _unitId(second);
-        final exact = (firstUnit == incomingUnitId ? 0 : 1).compareTo(
-          secondUnit == incomingUnitId ? 0 : 1,
-        );
-        if (exact != 0) {
-          return exact;
-        }
         final created = first.createdAt.compareTo(second.createdAt);
         return created != 0 ? created : first.id.compareTo(second.id);
       });
