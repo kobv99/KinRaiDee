@@ -59,8 +59,8 @@ class AllRecipesPage extends ConsumerWidget {
     );
   }
 
-  Future<void> _openRecipe(BuildContext context, Recipe recipe) {
-    return Navigator.of(context).push<void>(
+  void _openRecipe(BuildContext context, Recipe recipe) {
+    Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
         builder: (_) => RecipeDetailPage(recipe: recipe),
       ),
