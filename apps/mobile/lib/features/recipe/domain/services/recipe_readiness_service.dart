@@ -30,21 +30,17 @@ class RecipeReadinessWeightPolicy {
     if (explicit != null) {
       return explicit;
     }
-    switch (ingredient.importance) {
-      case RecipeIngredientImportance.main:
-        return mainWeight;
-      case RecipeIngredientImportance.supporting:
-        return requiredWeight;
-      case RecipeIngredientImportance.garnish:
-        return garnishWeight;
-      case null:
-        break;
+    if (ingredient.role == null &&
+        ingredient.importance == RecipeIngredientImportance.garnish) {
+      return garnishWeight;
     }
-    if (canonicalIngredientId != null &&
-        canonicalIngredientId == heroCanonicalIngredientId) {
-      return mainWeight;
-    }
-    return ingredient.required ? requiredWeight : optionalWeight;
+    final isHero = canonicalIngredientId != null &&
+        canonicalIngredientId == heroCanonicalIngredientId;
+    return switch (ingredient.effectiveRole(isHero: isHero)) {
+      RecipeIngredientRole.primary => mainWeight,
+      RecipeIngredientRole.secondary => requiredWeight,
+      RecipeIngredientRole.optional => optionalWeight,
+    };
   }
 }
 
