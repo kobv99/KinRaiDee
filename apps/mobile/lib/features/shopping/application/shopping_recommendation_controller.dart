@@ -106,17 +106,20 @@ class ShoppingRecommendationController {
         sourceReferenceId: marker,
         createdAt: createdAt,
       );
-      updatedList = current?.copyWith(
-            items: <ShoppingItem>[...current.items, item],
-            updatedAt: createdAt,
-          ) ??
-          ShoppingList(
-            id: listId,
-            name: listName,
-            items: <ShoppingItem>[item],
-            createdAt: createdAt,
-            updatedAt: createdAt,
-          );
+      if (current == null) {
+        updatedList = ShoppingList(
+          id: listId,
+          name: listName,
+          items: <ShoppingItem>[item],
+          createdAt: createdAt,
+          updatedAt: createdAt,
+        );
+      } else {
+        updatedList = current.copyWith(
+          items: <ShoppingItem>[...current.items, item],
+          updatedAt: createdAt,
+        );
+      }
       successOutcome = ShoppingRecommendationAddOutcome.added;
     } else {
       final survivor = activeCompatible.first;
