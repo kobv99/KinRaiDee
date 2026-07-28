@@ -230,6 +230,15 @@ final heroSelectionProvider =
       HeroSelectionNotifier.new,
     );
 
+class RecipeRecommendationUnavailable implements Exception {
+  const RecipeRecommendationUnavailable();
+
+  @override
+  String toString() {
+    return 'โหลดคำแนะนำจาก Pantry ไม่สำเร็จ กรุณาลองอีกครั้ง';
+  }
+}
+
 final smartRecommendationProvider = Provider<AsyncValue<SmartRecommendation>>((
   ref,
 ) {
@@ -238,16 +247,23 @@ final smartRecommendationProvider = Provider<AsyncValue<SmartRecommendation>>((
   final heroSelection = ref.watch(heroSelectionProvider);
   final session = ref.watch(recommendationSessionProvider);
 
-  return matches.whenData(
-    (items) => const SmartRecommendationEngine().build(
-      matches: items,
-      pantry: pantry,
-      selectedHeroKey: heroSelection.key,
-      selectionMode: heroSelection.mode,
-      selectionReason: heroSelection.reason,
-      pageIndex: session.pageIndex,
-      shuffleSeed: session.shuffleSeed,
-      registry: ref.watch(canonicalIngredientRegistryProvider),
+  return matches.when(
+    data: (items) => AsyncValue<SmartRecommendation>.data(
+      const SmartRecommendationEngine().build(
+        matches: items,
+        pantry: pantry,
+        selectedHeroKey: heroSelection.key,
+        selectionMode: heroSelection.mode,
+        selectionReason: heroSelection.reason,
+        pageIndex: session.pageIndex,
+        shuffleSeed: session.shuffleSeed,
+        registry: ref.watch(canonicalIngredientRegistryProvider),
+      ),
+    ),
+    loading: () => const AsyncValue<SmartRecommendation>.loading(),
+    error: (error, stackTrace) => AsyncValue<SmartRecommendation>.error(
+      const RecipeRecommendationUnavailable(),
+      stackTrace,
     ),
   );
 });
