@@ -14,25 +14,53 @@ class RecipeMatch {
   final List<RecipeIngredient> missingIngredients;
   final double score;
 
-  List<RecipeIngredient> get matchedRequiredIngredients =>
-      matchedIngredients.where((item) => item.required).toList(growable: false);
+  List<RecipeIngredient> get matchedPrimaryIngredients =>
+      _withRole(matchedIngredients, RecipeIngredientRole.primary);
 
-  List<RecipeIngredient> get matchedOptionalIngredients => matchedIngredients
-      .where((item) => !item.required)
-      .toList(growable: false);
+  List<RecipeIngredient> get matchedSecondaryIngredients =>
+      _withRole(matchedIngredients, RecipeIngredientRole.secondary);
 
-  List<RecipeIngredient> get missingRequiredIngredients =>
-      missingIngredients.where((item) => item.required).toList(growable: false);
+  List<RecipeIngredient> get matchedOptionalIngredients =>
+      _withRole(matchedIngredients, RecipeIngredientRole.optional);
 
-  List<RecipeIngredient> get missingOptionalIngredients => missingIngredients
-      .where((item) => !item.required)
-      .toList(growable: false);
+  List<RecipeIngredient> get missingPrimaryIngredients =>
+      _withRole(missingIngredients, RecipeIngredientRole.primary);
 
+  List<RecipeIngredient> get missingSecondaryIngredients =>
+      _withRole(missingIngredients, RecipeIngredientRole.secondary);
+
+  List<RecipeIngredient> get missingOptionalIngredients =>
+      _withRole(missingIngredients, RecipeIngredientRole.optional);
+
+  List<RecipeIngredient> get matchedRequiredIngredients => <RecipeIngredient>[
+    ...matchedPrimaryIngredients,
+    ...matchedSecondaryIngredients,
+  ];
+
+  List<RecipeIngredient> get missingRequiredIngredients => <RecipeIngredient>[
+    ...missingPrimaryIngredients,
+    ...missingSecondaryIngredients,
+  ];
+
+  int get missingPrimaryCount => missingPrimaryIngredients.length;
+  int get missingSecondaryCount => missingSecondaryIngredients.length;
   int get missingRequiredCount => missingRequiredIngredients.length;
-
   int get missingOptionalCount => missingOptionalIngredients.length;
 
   bool get canCook => missingRequiredCount == 0;
 
   int get scorePercent => (score.clamp(0, 1) * 100).round();
+
+  List<RecipeIngredient> _withRole(
+    Iterable<RecipeIngredient> source,
+    RecipeIngredientRole role,
+  ) {
+    final hero = recipe.heroIngredient;
+    return source
+        .where(
+          (item) =>
+              item.effectiveRole(isHero: identical(item, hero)) == role,
+        )
+        .toList(growable: false);
+  }
 }
