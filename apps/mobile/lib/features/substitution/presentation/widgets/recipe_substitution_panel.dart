@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/providers/canonical_ingredient_providers.dart';
 import '../../../recipe/domain/entities/recipe_readiness.dart';
 import '../providers/substitution_provider.dart';
 
@@ -18,9 +19,11 @@ class RecipeSubstitutionPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final request = RecipeSubstitutionRequest(
       recipeId: recipeId,
-      missing: readiness.missingIngredients,
+      candidates: readiness.substitutionCandidates,
     );
     final suggestions = ref.watch(recipeSubstitutionsProvider(request));
+    final registry = ref.watch(canonicalIngredientRegistryProvider);
+    String displayName(String id) => registry?.byId(id)?.displayName() ?? id;
     return suggestions.when(
       data: (groups) {
         if (groups.isEmpty) return const SizedBox.shrink();
@@ -38,12 +41,14 @@ class RecipeSubstitutionPanel extends ConsumerWidget {
                 const Text('คำแนะนำเป็นทางเลือก คุณยังทำอาหารต่อได้เสมอ'),
                 for (final group in groups.entries) ...[
                   const Divider(),
-                  Text('แทน ${group.key}'),
+                  Text('แทน ${displayName(group.key)}'),
                   for (final recommendation in group.value)
                     ListTile(
                       contentPadding: EdgeInsets.zero,
                       title: Text(
-                        recommendation.substitution.substituteIngredientId,
+                        displayName(
+                          recommendation.substitution.substituteIngredientId,
+                        ),
                       ),
                       subtitle: Text(recommendation.reason),
                       leading: recommendation.isAvailableInPantry

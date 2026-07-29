@@ -60,6 +60,10 @@ void main() {
     );
     expect(result.ingredients.single.needsShopping, isFalse);
     expect(result.canCook, isTrue);
+    expect(
+      result.substitutionCandidates.single.canonicalIngredientId,
+      'fish_sauce',
+    );
   });
 }
 

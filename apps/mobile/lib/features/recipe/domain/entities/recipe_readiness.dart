@@ -67,6 +67,12 @@ class RecipeReadiness {
   List<RecipeIngredientReadiness> get missingIngredients =>
       _select((item) => item.needsShopping);
 
+  List<RecipeIngredientReadiness> get substitutedIngredients =>
+      _select((item) => item.isSubstituted);
+
+  List<RecipeIngredientReadiness> get substitutionCandidates =>
+      _select((item) => item.needsShopping || item.isSubstituted);
+
   List<RecipeIngredientReadiness> get optionalIngredients =>
       _select((item) => item.isOptional);
 

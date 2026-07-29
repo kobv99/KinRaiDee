@@ -27,6 +27,8 @@ void main() {
       expect(registry.resolve('Duck').ingredient?.id, 'duck');
       expect(registry.resolve('Tilapia').ingredient?.id, 'tilapia');
       expect(registry.resolve('ปลาทับทิม').ingredient?.id, 'tilapia');
+      expect(registry.areCompatibleIds('fish', 'tilapia'), isFalse);
+      expect(registry.areCompatibleIds('mackerel', 'tilapia'), isFalse);
     },
   );
 }

@@ -28,19 +28,19 @@ final ingredientSubstitutionServiceProvider =
 class RecipeSubstitutionRequest {
   const RecipeSubstitutionRequest({
     required this.recipeId,
-    required this.missing,
+    required this.candidates,
   });
   final String recipeId;
-  final List<RecipeIngredientReadiness> missing;
+  final List<RecipeIngredientReadiness> candidates;
 
   @override
   bool operator ==(Object other) =>
       other is RecipeSubstitutionRequest &&
       recipeId == other.recipeId &&
-      _ids(missing) == _ids(other.missing);
+      _ids(candidates) == _ids(other.candidates);
 
   @override
-  int get hashCode => Object.hash(recipeId, _ids(missing));
+  int get hashCode => Object.hash(recipeId, _ids(candidates));
 
   static String _ids(List<RecipeIngredientReadiness> values) =>
       values.map((item) => item.canonicalIngredientId).join('|');
@@ -55,13 +55,13 @@ final recipeSubstitutionsProvider =
       if (service == null) return const {};
       final pantry = ref.watch(pantryProvider);
       final result = <String, List<IngredientSubstitutionRecommendation>>{};
-      for (final missing in request.missing) {
+      for (final candidate in request.candidates) {
         final recommendations = await service.recommend(
-          originalIngredientId: missing.canonicalIngredientId,
+          originalIngredientId: candidate.canonicalIngredientId,
           pantry: pantry,
         );
         if (recommendations.isNotEmpty) {
-          result[missing.canonicalIngredientId] = recommendations;
+          result[candidate.canonicalIngredientId] = recommendations;
         }
       }
       return Map.unmodifiable(result);

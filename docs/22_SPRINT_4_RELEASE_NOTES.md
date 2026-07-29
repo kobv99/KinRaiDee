@@ -11,10 +11,21 @@
 
 - Architecture supports future substitution metadata without changing business
   logic.
+- Recommendation generation remains deterministic across navigation and state
+  refreshes.
+- Canonical fish species remain distinct for Recipe matching while categories
+  are reserved for organization.
+- Fried Rice treats Rice as a Primary Ingredient and ranks by readiness.
+- Pantry Search is the first content control on the Pantry page.
 
 ## Fixed
 
 - No substitution facts are hardcoded in service or UI logic.
+- Accepted substitutions no longer cause recommendation cards to disappear.
+- Substitution cards display localized Thai ingredient names instead of
+  canonical English IDs.
+- Generic Fish no longer satisfies Mackerel, Tilapia, Salmon, or Sea Bass.
+- Recommendation cards no longer push Pantry Search down the page.
 
 ## Known Limitations
 

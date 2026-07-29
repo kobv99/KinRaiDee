@@ -330,6 +330,40 @@ class _PantryContent extends StatelessWidget {
                     horizontalPadding,
                     AppSpacing.sm,
                   ),
+                  sliver: SliverToBoxAdapter(
+                    child: Column(
+                      children: [
+                        PantrySearchField(
+                          controller: searchController,
+                          onChanged: onSearchChanged,
+                          onClear: () {
+                            searchController.clear();
+                            onSearchChanged('');
+                          },
+                        ),
+                        if (searchQuery.isNotEmpty &&
+                            suggestions.isNotEmpty) ...[
+                          const SizedBox(height: AppSpacing.xs),
+                          PantryCatalogPanel(
+                            suggestions: suggestions,
+                            searchQuery: searchQuery,
+                            onSelected: (entry) {
+                              FocusScope.of(context).unfocus();
+                              onAddIngredientFromSearch(entry.item.name);
+                            },
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                    horizontalPadding,
+                    AppSpacing.sm,
+                    horizontalPadding,
+                    AppSpacing.sm,
+                  ),
                   sliver: const SliverToBoxAdapter(
                     child: SectionHeader(
                       title: 'วัตถุดิบของคุณ',
@@ -401,40 +435,6 @@ class _PantryContent extends StatelessWidget {
                       ),
                     ),
                   ),
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(
-                    horizontalPadding,
-                    AppSpacing.sm,
-                    horizontalPadding,
-                    AppSpacing.sm,
-                  ),
-                  sliver: SliverToBoxAdapter(
-                    child: Column(
-                      children: [
-                        PantrySearchField(
-                          controller: searchController,
-                          onChanged: onSearchChanged,
-                          onClear: () {
-                            searchController.clear();
-                            onSearchChanged('');
-                          },
-                        ),
-                        if (searchQuery.isNotEmpty &&
-                            suggestions.isNotEmpty) ...[
-                          const SizedBox(height: AppSpacing.xs),
-                          PantryCatalogPanel(
-                            suggestions: suggestions,
-                            searchQuery: searchQuery,
-                            onSelected: (entry) {
-                              FocusScope.of(context).unfocus();
-                              onAddIngredientFromSearch(entry.item.name);
-                            },
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
                 SliverPadding(
                   padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                   sliver: SliverToBoxAdapter(
