@@ -93,6 +93,44 @@ final acceptedSubstitutionsProvider =
       AcceptedSubstitutionsNotifier.new,
     );
 
+enum RecipeSubstitutionPanelMode { expanded, collapsed, hidden }
+
+class RecipeSubstitutionPanelPreference {
+  const RecipeSubstitutionPanelPreference({
+    required this.recommendationSignature,
+    required this.mode,
+  });
+
+  final String recommendationSignature;
+  final RecipeSubstitutionPanelMode mode;
+}
+
+class RecipeSubstitutionPanelPreferenceNotifier
+    extends Notifier<Map<String, RecipeSubstitutionPanelPreference>> {
+  @override
+  Map<String, RecipeSubstitutionPanelPreference> build() => const {};
+
+  void setMode({
+    required String recipeId,
+    required String recommendationSignature,
+    required RecipeSubstitutionPanelMode mode,
+  }) {
+    state = Map.unmodifiable({
+      ...state,
+      recipeId: RecipeSubstitutionPanelPreference(
+        recommendationSignature: recommendationSignature,
+        mode: mode,
+      ),
+    });
+  }
+}
+
+final recipeSubstitutionPanelPreferenceProvider =
+    NotifierProvider<
+      RecipeSubstitutionPanelPreferenceNotifier,
+      Map<String, RecipeSubstitutionPanelPreference>
+    >(RecipeSubstitutionPanelPreferenceNotifier.new);
+
 Map<String, String> acceptedForRecipe(
   Map<String, String> accepted,
   String recipeId,
