@@ -31,4 +31,51 @@ void main() {
       expect(registry.areCompatibleIds('mackerel', 'tilapia'), isFalse);
     },
   );
+
+  test(
+    'Thai Pantry Essentials have canonical names and useful aliases',
+    () async {
+      final registry = await IngredientCatalog().loadRegistry();
+      const essentials = <String>[
+        'rice',
+        'egg',
+        'pork',
+        'chicken',
+        'shrimp',
+        'mackerel',
+        'tilapia',
+        'sea_bass',
+        'salmon',
+        'tofu',
+        'garlic',
+        'chili',
+        'shallot',
+        'coriander',
+        'lime',
+        'lemongrass',
+        'galangal',
+        'kaffir_lime_leaf',
+        'fish_sauce',
+        'soy_sauce',
+        'oyster_sauce',
+        'palm_sugar',
+        'coconut_milk',
+      ];
+
+      for (final id in essentials) {
+        final ingredient = registry.byId(id);
+        expect(ingredient, isNotNull, reason: '$id must be canonical');
+        expect(
+          ingredient!.displayName().trim(),
+          isNotEmpty,
+          reason: '$id must have a Thai display name',
+        );
+        expect(
+          ingredient.aliases,
+          isNotEmpty,
+          reason: '$id must have at least one useful alias',
+        );
+      }
+    },
+  );
 }

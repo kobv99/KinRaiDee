@@ -8,6 +8,9 @@
 - Pantry-first ordering and explainable recommendation evidence.
 - Canonical recipe coverage for Rice, Mackerel, and Sea Bass.
 - Additional substitution data for Soy Sauce, Butter, and Garlic.
+- Thai Pantry Essentials for Salmon, Shallot, Coriander, and Palm Sugar.
+- Species-specific Tilapia and Salmon Recipes with explicit ingredient roles
+  and complete instructions.
 - Explicit per-Recipe `supportsSubstitutions` capability.
 
 ## Improved
@@ -35,6 +38,8 @@
   displays the accepted state.
 - Added direct canonical Recipe mappings instead of treating fish species as
   generic Fish.
+- Closed canonical alias and Recipe participation gaps identified by the
+  Knowledge Base completeness audit.
 
 ## Known Limitations
 

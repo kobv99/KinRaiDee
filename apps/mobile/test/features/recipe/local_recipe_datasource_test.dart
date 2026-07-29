@@ -28,13 +28,24 @@ void main() {
       expect(beefRecipes, hasLength(20));
       expect(fishRecipes, hasLength(20));
       expect(saltedEggRecipes, hasLength(12));
-      for (final canonicalId in <String>['rice', 'mackerel', 'sea_bass']) {
+      for (final canonicalId in <String>[
+        'rice',
+        'mackerel',
+        'tilapia',
+        'sea_bass',
+        'salmon',
+        'shallot',
+        'coriander',
+        'palm_sugar',
+      ]) {
         expect(
           recipes.where(
-            (recipe) => recipe.resolvedHeroIngredientId == canonicalId,
+            (recipe) => recipe.ingredients.any(
+              (ingredient) => ingredient.canonicalIngredientId == canonicalId,
+            ),
           ),
           isNotEmpty,
-          reason: '$canonicalId must unlock at least one Recipe',
+          reason: '$canonicalId must participate in at least one Recipe',
         );
       }
       expect(
@@ -79,6 +90,26 @@ void main() {
             ingredient.unit.trim(),
             isNotEmpty,
             reason: '${recipe.id}/${ingredient.id} must define a unit',
+          );
+          if (recipe.version >= 2) {
+            expect(
+              ingredient.role,
+              isNotNull,
+              reason:
+                  '${recipe.id}/${ingredient.id} must declare a role in v2 data',
+            );
+          }
+        }
+        expect(
+          recipe.steps.length,
+          greaterThanOrEqualTo(2),
+          reason: '${recipe.id} must contain actionable instructions',
+        );
+        for (final step in recipe.steps) {
+          expect(
+            step.trim().length,
+            greaterThanOrEqualTo(12),
+            reason: '${recipe.id} has an instruction that is too vague',
           );
         }
       }

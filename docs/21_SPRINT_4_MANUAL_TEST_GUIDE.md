@@ -199,3 +199,32 @@ Product Owner tests with `flutter run -d web-server`.
 - Nested scrolling
 - SafeArea
 - Large text scaling
+
+## Feature: Thai Pantry Essentials completeness
+
+**Test Steps**
+
+1. Search Pantry using both the primary Thai name and an alias for Salmon,
+   Tilapia, Shallot, Coriander, and Palm Sugar.
+2. Add each ingredient and open Recipe recommendations.
+3. Open the new Tilapia and Salmon Recipes and review their ingredient lists
+   and instructions.
+
+**Expected Results**
+
+- `ปลาแซลมอน`, `แซลมอน`, and `salmon` resolve to the same canonical ingredient.
+- `หอมแดง`, `ผักชี`, and `น้ำตาลปี๊บ` are available as Thai Pantry Essentials.
+- Tilapia and Salmon participate in species-specific Recipes.
+- Shallot, Coriander, and Palm Sugar participate in at least one Recipe.
+- Every new Recipe ingredient has an explicit Primary, Secondary, or Optional
+  role.
+- Every new Recipe contains complete ordered instructions rather than a generic
+  one-line placeholder.
+
+**Possible Regression Areas**
+
+- Pantry Search and aliases
+- Canonical merge
+- Recipe recommendation coverage
+- Recipe Readiness weighting
+- Shopping ingredient localization

@@ -121,5 +121,84 @@
       {"id": "fish_sauce", "name": "น้ำปลา", "quantity": 1, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 10}
     ],
     "steps": ["ต้มน้ำกับตะไคร้ ข่า และใบมะกรูด", "ใส่ปลากะพงและต้มจนสุก", "ปิดไฟแล้วปรุงด้วยมะนาวและน้ำปลา"]
+  },
+  {
+    "version": 2,
+    "id": "fried_tilapia_garlic",
+    "name": "ปลานิลทอดกระเทียม",
+    "category": "อาหารไทย",
+    "description": "ปลานิลทอดกรอบเสิร์ฟพร้อมกระเทียมหอม",
+    "emoji": "🐟",
+    "servings": 2,
+    "supportsSubstitutions": true,
+    "heroIngredientId": "tilapia",
+    "ingredients": [
+      {"id": "tilapia", "name": "ปลานิล", "quantity": 1, "unit": "ตัว", "role": "primary", "weight": 65},
+      {"id": "garlic", "name": "กระเทียม", "quantity": 8, "unit": "กลีบ", "role": "secondary", "weight": 15},
+      {"id": "fish_sauce", "name": "น้ำปลา", "quantity": 1, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 10},
+      {"id": "cooking_oil", "name": "น้ำมันพืช", "quantity": 4, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 10}
+    ],
+    "steps": ["ขอดเกล็ด ล้าง และซับปลานิลให้แห้ง", "ทอดปลาด้วยไฟกลางจนสุกและกรอบทั้งสองด้าน", "เจียวกระเทียม ปรุงด้วยน้ำปลา แล้วราดบนปลา"]
+  },
+  {
+    "version": 2,
+    "id": "tilapia_tom_yum",
+    "name": "ต้มยำปลานิล",
+    "category": "อาหารไทย",
+    "description": "ต้มยำปลานิลรสเปรี้ยวเผ็ดหอมสมุนไพร",
+    "emoji": "🍲",
+    "servings": 2,
+    "supportsSubstitutions": true,
+    "heroIngredientId": "tilapia",
+    "ingredients": [
+      {"id": "tilapia", "name": "ปลานิล", "quantity": 1, "unit": "ตัว", "role": "primary", "weight": 50},
+      {"id": "shallot", "name": "หอมแดง", "quantity": 3, "unit": "หัว", "role": "secondary", "weight": 8},
+      {"id": "lemongrass", "name": "ตะไคร้", "quantity": 2, "unit": "ต้น", "role": "secondary", "weight": 8},
+      {"id": "galangal", "name": "ข่า", "quantity": 5, "unit": "แว่น", "role": "secondary", "weight": 8},
+      {"id": "kaffir_lime_leaf", "name": "ใบมะกรูด", "quantity": 4, "unit": "ใบ", "role": "secondary", "weight": 8},
+      {"id": "lime", "name": "มะนาว", "quantity": 2, "unit": "ลูก", "role": "secondary", "weight": 8},
+      {"id": "fish_sauce", "name": "น้ำปลา", "quantity": 1, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 6},
+      {"id": "coriander", "name": "ผักชี", "quantity": 2, "unit": "ต้น", "role": "optional", "weight": 4, "required": false}
+    ],
+    "steps": ["ต้มน้ำกับหอมแดง ตะไคร้ ข่า และใบมะกรูดจนหอม", "ใส่ปลานิลและต้มด้วยไฟกลางจนเนื้อปลาสุก", "ปิดไฟ ปรุงด้วยมะนาวและน้ำปลา แล้วโรยผักชี"]
+  },
+  {
+    "version": 2,
+    "id": "pan_seared_salmon",
+    "name": "แซลมอนย่างกระทะ",
+    "category": "อาหารจานเดียว",
+    "description": "ปลาแซลมอนย่างกระทะรสกลมกล่อม",
+    "emoji": "🐟",
+    "servings": 2,
+    "supportsSubstitutions": true,
+    "heroIngredientId": "salmon",
+    "ingredients": [
+      {"id": "salmon", "name": "ปลาแซลมอน", "quantity": 300, "unit": "กรัม", "role": "primary", "weight": 70},
+      {"id": "soy_sauce", "name": "ซีอิ๊วขาว", "quantity": 1, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 10},
+      {"id": "garlic", "name": "กระเทียม", "quantity": 3, "unit": "กลีบ", "role": "secondary", "weight": 8},
+      {"id": "pepper", "name": "พริกไทย", "quantity": 0.5, "unit": "ช้อนชา", "role": "secondary", "weight": 6},
+      {"id": "cooking_oil", "name": "น้ำมันพืช", "quantity": 1, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 6}
+    ],
+    "steps": ["ซับปลาแซลมอนให้แห้งและหมักด้วยซีอิ๊ว กระเทียม และพริกไทย", "ย่างด้านหนังบนกระทะไฟกลางจนกรอบ", "กลับด้านและย่างต่อจนเนื้อปลาสุกตามต้องการ"]
+  },
+  {
+    "version": 2,
+    "id": "salmon_palm_sugar_glaze",
+    "name": "แซลมอนเคลือบน้ำตาลปี๊บ",
+    "category": "อาหารจานเดียว",
+    "description": "ปลาแซลมอนเคลือบซอสรสหวานเค็มแบบไทย",
+    "emoji": "🐟",
+    "servings": 2,
+    "supportsSubstitutions": true,
+    "heroIngredientId": "salmon",
+    "ingredients": [
+      {"id": "salmon", "name": "ปลาแซลมอน", "quantity": 300, "unit": "กรัม", "role": "primary", "weight": 60},
+      {"id": "palm_sugar", "name": "น้ำตาลปี๊บ", "quantity": 20, "unit": "กรัม", "role": "secondary", "weight": 12},
+      {"id": "fish_sauce", "name": "น้ำปลา", "quantity": 1, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 10},
+      {"id": "lime", "name": "มะนาว", "quantity": 1, "unit": "ลูก", "role": "secondary", "weight": 8},
+      {"id": "shallot", "name": "หอมแดง", "quantity": 2, "unit": "หัว", "role": "secondary", "weight": 6},
+      {"id": "coriander", "name": "ผักชี", "quantity": 1, "unit": "ต้น", "role": "optional", "weight": 4, "required": false}
+    ],
+    "steps": ["เคี่ยวน้ำตาลปี๊บกับน้ำปลาและหอมแดงจนเป็นซอส", "ย่างปลาแซลมอนบนกระทะจนเกือบสุก", "ทาซอสให้เคลือบปลา ปิดไฟ เติมมะนาว และโรยผักชี"]
   }
 ]
