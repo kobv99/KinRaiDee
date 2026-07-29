@@ -23,6 +23,8 @@ import 'package:mobile/features/shopping/domain/entities/shopping_source.dart';
 import 'package:mobile/features/shopping/domain/models/shopping_mutation.dart';
 import 'package:mobile/features/shopping/domain/services/shopping_draft_builder.dart';
 import 'package:mobile/features/shopping/presentation/pages/shopping_page.dart';
+import 'package:mobile/features/substitution/domain/repositories/ingredient_substitution_repository.dart';
+import 'package:mobile/features/substitution/presentation/providers/substitution_provider.dart';
 
 import 'inventory_test_support.dart';
 
@@ -45,6 +47,7 @@ class ShoppingUiHarness {
     ShoppingList? list,
     DateTime? at,
     bool seedLegacyShoppingState = false,
+    IngredientSubstitutionRepository? substitutionRepository,
   }) async {
     final now = at ?? DateTime.utc(2026, 7, 26, 10);
     final store = list != null && seedLegacyShoppingState
@@ -80,6 +83,10 @@ class ShoppingUiHarness {
         canonicalIngredientRegistryProvider.overrideWithValue(testRegistry),
         unitConversionEngineProvider.overrideWithValue(testUnits),
         recipesProvider.overrideWith((ref) async => recipes),
+        if (substitutionRepository != null)
+          ingredientSubstitutionRepositoryProvider.overrideWithValue(
+            substitutionRepository,
+          ),
       ],
     );
     if (list != null && !seedLegacyShoppingState) {
@@ -284,6 +291,28 @@ final CanonicalIngredientRegistry testRegistry = CanonicalIngredientRegistry(
       defaultPurchaseUnitId: 'gram',
       defaultInventoryUnitId: 'gram',
       parentId: 'pork',
+    ),
+    CanonicalIngredient(
+      id: 'fish_sauce',
+      canonicalName: 'Fish Sauce',
+      localizedNames: const <String, String>{'th': 'น้ำปลา'},
+      aliases: const <String>[],
+      searchKeywords: const <String>['เครื่องปรุง'],
+      category: 'seasoning',
+      defaultStorageType: IngredientStorageType.pantry,
+      defaultPurchaseUnitId: 'tablespoon',
+      defaultInventoryUnitId: 'tablespoon',
+    ),
+    CanonicalIngredient(
+      id: 'soy_sauce',
+      canonicalName: 'Soy Sauce',
+      localizedNames: const <String, String>{'th': 'ซีอิ๊วขาว'},
+      aliases: const <String>[],
+      searchKeywords: const <String>['เครื่องปรุง'],
+      category: 'seasoning',
+      defaultStorageType: IngredientStorageType.pantry,
+      defaultPurchaseUnitId: 'tablespoon',
+      defaultInventoryUnitId: 'tablespoon',
     ),
   ],
 );

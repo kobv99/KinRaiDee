@@ -11,7 +11,7 @@
   {"id":"shellfish","name":"หอย","category":"seafood","defaultUnit":"กรัม","aliases":["หอยสด","หอยแมลงภู่","หอยลาย"],"tags":["อาหารทะเล"]},
   {"id":"fish","name":"ปลา","category":"seafood","defaultUnit":"กรัม","aliases":["ปลาสด","เนื้อปลา"],"tags":["อาหารทะเล"]},
   {"id":"mackerel","name":"ปลาทู","category":"seafood","defaultUnit":"ตัว","aliases":["ปลาทูนึ่ง"],"tags":["อาหารทะเล"]},
-  {"id":"catfish","name":"ปลาดุก","category":"seafood","defaultUnit":"ตัว","parentId":"fish","aliases":["ปลาดุกสด"],"tags":["อาหารทะเล"]},
+  {"id":"catfish","name":"ปลาดุก","category":"seafood","defaultUnit":"ตัว","aliases":["ปลาดุกสด"],"tags":["อาหารทะเล"]},
   {"id":"tilapia","name":"ปลานิล","category":"seafood","defaultUnit":"ตัว","aliases":["ปลานิลสด"],"tags":["อาหารทะเล"]},
   {"id":"sea_bass","name":"ปลากะพง","category":"seafood","defaultUnit":"ตัว","aliases":["กะพง","ปลากะพงขาว"],"tags":["อาหารทะเล"]},
   {"id":"egg","name":"ไข่ไก่","category":"protein","defaultUnit":"ฟอง","aliases":["ไข่","ไข่สด"],"tags":["ไข่"]},

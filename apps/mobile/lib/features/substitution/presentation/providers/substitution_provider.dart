@@ -29,18 +29,22 @@ class RecipeSubstitutionRequest {
   const RecipeSubstitutionRequest({
     required this.recipeId,
     required this.candidates,
+    required this.recipeSupportsSubstitutions,
   });
   final String recipeId;
   final List<RecipeIngredientReadiness> candidates;
+  final bool recipeSupportsSubstitutions;
 
   @override
   bool operator ==(Object other) =>
       other is RecipeSubstitutionRequest &&
       recipeId == other.recipeId &&
+      recipeSupportsSubstitutions == other.recipeSupportsSubstitutions &&
       _ids(candidates) == _ids(other.candidates);
 
   @override
-  int get hashCode => Object.hash(recipeId, _ids(candidates));
+  int get hashCode =>
+      Object.hash(recipeId, recipeSupportsSubstitutions, _ids(candidates));
 
   static String _ids(List<RecipeIngredientReadiness> values) =>
       values.map((item) => item.canonicalIngredientId).join('|');
@@ -51,6 +55,7 @@ final recipeSubstitutionsProvider =
       Map<String, List<IngredientSubstitutionRecommendation>>,
       RecipeSubstitutionRequest
     >((ref, request) async {
+      if (!request.recipeSupportsSubstitutions) return const {};
       final service = ref.watch(ingredientSubstitutionServiceProvider);
       if (service == null) return const {};
       final pantry = ref.watch(pantryProvider);

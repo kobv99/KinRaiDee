@@ -15,6 +15,7 @@ class PantrySearchField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TextField(
+      key: const ValueKey('pantry-primary-search'),
       controller: controller,
       onChanged: onChanged,
       textInputAction: TextInputAction.search,

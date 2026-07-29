@@ -1,0 +1,125 @@
+[
+  {
+    "version": 2,
+    "id": "steamed_rice",
+    "name": "ข้าวสวย",
+    "category": "อาหารหลัก",
+    "description": "ข้าวหุงสุกสำหรับรับประทานคู่กับอาหารไทย",
+    "emoji": "🍚",
+    "servings": 2,
+    "supportsSubstitutions": false,
+    "heroIngredientId": "rice",
+    "ingredients": [
+      {"id": "rice", "name": "ข้าวสวย", "quantity": 2, "unit": "ถ้วย", "role": "primary", "weight": 100}
+    ],
+    "steps": ["เตรียมข้าวสวยให้เพียงพอสำหรับจำนวนเสิร์ฟ", "อุ่นข้าวให้ร้อนและตักเสิร์ฟ"]
+  },
+  {
+    "version": 2,
+    "id": "rice_porridge",
+    "name": "ข้าวต้ม",
+    "category": "อาหารจานเดียว",
+    "description": "ข้าวต้มร้อน ๆ จากข้าวสวย",
+    "emoji": "🥣",
+    "servings": 2,
+    "supportsSubstitutions": true,
+    "heroIngredientId": "rice",
+    "ingredients": [
+      {"id": "rice", "name": "ข้าวสวย", "quantity": 1, "unit": "ถ้วย", "role": "primary", "weight": 55},
+      {"id": "soy_sauce", "name": "ซีอิ๊วขาว", "quantity": 1, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 15},
+      {"id": "spring_onion", "name": "ต้นหอม", "quantity": 1, "unit": "ต้น", "role": "optional", "weight": 5, "required": false}
+    ],
+    "steps": ["ต้มข้าวกับน้ำจนเมล็ดข้าวนุ่ม", "ปรุงด้วยซีอิ๊วขาว", "โรยต้นหอมตามชอบ"]
+  },
+  {
+    "version": 2,
+    "id": "fried_mackerel",
+    "name": "ปลาทูทอด",
+    "category": "อาหารไทย",
+    "description": "ปลาทูทอดแบบเรียบง่าย",
+    "emoji": "🐟",
+    "servings": 2,
+    "supportsSubstitutions": true,
+    "heroIngredientId": "mackerel",
+    "ingredients": [
+      {"id": "mackerel", "name": "ปลาทู", "quantity": 2, "unit": "ตัว", "role": "primary", "weight": 70},
+      {"id": "cooking_oil", "name": "น้ำมันพืช", "quantity": 3, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 15}
+    ],
+    "steps": ["ซับปลาทูให้แห้ง", "ทอดด้วยไฟกลางจนเหลืองกรอบทั้งสองด้าน"]
+  },
+  {
+    "version": 2,
+    "id": "mackerel_chili_paste",
+    "name": "น้ำพริกปลาทู",
+    "category": "อาหารไทย",
+    "description": "น้ำพริกไทยรสจัดเสิร์ฟพร้อมปลาทู",
+    "emoji": "🌶️",
+    "servings": 2,
+    "supportsSubstitutions": true,
+    "heroIngredientId": "mackerel",
+    "ingredients": [
+      {"id": "mackerel", "name": "ปลาทู", "quantity": 2, "unit": "ตัว", "role": "primary", "weight": 55},
+      {"id": "chili", "name": "พริก", "quantity": 5, "unit": "เม็ด", "role": "secondary", "weight": 15},
+      {"id": "garlic", "name": "กระเทียม", "quantity": 4, "unit": "กลีบ", "role": "secondary", "weight": 10},
+      {"id": "lime", "name": "มะนาว", "quantity": 1, "unit": "ลูก", "role": "secondary", "weight": 10},
+      {"id": "fish_sauce", "name": "น้ำปลา", "quantity": 1, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 10}
+    ],
+    "steps": ["ทอดปลาทูแล้วแกะเนื้อ", "โขลกพริกและกระเทียม", "ใส่เนื้อปลาและปรุงด้วยมะนาวกับน้ำปลา"]
+  },
+  {
+    "version": 2,
+    "id": "fried_sea_bass",
+    "name": "ปลากะพงทอด",
+    "category": "อาหารไทย",
+    "description": "ปลากะพงทอดกรอบ",
+    "emoji": "🐟",
+    "servings": 2,
+    "supportsSubstitutions": true,
+    "heroIngredientId": "sea_bass",
+    "ingredients": [
+      {"id": "sea_bass", "name": "ปลากะพง", "quantity": 1, "unit": "ตัว", "role": "primary", "weight": 70},
+      {"id": "cooking_oil", "name": "น้ำมันพืช", "quantity": 4, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 15},
+      {"id": "fish_sauce", "name": "น้ำปลา", "quantity": 1, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 15}
+    ],
+    "steps": ["ซับปลากะพงให้แห้ง", "ทอดจนสุกและหนังกรอบ", "ปรุงรสด้วยน้ำปลา"]
+  },
+  {
+    "version": 2,
+    "id": "steamed_sea_bass_lime",
+    "name": "ปลากะพงนึ่งมะนาว",
+    "category": "อาหารไทย",
+    "description": "ปลากะพงนึ่งรสเปรี้ยวเผ็ด",
+    "emoji": "🍋",
+    "servings": 2,
+    "supportsSubstitutions": true,
+    "heroIngredientId": "sea_bass",
+    "ingredients": [
+      {"id": "sea_bass", "name": "ปลากะพง", "quantity": 1, "unit": "ตัว", "role": "primary", "weight": 55},
+      {"id": "lime", "name": "มะนาว", "quantity": 2, "unit": "ลูก", "role": "secondary", "weight": 15},
+      {"id": "garlic", "name": "กระเทียม", "quantity": 5, "unit": "กลีบ", "role": "secondary", "weight": 10},
+      {"id": "chili", "name": "พริก", "quantity": 5, "unit": "เม็ด", "role": "secondary", "weight": 10},
+      {"id": "fish_sauce", "name": "น้ำปลา", "quantity": 1, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 10}
+    ],
+    "steps": ["นึ่งปลากะพงจนสุก", "ผสมน้ำมะนาว กระเทียม พริก และน้ำปลา", "ราดน้ำปรุงบนปลาแล้วเสิร์ฟ"]
+  },
+  {
+    "version": 2,
+    "id": "spicy_sea_bass_soup",
+    "name": "ต้มแซ่บปลากะพง",
+    "category": "อาหารไทย",
+    "description": "ต้มปลากะพงรสเปรี้ยวเผ็ดหอมสมุนไพร",
+    "emoji": "🍲",
+    "servings": 2,
+    "supportsSubstitutions": true,
+    "heroIngredientId": "sea_bass",
+    "ingredients": [
+      {"id": "sea_bass", "name": "ปลากะพง", "quantity": 1, "unit": "ตัว", "role": "primary", "weight": 50},
+      {"id": "lemongrass", "name": "ตะไคร้", "quantity": 2, "unit": "ต้น", "role": "secondary", "weight": 10},
+      {"id": "galangal", "name": "ข่า", "quantity": 5, "unit": "แว่น", "role": "secondary", "weight": 10},
+      {"id": "kaffir_lime_leaf", "name": "ใบมะกรูด", "quantity": 4, "unit": "ใบ", "role": "secondary", "weight": 10},
+      {"id": "lime", "name": "มะนาว", "quantity": 2, "unit": "ลูก", "role": "secondary", "weight": 10},
+      {"id": "fish_sauce", "name": "น้ำปลา", "quantity": 1, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 10}
+    ],
+    "steps": ["ต้มน้ำกับตะไคร้ ข่า และใบมะกรูด", "ใส่ปลากะพงและต้มจนสุก", "ปิดไฟแล้วปรุงด้วยมะนาวและน้ำปลา"]
+  }
+]

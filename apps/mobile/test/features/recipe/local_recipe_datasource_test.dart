@@ -28,6 +28,27 @@ void main() {
       expect(beefRecipes, hasLength(20));
       expect(fishRecipes, hasLength(20));
       expect(saltedEggRecipes, hasLength(12));
+      for (final canonicalId in <String>['rice', 'mackerel', 'sea_bass']) {
+        expect(
+          recipes.where(
+            (recipe) => recipe.resolvedHeroIngredientId == canonicalId,
+          ),
+          isNotEmpty,
+          reason: '$canonicalId must unlock at least one Recipe',
+        );
+      }
+      expect(
+        recipes
+            .where((recipe) => recipe.resolvedHeroIngredientId == 'sea_bass')
+            .length,
+        greaterThanOrEqualTo(3),
+      );
+      expect(
+        recipes
+            .singleWhere((recipe) => recipe.id == 'steamed_rice')
+            .supportsSubstitutions,
+        isFalse,
+      );
     },
   );
 

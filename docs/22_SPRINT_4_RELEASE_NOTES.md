@@ -6,6 +6,9 @@
 - Cached Knowledge Base loader and replaceable repository boundary.
 - Deterministic compatibility calculation and multi-substitute ranking.
 - Pantry-first ordering and explainable recommendation evidence.
+- Canonical recipe coverage for Rice, Mackerel, and Sea Bass.
+- Additional substitution data for Soy Sauce, Butter, and Garlic.
+- Explicit per-Recipe `supportsSubstitutions` capability.
 
 ## Improved
 
@@ -17,6 +20,8 @@
   are reserved for organization.
 - Fried Rice treats Rice as a Primary Ingredient and ranks by readiness.
 - Pantry Search is the first content control on the Pantry page.
+- Substitution visibility now follows a documented three-condition rule.
+- Recipe substitution content uses a bounded responsive scrolling region.
 
 ## Fixed
 
@@ -26,6 +31,10 @@
   canonical English IDs.
 - Generic Fish no longer satisfies Mackerel, Tilapia, Salmon, or Sea Bass.
 - Recommendation cards no longer push Pantry Search down the page.
+- Accept Substitute now confirms the selection, updates Recipe Readiness, and
+  displays the accepted state.
+- Added direct canonical Recipe mappings instead of treating fish species as
+  generic Fish.
 
 ## Known Limitations
 

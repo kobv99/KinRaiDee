@@ -14,6 +14,7 @@ class LocalRecipeDataSource {
 
   static const List<String> defaultAssetPaths = <String>[
     'assets/recipes/thai.json',
+    'assets/recipes/canonical_staples_and_fish.json',
     'assets/recipes/shrimp.json',
     'assets/recipes/squid.json',
     'assets/recipes/pork.json',

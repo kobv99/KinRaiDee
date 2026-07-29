@@ -40,6 +40,8 @@ class RecipePackParser {
     final heroWeight =
         (hero['weight'] as num?)?.toDouble() ?? defaultPrimaryWeight;
     final rows = pack['recipes'] as List<dynamic>? ?? const <dynamic>[];
+    final packSupportsSubstitutions =
+        pack['supportsSubstitutions'] as bool? ?? true;
 
     return rows
         .map((rawRow) {
@@ -80,6 +82,9 @@ class RecipePackParser {
             popularity: (row['popularity'] as num?)?.toInt() ?? 0,
             ingredients: ingredients,
             steps: _buildSteps(method: method, heroName: heroName),
+            supportsSubstitutions:
+                row['supportsSubstitutions'] as bool? ??
+                packSupportsSubstitutions,
           );
         })
         .toList(growable: false);

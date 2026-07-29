@@ -20,6 +20,7 @@ class Recipe {
     this.popularity = 0,
     this.sourceUrl,
     this.discoveredByAi = false,
+    this.supportsSubstitutions = true,
   });
 
   final int version;
@@ -40,6 +41,7 @@ class Recipe {
   final List<String> steps;
   final String? sourceUrl;
   final bool discoveredByAi;
+  final bool supportsSubstitutions;
 
   RecipeIngredient? get heroIngredient {
     final explicitId = heroIngredientId?.trim();
@@ -107,6 +109,7 @@ class Recipe {
       steps: _stringList(json['steps']),
       sourceUrl: json['sourceUrl'] as String?,
       discoveredByAi: json['discoveredByAi'] as bool? ?? false,
+      supportsSubstitutions: json['supportsSubstitutions'] as bool? ?? true,
     );
   }
 }

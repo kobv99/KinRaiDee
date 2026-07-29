@@ -124,3 +124,78 @@ Product Owner tests with `flutter run -d web-server`.
 - Pantry responsive layout
 - Pantry Insights
 - Recent and frequent ingredient sections
+
+## Feature: Canonical Recipe coverage
+
+**Test Steps**
+
+1. Keep only Rice in Pantry and open Recipe recommendations.
+2. Replace Pantry with Mackerel and review recommendations.
+3. Replace Pantry with Sea Bass and review recommendations.
+
+**Expected Results**
+
+- Rice unlocks Fried Rice, Steamed Rice, or Rice Porridge.
+- Mackerel unlocks Fried Mackerel and Mackerel Chili Paste.
+- Sea Bass unlocks Fried Sea Bass, Steamed Sea Bass with Lime, and Spicy Sea
+  Bass Soup.
+- Generic Fish, Mackerel, Tilapia, Salmon, and Sea Bass remain distinct
+  canonical ingredients.
+
+**Possible Regression Areas**
+
+- Recipe data loading
+- Primary Ingredient ranking
+- Canonical ingredient matching
+- Pantry recommendation cards
+
+## Feature: Substitution visibility and acceptance
+
+**Test Steps**
+
+1. Open a Recipe whose required ingredient is missing and whose
+   `supportsSubstitutions` flag is enabled.
+2. Confirm the Knowledge Base contains a substitute and put that substitute in
+   Pantry.
+3. Press `ยอมรับตัวเลือกแทน`.
+4. Navigate away and return to the same Recipe.
+5. Repeat with a Recipe that has `supportsSubstitutions` disabled.
+
+**Expected Results**
+
+- Substitutions appear only when all three conditions are true: the Recipe
+  supports substitutions, a required ingredient is missing, and the Knowledge
+  Base contains at least one substitute.
+- Pressing Accept changes Recipe Readiness to Substituted.
+- The selected row shows `ใช้ตัวเลือกนี้แล้ว` and a Thai confirmation message.
+- The accepted recommendation remains visible after navigation or rebuild.
+- A Recipe with substitutions disabled shows no substitution panel.
+- No English canonical ID is displayed.
+
+**Possible Regression Areas**
+
+- Recipe Readiness
+- Riverpod rebuilds
+- Thai localization
+- Recipe detail responsive layout
+
+## Feature: Recipe screen responsive layout
+
+**Test Steps**
+
+1. Open a Recipe with multiple substitution recommendations.
+2. Test at 360×640 and a wider desktop viewport.
+3. Scroll the substitution panel and the Recipe content.
+
+**Expected Results**
+
+- No `BOTTOM OVERFLOWED BY XX PIXELS` message appears.
+- Recommendation content scrolls inside its bounded panel.
+- Recipe content and Start Cooking remain reachable.
+
+**Possible Regression Areas**
+
+- Column and Expanded layout
+- Nested scrolling
+- SafeArea
+- Large text scaling

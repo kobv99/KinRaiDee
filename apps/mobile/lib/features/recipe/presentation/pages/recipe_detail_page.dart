@@ -73,7 +73,9 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                     ),
                   ),
           ),
-          if (readiness != null && readiness.substitutionCandidates.isNotEmpty)
+          if (readiness != null &&
+              readiness.recipe.supportsSubstitutions &&
+              readiness.substitutionCandidates.isNotEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: RecipeSubstitutionPanel(

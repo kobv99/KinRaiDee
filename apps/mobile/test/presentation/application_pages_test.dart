@@ -289,6 +289,11 @@ void main() {
       await _pumpPage(tester, harness.container, const PantryPage());
       expect(find.byType(FloatingActionButton), findsOneWidget);
       expect(find.byIcon(Icons.sort_rounded), findsOneWidget);
+      final searchTop = tester.getTopLeft(
+        find.byKey(const ValueKey('pantry-primary-search')),
+      );
+      final sectionTop = tester.getTopLeft(find.text('วัตถุดิบของคุณ'));
+      expect(searchTop.dy, lessThan(sectionTop.dy));
 
       await tester.enterText(find.byType(TextField).first, 'Rice');
       await tester.pumpAndSettle();

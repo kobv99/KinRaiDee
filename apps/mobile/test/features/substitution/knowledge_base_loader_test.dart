@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/features/substitution/data/knowledge_base_loader.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   test('loads immutable data and reuses one cached asset read', () async {
     final bundle = _Bundle(
       jsonEncode({
@@ -38,6 +40,32 @@ void main() {
     expect(first.single.originalIngredientId, 'a');
     expect(() => first.add(first.single), throwsUnsupportedError);
   });
+
+  test(
+    'bundled Knowledge Base covers common Thai substitution groups',
+    () async {
+      final records = await KnowledgeBaseLoader().load();
+      final originals = records
+          .map((record) => record.originalIngredientId)
+          .toSet();
+
+      expect(
+        originals,
+        containsAll(<String>[
+          'fish_sauce',
+          'soy_sauce',
+          'lime',
+          'onion',
+          'butter',
+          'garlic',
+        ]),
+      );
+      expect(
+        records.map((record) => record.id).toSet(),
+        hasLength(records.length),
+      );
+    },
+  );
 }
 
 class _Bundle extends CachingAssetBundle {
