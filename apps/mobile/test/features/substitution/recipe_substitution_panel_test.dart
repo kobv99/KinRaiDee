@@ -124,6 +124,20 @@ void main() {
       find.byKey(const ValueKey<String>('recipe-substitution-collapsed')),
       findsOneWidget,
     );
+
+    container
+        .read(_testRecommendationGroupsProvider.notifier)
+        .replace(_recommendationGroups());
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey<String>('recipe-substitution-reopen-chip')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('recipe-substitution-collapsed')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('accepting remains optional and records only the user choice', (
