@@ -12,6 +12,10 @@
 - Species-specific Tilapia and Salmon Recipes with explicit ingredient roles
   and complete instructions.
 - Explicit per-Recipe `supportsSubstitutions` capability.
+- Collapsed, expanded, and hidden substitution recommendation states.
+- A compact reopen chip after the user hides a recommendation.
+- Widget regression coverage for Ignore, Hide, Reopen, recommendation changes,
+  optional Accept, and uninterrupted Start Cooking.
 
 ## Improved
 
@@ -25,6 +29,12 @@
 - Pantry Search is the first content control on the Pantry page.
 - Substitution visibility now follows a documented three-condition rule.
 - Recipe substitution content uses a bounded responsive scrolling region.
+- The recommendation panel now starts compact and releases Recipe screen space
+  when collapsed or hidden.
+- Hidden and collapsed state persists while the deterministic recommendation
+  signature remains unchanged.
+- A materially changed recommendation returns as a compact collapsed card
+  instead of forcing the full panel open.
 
 ## Fixed
 
@@ -40,11 +50,18 @@
   generic Fish.
 - Closed canonical alias and Recipe participation gaps identified by the
   Knowledge Base completeness audit.
+- Substitution recommendations no longer permanently occupy a large section of
+  Recipe detail.
+- Ignore, Hide, and Reopen no longer gate Recipe browsing or Start Cooking.
+- Hiding the panel no longer leaves empty layout spacing.
 
 ## Known Limitations
 
 - Initial Knowledge Base covers a focused set of canonical Thai ingredients.
 - Product Acceptance remains pending Product Owner manual testing.
+- This environment cannot run Flutter CLI verification; format, analysis,
+  automated tests, web build, and manual responsive checks must be rerun on a
+  configured development machine before merge.
 
 ## Out of Scope
 
