@@ -38,8 +38,30 @@ class RecipeSubstitutionPanel extends ConsumerWidget {
             (preferences) => preferences[recipeId],
           ),
         );
-        final mode =
-            preference?.recommendationSignature == recommendationSignature
+        final preferenceMatches =
+            preference?.recommendationSignature == recommendationSignature;
+        if (!preferenceMatches) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!context.mounted) return;
+            final currentPreference = ref.read(
+              recipeSubstitutionPanelPreferenceProvider.select(
+                (preferences) => preferences[recipeId],
+              ),
+            );
+            if (currentPreference?.recommendationSignature ==
+                recommendationSignature) {
+              return;
+            }
+            ref
+                .read(recipeSubstitutionPanelPreferenceProvider.notifier)
+                .setMode(
+                  recipeId: recipeId,
+                  recommendationSignature: recommendationSignature,
+                  mode: RecipeSubstitutionPanelMode.collapsed,
+                );
+          });
+        }
+        final mode = preferenceMatches
             ? preference!.mode
             : RecipeSubstitutionPanelMode.collapsed;
         final recommendationCount = groups.values.fold<int>(
