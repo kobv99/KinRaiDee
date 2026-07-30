@@ -7,6 +7,7 @@ import '../../domain/entities/recipe.dart';
 import '../providers/recipe_provider.dart';
 import '../providers/recipe_shopping_provider.dart';
 import '../widgets/recipe_readiness_panel.dart';
+import '../widgets/recipe_recommendation_explanation_panel.dart';
 import 'recipe_detail_legacy.dart' as legacy;
 
 class RecipeDetailPage extends ConsumerStatefulWidget {
@@ -36,6 +37,9 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
       recipeReadinessProvider(
         RecipeReadinessRequest(recipe: widget.recipe, servings: _servings),
       ),
+    );
+    final recommendation = ref.watch(
+      recipeRecommendationByIdProvider(widget.recipe.id),
     );
     final theme = Theme.of(context);
     final isNarrow = MediaQuery.sizeOf(context).width <= 360;
@@ -72,6 +76,18 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                           : _addMissingIngredients,
                     ),
                   ),
+          ),
+          recommendation.when(
+            data: (value) => value == null
+                ? const SizedBox.shrink()
+                : Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: RecipeRecommendationExplanationPanel(
+                      recommendation: value,
+                    ),
+                  ),
+            loading: () => const SizedBox.shrink(),
+            error: (error, stackTrace) => const SizedBox.shrink(),
           ),
           if (readiness != null &&
               readiness.recipe.supportsSubstitutions &&

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/recipe_match.dart';
+import '../../domain/entities/recipe_recommendation.dart';
 import '../../domain/entities/smart_recommendation.dart';
 import '../providers/recipe_provider.dart';
 import 'recipe_detail_page.dart';
@@ -12,6 +13,15 @@ class RecipePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final recommendation = ref.watch(smartRecommendationProvider);
+    final recommendationDetails = switch (ref.watch(
+      recipeRecommendationResultsProvider,
+    )) {
+      AsyncData(:final value) => value,
+      _ => const <RecipeRecommendation>[],
+    };
+    final detailsByRecipeId = <String, RecipeRecommendation>{
+      for (final item in recommendationDetails) item.match.recipe.id: item,
+    };
 
     return Scaffold(
       appBar: AppBar(title: const Text('ทำอะไรกินดี 🍳')),
@@ -61,6 +71,22 @@ class RecipePage extends ConsumerWidget {
                   },
                 ),
                 const SizedBox(height: 22),
+                _RecommendationControls(
+                  query: ref.watch(recipeRecommendationQueryProvider),
+                  onSort: (sort) {
+                    ref
+                        .read(recipeRecommendationQueryProvider.notifier)
+                        .update(sort: sort);
+                    ref.read(recommendationSessionProvider.notifier).reset();
+                  },
+                  onFilter: (filter) {
+                    ref
+                        .read(recipeRecommendationQueryProvider.notifier)
+                        .update(filter: filter);
+                    ref.read(recommendationSessionProvider.notifier).reset();
+                  },
+                ),
+                const SizedBox(height: 12),
                 Row(
                   children: [
                     Expanded(
@@ -92,6 +118,7 @@ class RecipePage extends ConsumerWidget {
                     padding: const EdgeInsets.only(bottom: 10),
                     child: _RecipeMatchCard(
                       match: match,
+                      recommendation: detailsByRecipeId[match.recipe.id],
                       onOpen: () => _openRecipeDetail(context, match),
                     ),
                   ),
@@ -125,6 +152,7 @@ class RecipePage extends ConsumerWidget {
                   const SizedBox(height: 24),
                   _MoreRecipesSection(
                     matches: result.moreMatches,
+                    detailsByRecipeId: detailsByRecipeId,
                     onOpen: (match) => _openRecipeDetail(context, match),
                   ),
                 ],
@@ -393,10 +421,72 @@ class _HeroIngredientCard extends StatelessWidget {
   }
 }
 
+class _RecommendationControls extends StatelessWidget {
+  const _RecommendationControls({
+    required this.query,
+    required this.onSort,
+    required this.onFilter,
+  });
+
+  final RecipeRecommendationQuery query;
+  final ValueChanged<RecommendationSort> onSort;
+  final ValueChanged<RecommendationFilter> onFilter;
+
+  @override
+  Widget build(BuildContext context) {
+    final minimumMatch = query.filter.minimumMatchPercent;
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        ChoiceChip(
+          label: const Text('ทั้งหมด'),
+          selected: minimumMatch == null,
+          onSelected: (_) => onFilter(const RecommendationFilter()),
+        ),
+        ChoiceChip(
+          label: const Text('ตรง ≥ 75%'),
+          selected: minimumMatch == 75,
+          onSelected: (_) =>
+              onFilter(const RecommendationFilter(minimumMatchPercent: 75)),
+        ),
+        ChoiceChip(
+          label: const Text('พร้อมครบ 100%'),
+          selected: minimumMatch == 100,
+          onSelected: (_) =>
+              onFilter(const RecommendationFilter(minimumMatchPercent: 100)),
+        ),
+        PopupMenuButton<RecommendationSort>(
+          initialValue: query.sort,
+          onSelected: onSort,
+          itemBuilder: (context) => RecommendationSort.values
+              .map(
+                (sort) => PopupMenuItem<RecommendationSort>(
+                  value: sort,
+                  child: Text(_sortLabel(sort)),
+                ),
+              )
+              .toList(growable: false),
+          child: Chip(
+            avatar: const Icon(Icons.sort, size: 18),
+            label: Text(_sortLabel(query.sort)),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _MoreRecipesSection extends StatelessWidget {
-  const _MoreRecipesSection({required this.matches, required this.onOpen});
+  const _MoreRecipesSection({
+    required this.matches,
+    required this.detailsByRecipeId,
+    required this.onOpen,
+  });
 
   final List<RecipeMatch> matches;
+  final Map<String, RecipeRecommendation> detailsByRecipeId;
   final ValueChanged<RecipeMatch> onOpen;
 
   @override
@@ -417,6 +507,7 @@ class _MoreRecipesSection extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 8),
                 child: _RecipeMatchCard(
                   match: match,
+                  recommendation: detailsByRecipeId[match.recipe.id],
                   compact: true,
                   onOpen: () => onOpen(match),
                 ),
@@ -432,10 +523,12 @@ class _RecipeMatchCard extends StatelessWidget {
   const _RecipeMatchCard({
     required this.match,
     required this.onOpen,
+    this.recommendation,
     this.compact = false,
   });
 
   final RecipeMatch match;
+  final RecipeRecommendation? recommendation;
   final VoidCallback onOpen;
   final bool compact;
 
@@ -486,13 +579,23 @@ class _RecipeMatchCard extends StatelessWidget {
                             icon: Icons.groups_2_outlined,
                             label: 'เลือกจำนวนคน',
                           ),
+                        ...?recommendation?.badges
+                            .take(2)
+                            .map(
+                              (badge) => _InfoChip(
+                                icon: _badgeIcon(badge),
+                                label: _badgeLabel(badge),
+                              ),
+                            ),
                       ],
                     ),
                   ],
                 ),
               ),
               const SizedBox(width: 10),
-              _ScoreBadge(score: match.scorePercent),
+              _ScoreBadge(
+                score: recommendation?.scorePercent ?? match.scorePercent,
+              ),
               const SizedBox(width: 2),
               const Icon(Icons.chevron_right),
             ],
@@ -655,4 +758,37 @@ IconData _selectionIcon(HeroSelectionMode mode) {
     case HeroSelectionMode.pinned:
       return Icons.push_pin;
   }
+}
+
+String _sortLabel(RecommendationSort sort) {
+  return switch (sort) {
+    RecommendationSort.bestMatch => 'ตรงกับ Pantry มากที่สุด',
+    RecommendationSort.highestScore => 'คะแนนแนะนำสูงสุด',
+    RecommendationSort.fastest => 'ทำเร็วที่สุด',
+    RecommendationSort.leastMissing => 'ขาดน้อยที่สุด',
+    RecommendationSort.mostPantryUsed => 'ใช้ของใน Pantry มากที่สุด',
+    RecommendationSort.newest => 'สูตรใหม่ที่สุด',
+  };
+}
+
+String _badgeLabel(RecommendationBadge badge) {
+  return switch (badge) {
+    RecommendationBadge.perfectMatch => 'พร้อมครบ',
+    RecommendationBadge.pantryFriendly => 'Pantry Friendly',
+    RecommendationBadge.quickMeal => 'เมนูด่วน',
+    RecommendationBadge.fewMissing => 'ขาดเพียงเล็กน้อย',
+    RecommendationBadge.usesExpiringIngredients => 'ใช้ของใกล้หมดอายุ',
+    RecommendationBadge.healthyChoice => 'ทางเลือกสุขภาพ',
+  };
+}
+
+IconData _badgeIcon(RecommendationBadge badge) {
+  return switch (badge) {
+    RecommendationBadge.perfectMatch => Icons.verified_outlined,
+    RecommendationBadge.pantryFriendly => Icons.kitchen_outlined,
+    RecommendationBadge.quickMeal => Icons.bolt_outlined,
+    RecommendationBadge.fewMissing => Icons.shopping_basket_outlined,
+    RecommendationBadge.usesExpiringIngredients => Icons.event_outlined,
+    RecommendationBadge.healthyChoice => Icons.eco_outlined,
+  };
 }
