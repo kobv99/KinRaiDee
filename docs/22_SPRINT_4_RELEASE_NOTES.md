@@ -2,6 +2,8 @@
 
 ## Added
 
+- Raw-rice-first recipes for `ข้าวผัดไข่`, `ข้าวหน้าหมูกระเทียม`, and
+  `ข้าวต้มหมู`, including the rice cooking workflow.
 - Versioned JSON Ingredient Substitution Knowledge Base.
 - Cached Knowledge Base loader and replaceable repository boundary.
 - Deterministic compatibility calculation and multi-substitute ranking.
@@ -55,6 +57,10 @@
 
 ## Fixed
 
+- `ข้าวสาร` can now unlock relevant recommendations instead of depending on
+  recipes mapped only to cooked `ข้าวสวย`.
+- Raw and cooked rice remain distinct canonical ingredients; recommendation
+  coverage is supplied by recipe data rather than engine-specific hardcoding.
 - No substitution facts are hardcoded in service or UI logic.
 - Accepted substitutions no longer cause recommendation cards to disappear.
 - Substitution cards display localized Thai ingredient names instead of

@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/features/recipe/data/datasources/local_recipe_datasource.dart';
+import 'package:mobile/features/recipe/domain/entities/recipe_ingredient.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -21,6 +22,9 @@ void main() {
       final saltedEggRecipes = recipes
           .where((recipe) => recipe.resolvedHeroIngredientId == 'salted_egg')
           .toList(growable: false);
+      final rawRiceRecipes = recipes
+          .where((recipe) => recipe.resolvedHeroIngredientId == 'raw_rice')
+          .toList(growable: false);
 
       expect(recipes.length, greaterThanOrEqualTo(158));
       expect(ids.length, recipes.length);
@@ -28,7 +32,28 @@ void main() {
       expect(beefRecipes, hasLength(20));
       expect(fishRecipes, hasLength(20));
       expect(saltedEggRecipes, hasLength(12));
+      expect(
+        rawRiceRecipes.map((recipe) => recipe.id),
+        containsAll(<String>[
+          'raw_rice_egg_fried_rice',
+          'raw_rice_garlic_pork_bowl',
+          'raw_rice_porridge',
+        ]),
+        reason: 'Raw rice must unlock recipes that start from uncooked rice',
+      );
+      for (final recipe in rawRiceRecipes) {
+        expect(
+          recipe.ingredients.any(
+            (ingredient) =>
+                ingredient.canonicalIngredientId == 'raw_rice' &&
+                ingredient.role == RecipeIngredientRole.primary,
+          ),
+          isTrue,
+          reason: '${recipe.id} must declare raw_rice as a Primary ingredient',
+        );
+      }
       for (final canonicalId in <String>[
+        'raw_rice',
         'rice',
         'mackerel',
         'tilapia',

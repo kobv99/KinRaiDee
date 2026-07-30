@@ -1,5 +1,33 @@
 # Sprint 4 Manual Test Guide
 
+## Feature: Raw Rice Recipe Recommendations
+
+### Test Steps
+
+1. Open Pantry and add `ข้าวสาร`.
+2. Keep `ข้าวสาร` in Pantry without adding `ข้าวสวย`.
+3. Open the recipe recommendation screen.
+4. Inspect the suggested recipes and open each raw-rice recipe detail.
+
+### Expected Result
+
+- The recommendations include `ข้าวผัดไข่`, `ข้าวหน้าหมูกระเทียม`, and
+  `ข้าวต้มหมู`.
+- Each recipe treats `ข้าวสาร` as a Primary ingredient and includes the
+  required rice cooking step.
+- Missing secondary ingredients may reduce readiness, but must not remove
+  these recipes from the candidate list.
+- `ข้าวสาร` and `ข้าวสวย` remain separate canonical ingredients.
+- No console errors or layout overflow occur.
+
+### Possible Regression Areas
+
+- Pantry ingredient selection and search
+- Recipe candidate ranking
+- Recipe readiness
+- Recipe detail instructions
+- Canonical ingredient resolution
+
 Product Owner tests with `flutter run -d web-server`.
 
 ## Feature: Knowledge-based recommendations
