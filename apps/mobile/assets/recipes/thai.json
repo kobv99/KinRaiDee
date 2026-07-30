@@ -37,7 +37,7 @@
     "emoji": "🍚",
     "servings": 2,
     "ingredients": [
-      {"id": "rice", "name": "ข้าวสวย", "quantity": 1, "unit": "ถ้วย", "required": true, "aliases": ["ข้าว"]},
+      {"id": "rice", "name": "ข้าวสวย", "quantity": 1, "unit": "ถ้วย", "required": true, "role": "primary", "weight": 40, "aliases": ["ข้าว"]},
       {"id": "pork", "name": "หมู", "quantity": 120, "unit": "กรัม", "required": true, "aliases": ["หมูสับ", "เนื้อหมู"]},
       {"id": "egg", "name": "ไข่ไก่", "quantity": 1, "unit": "ฟอง", "required": true, "aliases": ["ไข่"]},
       {"id": "soy_sauce", "name": "ซีอิ๊วขาว", "quantity": 1, "unit": "ช้อนโต๊ะ", "required": true, "aliases": ["ซีอิ๊ว", "โชยุ"]},

@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/features/recipe/domain/entities/recipe.dart';
 import 'package:mobile/features/recipe/domain/entities/recipe_ingredient.dart';
 import 'package:mobile/features/recipe/presentation/pages/recipe_detail_page.dart';
+import 'package:mobile/features/substitution/domain/entities/ingredient_substitution.dart';
+import 'package:mobile/features/substitution/domain/repositories/ingredient_substitution_repository.dart';
 
 import '../../../support/shopping_ui_test_support.dart';
 
@@ -94,7 +96,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('โหมดทำอาหาร'), findsOneWidget);
-    expect(find.text('ขั้นตอน 1'), findsOneWidget);
+    expect(find.textContaining('ขั้นตอน 1 จาก 1'), findsOneWidget);
   });
 
   testWidgets('compact and expanded advisory do not overflow small screens', (
@@ -142,6 +144,72 @@ void main() {
     expect(find.text('เราแนะนำให้เตรียมเพิ่ม'), findsOneWidget);
     expect(find.text('เริ่มทำอาหารสำหรับ 2 คน'), findsOneWidget);
   });
+
+  testWidgets(
+    'accept substitute updates readiness, confirms the action, and does not overflow',
+    (tester) async {
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final now = DateTime.utc(2026, 7, 28, 8);
+      final harness = await ShoppingUiHarness.create(
+        at: now,
+        substitutionRepository: const _SubstitutionRepository(),
+        pantry: [
+          testPantryLot(
+            id: 'soy-lot',
+            canonicalId: 'soy_sauce',
+            name: 'ซีอิ๊วขาว',
+            quantity: 2,
+            unit: 'tablespoon',
+            now: now,
+          ),
+        ],
+      );
+      addTearDown(harness.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: harness.container,
+          child: MaterialApp(
+            theme: ThemeData(useMaterial3: true),
+            home: const RecipeDetailPage(recipe: _substitutionRecipe),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('recipe-substitution-collapsed')),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('recipe-substitution-collapsed')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('recipe-substitution-panel')),
+        findsOneWidget,
+      );
+      expect(find.text('น้ำปลา'), findsOneWidget);
+      expect(find.text('ซีอิ๊วขาว'), findsWidgets);
+
+      final acceptButton = find.byKey(
+        const ValueKey('accept-substitution-fish_sauce-soy_sauce'),
+      );
+      await tester.ensureVisible(acceptButton);
+      await tester.pumpAndSettle();
+      await tester.tap(acceptButton);
+      await tester.pumpAndSettle();
+
+      expect(find.text('ใช้ตัวเลือกนี้แล้ว'), findsOneWidget);
+      expect(find.text('เลือกใช้ ซีอิ๊วขาว แทน น้ำปลา'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
 
 void _expectNoHorizontalOverflow(
@@ -248,6 +316,60 @@ Future<void> _pumpRecipe(WidgetTester tester, ShoppingUiHarness harness) async {
     ),
   );
   await tester.pumpAndSettle();
+}
+
+const Recipe _substitutionRecipe = Recipe(
+  id: 'substitution-recipe',
+  name: 'สูตรทดสอบ',
+  category: 'test',
+  servings: 1,
+  supportsSubstitutions: true,
+  heroIngredientId: 'egg',
+  ingredients: <RecipeIngredient>[
+    RecipeIngredient(
+      id: 'egg',
+      name: 'ไข่ไก่',
+      quantity: 1,
+      unit: 'piece',
+      role: RecipeIngredientRole.primary,
+      weight: 60,
+    ),
+    RecipeIngredient(
+      id: 'fish_sauce',
+      name: 'น้ำปลา',
+      quantity: 1,
+      unit: 'tablespoon',
+      role: RecipeIngredientRole.secondary,
+      weight: 40,
+    ),
+  ],
+  steps: <String>['ปรุงอาหาร'],
+);
+
+class _SubstitutionRepository implements IngredientSubstitutionRepository {
+  const _SubstitutionRepository();
+
+  @override
+  Future<List<IngredientSubstitution>> getAll() async {
+    return <IngredientSubstitution>[
+      IngredientSubstitution(
+        id: 'fish-sauce-to-soy-sauce',
+        originalIngredientId: 'fish_sauce',
+        substituteIngredientId: 'soy_sauce',
+        confidence: 0.86,
+        flavorSimilarity: 0.78,
+        textureSimilarity: 1,
+        cookingMethodCompatibility: 0.92,
+        suitableDishes: const <String>['ผัด'],
+        unsuitableDishes: const <String>[],
+        category: 'seasoning',
+        notes: 'ให้รสเค็มและอูมามิใกล้เคียง',
+        flavorDifference: 'มีกลิ่นถั่วเหลือง',
+        textureDifference: 'ใกล้เคียงกัน',
+        limitations: 'ควรชิมก่อนเพิ่ม',
+      ),
+    ];
+  }
 }
 
 const Recipe _recipe = Recipe(

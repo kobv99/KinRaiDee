@@ -75,6 +75,17 @@ void main() {
     expect(candidates.first.scorePercent, 55);
     expect(candidates.last.scorePercent, 20);
   });
+
+  test('rice as a declared Primary recommends fried rice', () {
+    final candidates = service.findCandidates(
+      recipes: const <Recipe>[_friedRice],
+      pantry: <Ingredient>[_pantry('rice', now)],
+      evaluatedAt: now,
+    );
+
+    expect(candidates.single.recipe.id, 'fried-rice');
+    expect(candidates.single.matchedPrimaryIngredients, hasLength(1));
+  });
 }
 
 const Recipe _padKraPao = Recipe(
@@ -156,6 +167,41 @@ const Recipe _eggSnack = Recipe(
   steps: <String>[],
 );
 
+const Recipe _friedRice = Recipe(
+  id: 'fried-rice',
+  name: 'Fried Rice',
+  category: 'test',
+  servings: 1,
+  heroIngredientId: 'rice',
+  ingredients: <RecipeIngredient>[
+    RecipeIngredient(
+      id: 'rice',
+      name: 'Rice',
+      quantity: 1,
+      unit: 'piece',
+      role: RecipeIngredientRole.primary,
+      weight: 40,
+    ),
+    RecipeIngredient(
+      id: 'egg',
+      name: 'Egg',
+      quantity: 1,
+      unit: 'piece',
+      role: RecipeIngredientRole.secondary,
+      weight: 20,
+    ),
+    RecipeIngredient(
+      id: 'soy_sauce',
+      name: 'Soy Sauce',
+      quantity: 1,
+      unit: 'piece',
+      role: RecipeIngredientRole.secondary,
+      weight: 15,
+    ),
+  ],
+  steps: <String>[],
+);
+
 Ingredient _pantry(String canonicalId, DateTime now) {
   return Ingredient(
     id: '$canonicalId-lot',
@@ -174,7 +220,15 @@ Ingredient _pantry(String canonicalId, DateTime now) {
 
 final CanonicalIngredientRegistry _registry = CanonicalIngredientRegistry(
   ingredients: <CanonicalIngredient>[
-    for (final id in <String>['pork', 'holy_basil', 'garlic', 'chili', 'egg'])
+    for (final id in <String>[
+      'pork',
+      'holy_basil',
+      'garlic',
+      'chili',
+      'egg',
+      'rice',
+      'soy_sauce',
+    ])
       CanonicalIngredient(
         id: id,
         canonicalName: id,

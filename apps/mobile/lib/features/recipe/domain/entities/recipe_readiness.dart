@@ -3,6 +3,7 @@ import 'recipe_ingredient.dart';
 
 enum RecipeIngredientReadinessStatus {
   available,
+  substituted,
   insufficient,
   missing,
   incompatibleUnit,
@@ -20,6 +21,7 @@ class RecipeIngredientReadiness {
     required this.availabilityRatio,
     required this.weight,
     required this.status,
+    this.substituteCanonicalIngredientId,
   });
 
   final RecipeIngredient ingredient;
@@ -30,12 +32,17 @@ class RecipeIngredientReadiness {
   final double availabilityRatio;
   final double weight;
   final RecipeIngredientReadinessStatus status;
+  final String? substituteCanonicalIngredientId;
 
   RecipeIngredientRole get role => ingredient.effectiveRole();
   bool get isPrimary => role == RecipeIngredientRole.primary;
   bool get isSecondary => role == RecipeIngredientRole.secondary;
   bool get isOptional => role == RecipeIngredientRole.optional;
-  bool get isAvailable => status == RecipeIngredientReadinessStatus.available;
+  bool get isAvailable =>
+      status == RecipeIngredientReadinessStatus.available ||
+      status == RecipeIngredientReadinessStatus.substituted;
+  bool get isSubstituted =>
+      status == RecipeIngredientReadinessStatus.substituted;
   bool get needsShopping => !isOptional && !isAvailable;
 }
 
@@ -59,6 +66,12 @@ class RecipeReadiness {
 
   List<RecipeIngredientReadiness> get missingIngredients =>
       _select((item) => item.needsShopping);
+
+  List<RecipeIngredientReadiness> get substitutedIngredients =>
+      _select((item) => item.isSubstituted);
+
+  List<RecipeIngredientReadiness> get substitutionCandidates =>
+      _select((item) => item.needsShopping || item.isSubstituted);
 
   List<RecipeIngredientReadiness> get optionalIngredients =>
       _select((item) => item.isOptional);

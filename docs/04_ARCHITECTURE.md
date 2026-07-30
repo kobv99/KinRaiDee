@@ -236,3 +236,17 @@ Explicit Add to Shopping
   Shopping transaction workflow.
 
 See [Smart Shopping Recommendation Engine](15_SMART_SHOPPING_RECOMMENDATION.md).
+
+---
+
+## Ingredient Substitution Knowledge Layer
+
+Substitution knowledge is a versioned JSON asset loaded once through
+`KnowledgeBaseLoader`. `IngredientSubstitutionRepository` isolates storage from
+domain consumers. `IngredientSubstitutionService`,
+`IngredientCompatibilityCalculator`, and `SubstitutionRankingService` own
+candidate selection, scoring, deterministic ordering, Pantry-first priority,
+and explanations. Presentation code never contains substitution facts or
+ranking logic.
+
+See [Ingredient Substitution Knowledge Base](20_INGREDIENT_SUBSTITUTION_KNOWLEDGE_BASE.md).

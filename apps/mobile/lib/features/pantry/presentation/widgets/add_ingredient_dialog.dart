@@ -7,6 +7,7 @@ import '../../../../core/domain/ingredients/canonical_ingredient.dart';
 import '../../../../core/domain/units/unit_contract.dart';
 import '../../../../core/models/ingredient.dart';
 import '../../domain/models/food_category.dart';
+import '../../domain/models/ingredient_hierarchy.dart';
 import '../widgets/emoji_selector.dart';
 
 class AddIngredientDialog extends ConsumerStatefulWidget {
@@ -15,11 +16,13 @@ class AddIngredientDialog extends ConsumerStatefulWidget {
     this.ingredient,
     this.initialSearchQuery,
     this.initialCatalogItem,
+    this.initialHierarchy,
   });
 
   final Ingredient? ingredient;
   final String? initialSearchQuery;
   final FoodCatalogItem? initialCatalogItem;
+  final IngredientHierarchy? initialHierarchy;
 
   @override
   ConsumerState<AddIngredientDialog> createState() =>
@@ -45,6 +48,7 @@ class _AddIngredientDialogState extends ConsumerState<AddIngredientDialog> {
   String emoji = '';
   DateTime? expiryDate;
   bool _showIngredientError = false;
+  late bool _showIngredientPicker;
 
   @override
   void initState() {
@@ -52,6 +56,7 @@ class _AddIngredientDialogState extends ConsumerState<AddIngredientDialog> {
 
     final ingredient = widget.ingredient;
     final initialCatalogItem = widget.initialCatalogItem;
+    _showIngredientPicker = ingredient == null && initialCatalogItem == null;
 
     if (ingredient != null) {
       quantityController.text = ingredient.quantity.toString();
@@ -149,6 +154,7 @@ class _AddIngredientDialogState extends ConsumerState<AddIngredientDialog> {
     String selectedCategory,
     String selectedName,
     String selectedEmoji,
+    String canonicalIngredientId,
   ) {
     final previousCanonicalId = _canonicalIngredientId;
     final previousUnitId = _selectedUnitId;
@@ -156,9 +162,13 @@ class _AddIngredientDialogState extends ConsumerState<AddIngredientDialog> {
     category = selectedCategory;
     name = selectedName;
     emoji = selectedEmoji;
+    _canonicalIngredientId = canonicalIngredientId;
     _showIngredientError = false;
+    _showIngredientPicker = false;
 
-    final canonical = _resolveCanonicalIngredient();
+    final canonical = _resolveCanonicalIngredient(
+      preferredId: canonicalIngredientId,
+    );
     _setRecommendations(canonical);
     final ingredientChanged =
         previousCanonicalId == null ||
@@ -298,27 +308,33 @@ class _AddIngredientDialogState extends ConsumerState<AddIngredientDialog> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                EmojiSelector(
-                  initialName:
-                      widget.ingredient?.name ??
-                      widget.initialCatalogItem?.item.name,
-                  initialSearchQuery:
-                      widget.ingredient == null &&
-                          widget.initialCatalogItem == null
-                      ? widget.initialSearchQuery
-                      : null,
-                  onSelected: (selectedCategory, selectedName, selectedEmoji) {
-                    setState(() {
-                      _ingredientSelected(
-                        selectedCategory,
-                        selectedName,
-                        selectedEmoji,
-                      );
-                    });
-                  },
-                ),
-                const SizedBox(height: 20),
-                if (name.isNotEmpty)
+                if (_showIngredientPicker)
+                  EmojiSelector(
+                    initialSearchQuery: widget.initialSearchQuery,
+                    initialHierarchy: widget.initialHierarchy,
+                    onSelected:
+                        (
+                          selectedCategory,
+                          selectedName,
+                          selectedEmoji,
+                          canonicalIngredientId,
+                        ) {
+                          setState(() {
+                            _ingredientSelected(
+                              selectedCategory,
+                              selectedName,
+                              selectedEmoji,
+                              canonicalIngredientId,
+                            );
+                          });
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (mounted) {
+                              _quantityFocusNode.requestFocus();
+                            }
+                          });
+                        },
+                  )
+                else ...[
                   Card(
                     child: ListTile(
                       leading: Text(
@@ -327,135 +343,149 @@ class _AddIngredientDialogState extends ConsumerState<AddIngredientDialog> {
                       ),
                       title: Text(name),
                       subtitle: Text(category),
-                      trailing: const Icon(Icons.check_circle_rounded),
+                      trailing: widget.ingredient == null
+                          ? TextButton(
+                              key: const Key('change-ingredient'),
+                              onPressed: () {
+                                setState(() {
+                                  _showIngredientPicker = true;
+                                });
+                              },
+                              child: const Text('เปลี่ยน'),
+                            )
+                          : const Icon(Icons.check_circle_rounded),
                     ),
                   ),
-                if (_showIngredientError) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    'กรุณาเลือกวัตถุดิบ',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 10),
-                TextFormField(
-                  controller: quantityController,
-                  focusNode: _quantityFocusNode,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  textInputAction: TextInputAction.next,
-                  autovalidateMode: AutovalidateMode.onUserInteraction,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(
-                      RegExp(r'^\d*\.?\d{0,2}$'),
-                    ),
-                  ],
-                  validator: _validateQuantity,
-                  decoration: const InputDecoration(
-                    labelText: 'จำนวน',
-                    hintText: 'ระบุจำนวน',
-                  ),
-                  onFieldSubmitted: (_) {
-                    _submit();
-                  },
-                ),
-                const SizedBox(height: 10),
-                DropdownButtonFormField<String>(
-                  key: ValueKey<String>(
-                    'ingredient-primary-unit-$_unitSelectorRevision',
-                  ),
-                  initialValue: _showOtherUnitPicker
-                      ? _otherUnitAction
-                      : _selectedUnitId,
-                  isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'หน่วยที่แนะนำ'),
-                  items: <DropdownMenuItem<String>>[
-                    for (final definition in _recommendedUnitDefinitions)
-                      DropdownMenuItem<String>(
-                        value: definition.id,
-                        child: Text(definition.displayName),
+                  if (_showIngredientError) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'กรุณาเลือกวัตถุดิบ',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                        fontSize: 12,
                       ),
-                    const DropdownMenuItem<String>(
-                      value: _otherUnitAction,
-                      child: Text('Other unit…'),
                     ),
                   ],
-                  onChanged: (value) {
-                    if (value == null) {
-                      return;
-                    }
-
-                    setState(() {
-                      if (value == _otherUnitAction) {
-                        _showOtherUnitPicker = true;
-                        _unitSelectorRevision++;
-                      } else {
-                        _selectUnitId(value);
-                      }
-                    });
-                  },
-                ),
-                if (_showOtherUnitPicker) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
+                  TextFormField(
+                    key: const Key('ingredient-quantity-field'),
+                    controller: quantityController,
+                    focusNode: _quantityFocusNode,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    textInputAction: TextInputAction.next,
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r'^\d*\.?\d{0,2}$'),
+                      ),
+                    ],
+                    validator: _validateQuantity,
+                    decoration: const InputDecoration(
+                      labelText: 'จำนวน',
+                      hintText: 'ระบุจำนวน',
+                    ),
+                    onFieldSubmitted: (_) {
+                      _submit();
+                    },
+                  ),
+                  const SizedBox(height: 10),
                   DropdownButtonFormField<String>(
                     key: ValueKey<String>(
-                      'ingredient-other-unit-$_unitSelectorRevision',
+                      'ingredient-primary-unit-$_unitSelectorRevision',
                     ),
-                    initialValue: _selectedUnitId ?? _legacyUnitValue,
+                    initialValue: _showOtherUnitPicker
+                        ? _otherUnitAction
+                        : _selectedUnitId,
                     isExpanded: true,
                     decoration: const InputDecoration(
-                      labelText: 'Other unit…',
-                      helperText:
-                          'ใช้เมื่อหน่วยที่บันทึกไว้หรือกรณีพิเศษไม่อยู่ในรายการแนะนำ',
+                      labelText: 'หน่วยที่แนะนำ',
                     ),
                     items: <DropdownMenuItem<String>>[
-                      if (_selectedUnitId == null && unit.trim().isNotEmpty)
-                        DropdownMenuItem<String>(
-                          value: _legacyUnitValue,
-                          child: Text('$unit (หน่วยเดิม)'),
-                        ),
-                      for (final definition in _allUnitDefinitions)
+                      for (final definition in _recommendedUnitDefinitions)
                         DropdownMenuItem<String>(
                           value: definition.id,
                           child: Text(definition.displayName),
                         ),
+                      const DropdownMenuItem<String>(
+                        value: _otherUnitAction,
+                        child: Text('Other unit…'),
+                      ),
                     ],
                     onChanged: (value) {
-                      if (value == null || value == _legacyUnitValue) {
+                      if (value == null) {
                         return;
                       }
+
                       setState(() {
-                        _selectUnitId(value, showOther: true);
+                        if (value == _otherUnitAction) {
+                          _showOtherUnitPicker = true;
+                          _unitSelectorRevision++;
+                        } else {
+                          _selectUnitId(value);
+                        }
                       });
                     },
                   ),
-                ],
-                const SizedBox(height: 10),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.calendar_month),
-                  title: Text(
-                    expiryDate == null
-                        ? 'เลือกวันหมดอายุ (ไม่บังคับ)'
-                        : 'หมดอายุ ${expiryDate!.day}/${expiryDate!.month}/${expiryDate!.year}',
+                  if (_showOtherUnitPicker) ...[
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      key: ValueKey<String>(
+                        'ingredient-other-unit-$_unitSelectorRevision',
+                      ),
+                      initialValue: _selectedUnitId ?? _legacyUnitValue,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Other unit…',
+                        helperText:
+                            'ใช้เมื่อหน่วยที่บันทึกไว้หรือกรณีพิเศษไม่อยู่ในรายการแนะนำ',
+                      ),
+                      items: <DropdownMenuItem<String>>[
+                        if (_selectedUnitId == null && unit.trim().isNotEmpty)
+                          DropdownMenuItem<String>(
+                            value: _legacyUnitValue,
+                            child: Text('$unit (หน่วยเดิม)'),
+                          ),
+                        for (final definition in _allUnitDefinitions)
+                          DropdownMenuItem<String>(
+                            value: definition.id,
+                            child: Text(definition.displayName),
+                          ),
+                      ],
+                      onChanged: (value) {
+                        if (value == null || value == _legacyUnitValue) {
+                          return;
+                        }
+                        setState(() {
+                          _selectUnitId(value, showOther: true);
+                        });
+                      },
+                    ),
+                  ],
+                  const SizedBox(height: 10),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.calendar_month),
+                    title: Text(
+                      expiryDate == null
+                          ? 'เลือกวันหมดอายุ (ไม่บังคับ)'
+                          : 'หมดอายุ ${expiryDate!.day}/${expiryDate!.month}/${expiryDate!.year}',
+                    ),
+                    trailing: expiryDate == null
+                        ? null
+                        : IconButton(
+                            tooltip: 'ล้างวันหมดอายุ',
+                            onPressed: () {
+                              setState(() {
+                                expiryDate = null;
+                              });
+                            },
+                            icon: const Icon(Icons.close_rounded),
+                          ),
+                    onTap: pickExpiryDate,
                   ),
-                  trailing: expiryDate == null
-                      ? null
-                      : IconButton(
-                          tooltip: 'ล้างวันหมดอายุ',
-                          onPressed: () {
-                            setState(() {
-                              expiryDate = null;
-                            });
-                          },
-                          icon: const Icon(Icons.close_rounded),
-                        ),
-                  onTap: pickExpiryDate,
-                ),
+                ],
               ],
             ),
           ),
@@ -468,12 +498,13 @@ class _AddIngredientDialogState extends ConsumerState<AddIngredientDialog> {
           },
           child: const Text('ยกเลิก'),
         ),
-        ElevatedButton(
-          onPressed: _submit,
-          child: Text(
-            widget.ingredient == null ? 'เพิ่มเข้า Pantry' : 'บันทึก',
+        if (!_showIngredientPicker)
+          ElevatedButton(
+            onPressed: _submit,
+            child: Text(
+              widget.ingredient == null ? 'เพิ่มเข้า Pantry' : 'บันทึก',
+            ),
           ),
-        ),
       ],
     );
   }

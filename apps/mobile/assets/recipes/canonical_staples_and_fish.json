@@ -1,0 +1,283 @@
+[
+  {
+    "version": 2,
+    "id": "steamed_rice",
+    "name": "ข้าวสวย",
+    "category": "อาหารหลัก",
+    "description": "ข้าวหุงสุกสำหรับรับประทานคู่กับอาหารไทย",
+    "emoji": "🍚",
+    "servings": 2,
+    "supportsSubstitutions": false,
+    "heroIngredientId": "rice",
+    "ingredients": [
+      {"id": "rice", "name": "ข้าวสวย", "quantity": 2, "unit": "ถ้วย", "role": "primary", "weight": 100}
+    ],
+    "steps": ["เตรียมข้าวสวยให้เพียงพอสำหรับจำนวนเสิร์ฟ", "อุ่นข้าวให้ร้อนและตักเสิร์ฟ"]
+  },
+  {
+    "version": 2,
+    "id": "rice_porridge",
+    "name": "ข้าวต้ม",
+    "category": "อาหารจานเดียว",
+    "description": "ข้าวต้มร้อน ๆ จากข้าวสวย",
+    "emoji": "🥣",
+    "servings": 2,
+    "supportsSubstitutions": true,
+    "heroIngredientId": "rice",
+    "ingredients": [
+      {"id": "rice", "name": "ข้าวสวย", "quantity": 1, "unit": "ถ้วย", "role": "primary", "weight": 55},
+      {"id": "soy_sauce", "name": "ซีอิ๊วขาว", "quantity": 1, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 15},
+      {"id": "spring_onion", "name": "ต้นหอม", "quantity": 1, "unit": "ต้น", "role": "optional", "weight": 5, "required": false}
+    ],
+    "steps": ["ต้มข้าวกับน้ำจนเมล็ดข้าวนุ่ม", "ปรุงด้วยซีอิ๊วขาว", "โรยต้นหอมตามชอบ"]
+  },
+  {
+    "version": 2,
+    "id": "fried_mackerel",
+    "name": "ปลาทูทอด",
+    "category": "อาหารไทย",
+    "description": "ปลาทูทอดแบบเรียบง่าย",
+    "emoji": "🐟",
+    "servings": 2,
+    "supportsSubstitutions": true,
+    "heroIngredientId": "mackerel",
+    "ingredients": [
+      {"id": "mackerel", "name": "ปลาทู", "quantity": 2, "unit": "ตัว", "role": "primary", "weight": 70},
+      {"id": "cooking_oil", "name": "น้ำมันพืช", "quantity": 3, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 15}
+    ],
+    "steps": ["ซับปลาทูให้แห้ง", "ทอดด้วยไฟกลางจนเหลืองกรอบทั้งสองด้าน"]
+  },
+  {
+    "version": 2,
+    "id": "mackerel_chili_paste",
+    "name": "น้ำพริกปลาทู",
+    "category": "อาหารไทย",
+    "description": "น้ำพริกไทยรสจัดเสิร์ฟพร้อมปลาทู",
+    "emoji": "🌶️",
+    "servings": 2,
+    "supportsSubstitutions": true,
+    "heroIngredientId": "mackerel",
+    "ingredients": [
+      {"id": "mackerel", "name": "ปลาทู", "quantity": 2, "unit": "ตัว", "role": "primary", "weight": 55},
+      {"id": "chili", "name": "พริก", "quantity": 5, "unit": "เม็ด", "role": "secondary", "weight": 15},
+      {"id": "garlic", "name": "กระเทียม", "quantity": 4, "unit": "กลีบ", "role": "secondary", "weight": 10},
+      {"id": "lime", "name": "มะนาว", "quantity": 1, "unit": "ลูก", "role": "secondary", "weight": 10},
+      {"id": "fish_sauce", "name": "น้ำปลา", "quantity": 1, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 10}
+    ],
+    "steps": ["ทอดปลาทูแล้วแกะเนื้อ", "โขลกพริกและกระเทียม", "ใส่เนื้อปลาและปรุงด้วยมะนาวกับน้ำปลา"]
+  },
+  {
+    "version": 2,
+    "id": "fried_sea_bass",
+    "name": "ปลากะพงทอด",
+    "category": "อาหารไทย",
+    "description": "ปลากะพงทอดกรอบ",
+    "emoji": "🐟",
+    "servings": 2,
+    "supportsSubstitutions": true,
+    "heroIngredientId": "sea_bass",
+    "ingredients": [
+      {"id": "sea_bass", "name": "ปลากะพง", "quantity": 1, "unit": "ตัว", "role": "primary", "weight": 70},
+      {"id": "cooking_oil", "name": "น้ำมันพืช", "quantity": 4, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 15},
+      {"id": "fish_sauce", "name": "น้ำปลา", "quantity": 1, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 15}
+    ],
+    "steps": ["ซับปลากะพงให้แห้ง", "ทอดจนสุกและหนังกรอบ", "ปรุงรสด้วยน้ำปลา"]
+  },
+  {
+    "version": 2,
+    "id": "steamed_sea_bass_lime",
+    "name": "ปลากะพงนึ่งมะนาว",
+    "category": "อาหารไทย",
+    "description": "ปลากะพงนึ่งรสเปรี้ยวเผ็ด",
+    "emoji": "🍋",
+    "servings": 2,
+    "supportsSubstitutions": true,
+    "heroIngredientId": "sea_bass",
+    "ingredients": [
+      {"id": "sea_bass", "name": "ปลากะพง", "quantity": 1, "unit": "ตัว", "role": "primary", "weight": 55},
+      {"id": "lime", "name": "มะนาว", "quantity": 2, "unit": "ลูก", "role": "secondary", "weight": 15},
+      {"id": "garlic", "name": "กระเทียม", "quantity": 5, "unit": "กลีบ", "role": "secondary", "weight": 10},
+      {"id": "chili", "name": "พริก", "quantity": 5, "unit": "เม็ด", "role": "secondary", "weight": 10},
+      {"id": "fish_sauce", "name": "น้ำปลา", "quantity": 1, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 10}
+    ],
+    "steps": ["นึ่งปลากะพงจนสุก", "ผสมน้ำมะนาว กระเทียม พริก และน้ำปลา", "ราดน้ำปรุงบนปลาแล้วเสิร์ฟ"]
+  },
+  {
+    "version": 2,
+    "id": "spicy_sea_bass_soup",
+    "name": "ต้มแซ่บปลากะพง",
+    "category": "อาหารไทย",
+    "description": "ต้มปลากะพงรสเปรี้ยวเผ็ดหอมสมุนไพร",
+    "emoji": "🍲",
+    "servings": 2,
+    "supportsSubstitutions": true,
+    "heroIngredientId": "sea_bass",
+    "ingredients": [
+      {"id": "sea_bass", "name": "ปลากะพง", "quantity": 1, "unit": "ตัว", "role": "primary", "weight": 50},
+      {"id": "lemongrass", "name": "ตะไคร้", "quantity": 2, "unit": "ต้น", "role": "secondary", "weight": 10},
+      {"id": "galangal", "name": "ข่า", "quantity": 5, "unit": "แว่น", "role": "secondary", "weight": 10},
+      {"id": "kaffir_lime_leaf", "name": "ใบมะกรูด", "quantity": 4, "unit": "ใบ", "role": "secondary", "weight": 10},
+      {"id": "lime", "name": "มะนาว", "quantity": 2, "unit": "ลูก", "role": "secondary", "weight": 10},
+      {"id": "fish_sauce", "name": "น้ำปลา", "quantity": 1, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 10}
+    ],
+    "steps": ["ต้มน้ำกับตะไคร้ ข่า และใบมะกรูด", "ใส่ปลากะพงและต้มจนสุก", "ปิดไฟแล้วปรุงด้วยมะนาวและน้ำปลา"]
+  },
+  {
+    "version": 2,
+    "id": "fried_tilapia_garlic",
+    "name": "ปลานิลทอดกระเทียม",
+    "category": "อาหารไทย",
+    "description": "ปลานิลทอดกรอบเสิร์ฟพร้อมกระเทียมหอม",
+    "emoji": "🐟",
+    "servings": 2,
+    "supportsSubstitutions": true,
+    "heroIngredientId": "tilapia",
+    "ingredients": [
+      {"id": "tilapia", "name": "ปลานิล", "quantity": 1, "unit": "ตัว", "role": "primary", "weight": 65},
+      {"id": "garlic", "name": "กระเทียม", "quantity": 8, "unit": "กลีบ", "role": "secondary", "weight": 15},
+      {"id": "fish_sauce", "name": "น้ำปลา", "quantity": 1, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 10},
+      {"id": "cooking_oil", "name": "น้ำมันพืช", "quantity": 4, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 10}
+    ],
+    "steps": ["ขอดเกล็ด ล้าง และซับปลานิลให้แห้ง", "ทอดปลาด้วยไฟกลางจนสุกและกรอบทั้งสองด้าน", "เจียวกระเทียม ปรุงด้วยน้ำปลา แล้วราดบนปลา"]
+  },
+  {
+    "version": 2,
+    "id": "tilapia_tom_yum",
+    "name": "ต้มยำปลานิล",
+    "category": "อาหารไทย",
+    "description": "ต้มยำปลานิลรสเปรี้ยวเผ็ดหอมสมุนไพร",
+    "emoji": "🍲",
+    "servings": 2,
+    "supportsSubstitutions": true,
+    "heroIngredientId": "tilapia",
+    "ingredients": [
+      {"id": "tilapia", "name": "ปลานิล", "quantity": 1, "unit": "ตัว", "role": "primary", "weight": 50},
+      {"id": "shallot", "name": "หอมแดง", "quantity": 3, "unit": "หัว", "role": "secondary", "weight": 8},
+      {"id": "lemongrass", "name": "ตะไคร้", "quantity": 2, "unit": "ต้น", "role": "secondary", "weight": 8},
+      {"id": "galangal", "name": "ข่า", "quantity": 5, "unit": "แว่น", "role": "secondary", "weight": 8},
+      {"id": "kaffir_lime_leaf", "name": "ใบมะกรูด", "quantity": 4, "unit": "ใบ", "role": "secondary", "weight": 8},
+      {"id": "lime", "name": "มะนาว", "quantity": 2, "unit": "ลูก", "role": "secondary", "weight": 8},
+      {"id": "fish_sauce", "name": "น้ำปลา", "quantity": 1, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 6},
+      {"id": "coriander", "name": "ผักชี", "quantity": 2, "unit": "ต้น", "role": "optional", "weight": 4, "required": false}
+    ],
+    "steps": ["ต้มน้ำกับหอมแดง ตะไคร้ ข่า และใบมะกรูดจนหอม", "ใส่ปลานิลและต้มด้วยไฟกลางจนเนื้อปลาสุก", "ปิดไฟ ปรุงด้วยมะนาวและน้ำปลา แล้วโรยผักชี"]
+  },
+  {
+    "version": 2,
+    "id": "pan_seared_salmon",
+    "name": "แซลมอนย่างกระทะ",
+    "category": "อาหารจานเดียว",
+    "description": "ปลาแซลมอนย่างกระทะรสกลมกล่อม",
+    "emoji": "🐟",
+    "servings": 2,
+    "supportsSubstitutions": true,
+    "heroIngredientId": "salmon",
+    "ingredients": [
+      {"id": "salmon", "name": "ปลาแซลมอน", "quantity": 300, "unit": "กรัม", "role": "primary", "weight": 70},
+      {"id": "soy_sauce", "name": "ซีอิ๊วขาว", "quantity": 1, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 10},
+      {"id": "garlic", "name": "กระเทียม", "quantity": 3, "unit": "กลีบ", "role": "secondary", "weight": 8},
+      {"id": "pepper", "name": "พริกไทย", "quantity": 0.5, "unit": "ช้อนชา", "role": "secondary", "weight": 6},
+      {"id": "cooking_oil", "name": "น้ำมันพืช", "quantity": 1, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 6}
+    ],
+    "steps": ["ซับปลาแซลมอนให้แห้งและหมักด้วยซีอิ๊ว กระเทียม และพริกไทย", "ย่างด้านหนังบนกระทะไฟกลางจนกรอบ", "กลับด้านและย่างต่อจนเนื้อปลาสุกตามต้องการ"]
+  },
+  {
+    "version": 2,
+    "id": "salmon_palm_sugar_glaze",
+    "name": "แซลมอนเคลือบน้ำตาลปี๊บ",
+    "category": "อาหารจานเดียว",
+    "description": "ปลาแซลมอนเคลือบซอสรสหวานเค็มแบบไทย",
+    "emoji": "🐟",
+    "servings": 2,
+    "supportsSubstitutions": true,
+    "heroIngredientId": "salmon",
+    "ingredients": [
+      {"id": "salmon", "name": "ปลาแซลมอน", "quantity": 300, "unit": "กรัม", "role": "primary", "weight": 60},
+      {"id": "palm_sugar", "name": "น้ำตาลปี๊บ", "quantity": 20, "unit": "กรัม", "role": "secondary", "weight": 12},
+      {"id": "fish_sauce", "name": "น้ำปลา", "quantity": 1, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 10},
+      {"id": "lime", "name": "มะนาว", "quantity": 1, "unit": "ลูก", "role": "secondary", "weight": 8},
+      {"id": "shallot", "name": "หอมแดง", "quantity": 2, "unit": "หัว", "role": "secondary", "weight": 6},
+      {"id": "coriander", "name": "ผักชี", "quantity": 1, "unit": "ต้น", "role": "optional", "weight": 4, "required": false}
+    ],
+    "steps": ["เคี่ยวน้ำตาลปี๊บกับน้ำปลาและหอมแดงจนเป็นซอส", "ย่างปลาแซลมอนบนกระทะจนเกือบสุก", "ทาซอสให้เคลือบปลา ปิดไฟ เติมมะนาว และโรยผักชี"]
+  },
+  {
+    "version": 3,
+    "id": "raw_rice_egg_fried_rice",
+    "name": "ข้าวผัดไข่",
+    "category": "อาหารจานเดียว",
+    "description": "ข้าวผัดไข่ที่เริ่มจากข้าวสาร หุงและพักข้าวก่อนนำไปผัด",
+    "emoji": "🍳",
+    "servings": 2,
+    "cookTimeMinutes": 45,
+    "supportsSubstitutions": true,
+    "heroIngredientId": "raw_rice",
+    "ingredients": [
+      {"id": "raw_rice", "name": "ข้าวสาร", "quantity": 1, "unit": "ถ้วย", "role": "primary", "weight": 55},
+      {"id": "egg", "name": "ไข่ไก่", "quantity": 2, "unit": "ฟอง", "role": "secondary", "weight": 20},
+      {"id": "soy_sauce", "name": "ซีอิ๊วขาว", "quantity": 1, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 10},
+      {"id": "cooking_oil", "name": "น้ำมันพืช", "quantity": 2, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 10},
+      {"id": "spring_onion", "name": "ต้นหอม", "quantity": 1, "unit": "ต้น", "role": "optional", "weight": 5, "required": false}
+    ],
+    "steps": [
+      {"title":"ซาวและหุงข้าว","instruction":"ซาวข้าวสารจนน้ำเกือบใส เติมน้ำตามชนิดข้าว แล้วหุงจนสุก","ingredientIds":["raw_rice"],"durationMinutes":25,"heatLevel":"ตามโปรแกรมหม้อหุงข้าว","completionCue":"เมล็ดข้าวสุกถึงแกนและไม่มีน้ำขัง"},
+      {"title":"พักข้าว","instruction":"เกลี่ยข้าวสุกบนถาดหรือจานกว้างให้ไอน้ำระเหย ข้าวจะได้ไม่แฉะเมื่อผัด","ingredientIds":["raw_rice"],"durationMinutes":10,"completionCue":"ข้าวอุ่นและเมล็ดแยกออกจากกัน","tip":"ข้าวที่พักจนเย็นจะผัดได้ร่วนกว่า"},
+      {"title":"ผัดไข่","instruction":"ตั้งกระทะ ใส่น้ำมัน ตอกไข่แล้วคนให้เป็นชิ้นพอดีคำ","ingredientIds":["egg","cooking_oil"],"durationMinutes":2,"heatLevel":"กลางค่อนแรง","completionCue":"ไข่เกือบสุกแต่ยังนุ่ม"},
+      {"title":"ผัดข้าว","instruction":"ใส่ข้าวที่พักแล้ว เร่งไฟและผัดให้เมล็ดข้าวกระจายทั่วกระทะ","ingredientIds":["raw_rice"],"durationMinutes":3,"heatLevel":"แรง","completionCue":"ข้าวร้อนทั่วและไม่จับเป็นก้อน"},
+      {"title":"ปรุงและเสิร์ฟ","instruction":"เติมซีอิ๊วขาว ผัดให้กระจาย ปิดไฟแล้วโรยต้นหอม","ingredientIds":["soy_sauce","spring_onion"],"durationMinutes":2,"heatLevel":"กลาง","completionCue":"สีและรสกระจายสม่ำเสมอ ไม่มีกลิ่นซีอิ๊วดิบ"}
+    ]
+  },
+  {
+    "version": 3,
+    "id": "raw_rice_garlic_pork_bowl",
+    "name": "ข้าวหน้าหมูกระเทียม",
+    "category": "อาหารจานเดียว",
+    "description": "ข้าวหุงใหม่เสิร์ฟกับหมูกระเทียมพริกไทย",
+    "emoji": "🍚",
+    "servings": 2,
+    "cookTimeMinutes": 45,
+    "supportsSubstitutions": true,
+    "heroIngredientId": "raw_rice",
+    "ingredients": [
+      {"id": "raw_rice", "name": "ข้าวสาร", "quantity": 1, "unit": "ถ้วย", "role": "primary", "weight": 45},
+      {"id": "pork", "name": "หมู (ไม่ระบุส่วน)", "quantity": 250, "unit": "กรัม", "role": "primary", "weight": 35},
+      {"id": "garlic", "name": "กระเทียม", "quantity": 8, "unit": "กลีบ", "role": "secondary", "weight": 8},
+      {"id": "soy_sauce", "name": "ซีอิ๊วขาว", "quantity": 1, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 6},
+      {"id": "pepper", "name": "พริกไทย", "quantity": 0.5, "unit": "ช้อนชา", "role": "secondary", "weight": 3},
+      {"id": "cooking_oil", "name": "น้ำมันพืช", "quantity": 1, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 3}
+    ],
+    "steps": [
+      {"title":"หุงข้าว","instruction":"ซาวข้าวสาร เติมน้ำตามชนิดข้าว และหุงจนสุก","ingredientIds":["raw_rice"],"durationMinutes":25,"heatLevel":"ตามโปรแกรมหม้อหุงข้าว","completionCue":"ข้าวสุกนุ่มถึงแกน"},
+      {"title":"หมักหมู","instruction":"คลุกหมูกับซีอิ๊วขาวครึ่งหนึ่งและพริกไทย พักให้รสซึม","ingredientIds":["pork","soy_sauce","pepper"],"durationMinutes":10,"completionCue":"เครื่องปรุงเคลือบหมูทั่ว"},
+      {"title":"เจียวกระเทียม","instruction":"ใส่น้ำมันและกระเทียมลงกระทะ ผัดจนเหลืองอ่อนแล้วตักส่วนหนึ่งพักไว้","ingredientIds":["garlic","cooking_oil"],"durationMinutes":2,"heatLevel":"กลาง","completionCue":"กระเทียมหอมและเหลืองอ่อน ไม่ไหม้"},
+      {"title":"ผัดหมู","instruction":"ใส่หมูลงกระทะ กระจายชิ้นหมูและผัดจนสุกทั่ว เติมซีอิ๊วที่เหลือ","ingredientIds":["pork","soy_sauce"],"durationMinutes":6,"heatLevel":"กลางค่อนแรง","completionCue":"หมูไม่มีส่วนดิบและซอสเคลือบผิว"},
+      {"title":"จัดข้าวหน้า","instruction":"ตักข้าวร้อนใส่จาน วางหมูกระเทียมด้านบนและโรยกระเทียมเจียว","ingredientIds":["raw_rice","pork","garlic"],"durationMinutes":2,"heatLevel":"ปิดไฟ","completionCue":"ข้าวและหมูพร้อมเสิร์ฟขณะร้อน"}
+    ]
+  },
+  {
+    "version": 3,
+    "id": "raw_rice_porridge",
+    "name": "ข้าวต้มหมู",
+    "category": "อาหารจานเดียว",
+    "description": "ข้าวต้มที่ต้มจากข้าวสารจนเมล็ดนุ่ม เสิร์ฟกับหมูและต้นหอม",
+    "emoji": "🥣",
+    "servings": 2,
+    "cookTimeMinutes": 40,
+    "supportsSubstitutions": true,
+    "heroIngredientId": "raw_rice",
+    "ingredients": [
+      {"id": "raw_rice", "name": "ข้าวสาร", "quantity": 0.75, "unit": "ถ้วย", "role": "primary", "weight": 50},
+      {"id": "pork", "name": "หมู (ไม่ระบุส่วน)", "quantity": 150, "unit": "กรัม", "role": "secondary", "weight": 25},
+      {"id": "soy_sauce", "name": "ซีอิ๊วขาว", "quantity": 1, "unit": "ช้อนโต๊ะ", "role": "secondary", "weight": 10},
+      {"id": "pepper", "name": "พริกไทย", "quantity": 0.5, "unit": "ช้อนชา", "role": "optional", "weight": 5, "required": false},
+      {"id": "spring_onion", "name": "ต้นหอม", "quantity": 1, "unit": "ต้น", "role": "optional", "weight": 5, "required": false}
+    ],
+    "steps": [
+      {"title":"ซาวข้าว","instruction":"ซาวข้าวสารหนึ่งถึงสองน้ำแล้วสะเด็ดน้ำ","ingredientIds":["raw_rice"],"durationMinutes":3,"completionCue":"ไม่มีฝุ่นหรือสิ่งแปลกปลอมในข้าว"},
+      {"title":"ต้มข้าว","instruction":"ใส่ข้าวกับน้ำในหม้อ ต้มจนเดือดแล้วลดไฟ เคี่ยวพร้อมคนเป็นระยะ","ingredientIds":["raw_rice"],"durationMinutes":25,"heatLevel":"อ่อน","completionCue":"เมล็ดข้าวบานและน้ำข้าวข้นเล็กน้อย"},
+      {"title":"ใส่หมู","instruction":"ใส่หมูเป็นชิ้นพอดีคำลงในน้ำข้าวที่เดือดอ่อน ๆ และช้อนฟองออก","ingredientIds":["pork"],"durationMinutes":6,"heatLevel":"กลาง","completionCue":"หมูสุกทั่วและน้ำซุปไม่มีฟองขุ่น"},
+      {"title":"ปรุงรส","instruction":"เติมซีอิ๊วขาว ชิมและปรับรสทีละน้อย","ingredientIds":["soy_sauce"],"durationMinutes":2,"heatLevel":"อ่อน","completionCue":"รสอ่อนกลมกล่อมและข้าวไม่ติดก้นหม้อ"},
+      {"title":"ตักเสิร์ฟ","instruction":"ตักใส่ชาม โรยต้นหอมและพริกไทยตามชอบ","ingredientIds":["spring_onion","pepper"],"durationMinutes":1,"heatLevel":"ปิดไฟ","completionCue":"ข้าวต้มร้อนและพร้อมรับประทาน"}
+    ]
+  }
+]

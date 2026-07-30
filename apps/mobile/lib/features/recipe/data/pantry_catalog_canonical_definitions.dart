@@ -168,7 +168,6 @@ const List<_DefinitionSeed> _seeds = <_DefinitionSeed>[
     'seafood',
     '🐟',
     aliases: <String>['แซลมอน', 'salmon'],
-    parentId: 'fish',
     unitFamily: IngredientUnitFamily.fish,
   ),
   _DefinitionSeed(

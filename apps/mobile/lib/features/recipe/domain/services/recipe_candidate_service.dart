@@ -89,6 +89,7 @@ class RecipeCandidateService {
       }
       return switch (item.status) {
         RecipeIngredientReadinessStatus.available ||
+        RecipeIngredientReadinessStatus.substituted ||
         RecipeIngredientReadinessStatus.insufficient ||
         RecipeIngredientReadinessStatus.incompatibleUnit => true,
         RecipeIngredientReadinessStatus.missing ||

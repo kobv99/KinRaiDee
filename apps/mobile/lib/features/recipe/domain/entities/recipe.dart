@@ -1,4 +1,5 @@
 import 'recipe_ingredient.dart';
+import 'recipe_step.dart';
 
 class Recipe {
   const Recipe({
@@ -7,6 +8,7 @@ class Recipe {
     required this.category,
     required this.ingredients,
     required this.steps,
+    this.detailedSteps = const <RecipeStep>[],
     this.version = 1,
     this.description = '',
     this.emoji = '🍳',
@@ -20,6 +22,7 @@ class Recipe {
     this.popularity = 0,
     this.sourceUrl,
     this.discoveredByAi = false,
+    this.supportsSubstitutions = true,
   });
 
   final int version;
@@ -38,8 +41,24 @@ class Recipe {
   final int popularity;
   final List<RecipeIngredient> ingredients;
   final List<String> steps;
+  final List<RecipeStep> detailedSteps;
   final String? sourceUrl;
   final bool discoveredByAi;
+  final bool supportsSubstitutions;
+
+  List<RecipeStep> get instructions {
+    if (detailedSteps.isNotEmpty) {
+      return detailedSteps;
+    }
+    return steps.indexed
+        .map(
+          (entry) => RecipeStep(
+            title: 'ขั้นตอน ${entry.$1 + 1}',
+            instruction: entry.$2,
+          ),
+        )
+        .toList(growable: false);
+  }
 
   RecipeIngredient? get heroIngredient {
     final explicitId = heroIngredientId?.trim();
@@ -104,11 +123,34 @@ class Recipe {
             ),
           )
           .toList(growable: false),
-      steps: _stringList(json['steps']),
+      steps: _legacyStepStrings(json['steps']),
+      detailedSteps: _detailedRecipeSteps(json['steps']),
       sourceUrl: json['sourceUrl'] as String?,
       discoveredByAi: json['discoveredByAi'] as bool? ?? false,
+      supportsSubstitutions: json['supportsSubstitutions'] as bool? ?? true,
     );
   }
+}
+
+List<RecipeStep> _recipeSteps(Object? value) {
+  final rows = value as List<dynamic>? ?? const <dynamic>[];
+  return rows.indexed
+      .map((entry) => RecipeStep.fromJson(entry.$2, index: entry.$1))
+      .toList(growable: false);
+}
+
+List<RecipeStep> _detailedRecipeSteps(Object? value) {
+  final rows = value as List<dynamic>? ?? const <dynamic>[];
+  if (rows.isEmpty || rows.any((row) => row is! Map)) {
+    return const <RecipeStep>[];
+  }
+  return _recipeSteps(rows);
+}
+
+List<String> _legacyStepStrings(Object? value) {
+  return _recipeSteps(
+    value,
+  ).map((step) => step.instruction).toList(growable: false);
 }
 
 List<String> _stringList(Object? value) {

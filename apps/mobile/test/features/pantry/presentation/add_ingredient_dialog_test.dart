@@ -7,10 +7,13 @@ import 'package:mobile/core/domain/ingredients/canonical_ingredient_registry.dar
 import 'package:mobile/core/domain/units/unit_contract.dart';
 import 'package:mobile/core/models/ingredient.dart';
 import 'package:mobile/features/pantry/domain/models/food_category.dart';
+import 'package:mobile/features/pantry/data/ingredient_hierarchy_loader.dart';
+import 'package:mobile/features/pantry/domain/models/ingredient_hierarchy.dart';
 import 'package:mobile/features/pantry/presentation/widgets/add_ingredient_dialog.dart';
 import 'package:mobile/features/pantry/presentation/widgets/emoji_selector.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   final unitEngine = UnitConversionEngine.standard();
   final registry = CanonicalIngredientRegistry(
     ingredients: <CanonicalIngredient>[
@@ -35,13 +38,26 @@ void main() {
         preferred: 'egg',
         recommended: const <String>['egg', 'pack'],
       ),
+      _canonical(
+        id: 'pork_belly',
+        name: 'หมูสามชั้น',
+        category: 'protein',
+        preferred: 'gram',
+        recommended: const <String>['gram', 'kilogram'],
+      ),
     ],
   );
+  late IngredientHierarchy hierarchy;
+
+  setUpAll(() async {
+    hierarchy = await IngredientHierarchyLoader().load(registry: registry);
+  });
 
   Future<void> pumpDialog(
     WidgetTester tester, {
     Ingredient? ingredient,
     FoodCatalogItem? initialCatalogItem,
+    String? initialSearchQuery,
   }) async {
     tester.view.physicalSize = const Size(900, 1500);
     tester.view.devicePixelRatio = 1;
@@ -58,6 +74,8 @@ void main() {
           home: AddIngredientDialog(
             ingredient: ingredient,
             initialCatalogItem: initialCatalogItem,
+            initialSearchQuery: initialSearchQuery,
+            initialHierarchy: hierarchy,
           ),
         ),
       ),
@@ -108,14 +126,37 @@ void main() {
     await pumpDialog(tester, initialCatalogItem: _catalog('ปลา', '🐟'));
     expect(_unitSelector(tester, 0).value, 'whole');
 
+    await tester.tap(find.byKey(const Key('change-ingredient')));
+    await tester.pump();
     final selector = tester.widget<EmojiSelector>(find.byType(EmojiSelector));
-    selector.onSelected('ไข่', 'ไข่ไก่', '🥚');
+    selector.onSelected('ไข่', 'ไข่ไก่', '🥚', 'egg');
     await tester.pump();
 
     final refreshed = _unitSelector(tester, 0);
     expect(_itemValues(refreshed), containsAll(<String>['egg', 'pack']));
     expect(_itemValues(refreshed), isNot(contains('whole')));
     expect(refreshed.value, 'egg');
+  });
+
+  testWidgets('search selection immediately opens quantity workflow', (
+    tester,
+  ) async {
+    await pumpDialog(tester, initialSearchQuery: 'หมูสามชั้น');
+    for (var index = 0; index < 5; index++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    expect(
+      find.byKey(const Key('ingredient-hierarchy-search')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const Key('ingredient-search-pork_belly')));
+    await tester.pump();
+
+    expect(find.byKey(const Key('ingredient-hierarchy-search')), findsNothing);
+    expect(find.byKey(const Key('ingredient-quantity-field')), findsOneWidget);
+    expect(find.text('หมูสามชั้น'), findsOneWidget);
+    expect(find.byKey(const Key('change-ingredient')), findsOneWidget);
   });
 
   testWidgets('legacy unusual unit remains recoverable through Other unit', (

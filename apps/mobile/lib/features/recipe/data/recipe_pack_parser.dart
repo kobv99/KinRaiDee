@@ -1,5 +1,6 @@
 import '../domain/entities/recipe.dart';
 import '../domain/entities/recipe_ingredient.dart';
+import '../domain/entities/recipe_step.dart';
 import 'recipe_ingredient_catalog.dart';
 
 class RecipePackParser {
@@ -40,6 +41,8 @@ class RecipePackParser {
     final heroWeight =
         (hero['weight'] as num?)?.toDouble() ?? defaultPrimaryWeight;
     final rows = pack['recipes'] as List<dynamic>? ?? const <dynamic>[];
+    final packSupportsSubstitutions =
+        pack['supportsSubstitutions'] as bool? ?? true;
 
     return rows
         .map((rawRow) {
@@ -60,6 +63,10 @@ class RecipePackParser {
             ),
             ...rawIngredients.map(catalog.build),
           ];
+          final authoredSteps = _parseAuthoredSteps(row['steps']);
+          final detailedSteps = authoredSteps.isNotEmpty
+              ? authoredSteps
+              : _buildSteps(method: method, heroId: heroId, heroName: heroName);
 
           return Recipe(
             version: version,
@@ -79,67 +86,157 @@ class RecipePackParser {
             heroIngredientName: heroName,
             popularity: (row['popularity'] as num?)?.toInt() ?? 0,
             ingredients: ingredients,
-            steps: _buildSteps(method: method, heroName: heroName),
+            steps: detailedSteps
+                .map((step) => step.instruction)
+                .toList(growable: false),
+            detailedSteps: detailedSteps,
+            supportsSubstitutions:
+                row['supportsSubstitutions'] as bool? ??
+                packSupportsSubstitutions,
           );
         })
         .toList(growable: false);
   }
 
-  List<String> _buildSteps({required String method, required String heroName}) {
-    final preparation = 'เตรียม$heroNameและวัตถุดิบทั้งหมดให้พร้อม';
+  List<RecipeStep> _parseAuthoredSteps(Object? raw) {
+    final rows = raw as List<dynamic>? ?? const <dynamic>[];
+    return rows.indexed
+        .map((entry) => RecipeStep.fromJson(entry.$2, index: entry.$1))
+        .toList(growable: false);
+  }
 
-    return switch (method) {
-      'ผัด' => <String>[
-        preparation,
-        'ตั้งกระทะ ใส่น้ำมัน แล้วผัดเครื่องหอมให้มีกลิ่นหอม',
-        'ใส่$heroNameและวัตถุดิบที่เหลือ ผัดจนสุก แล้วปรุงรส',
+  List<RecipeStep> _buildSteps({
+    required String method,
+    required String heroId,
+    required String heroName,
+  }) {
+    final common = <RecipeStep>[
+      RecipeStep(
+        title: 'เตรียมวัตถุดิบ',
+        instruction:
+            'ล้าง หั่น และตวง$heroNameกับวัตถุดิบทุกอย่างตามรายการก่อนเริ่มปรุง',
+        ingredientIds: <String>[heroId],
+        durationMinutes: 5,
+        completionCue: 'วัตถุดิบถูกแบ่งเป็นสัดส่วนและพร้อมลงกระทะ',
+      ),
+      RecipeStep(
+        title: 'ปรุงรสล่วงหน้า',
+        instruction:
+            'ผสมเครื่องปรุงตามสูตร ชิมเฉพาะส่วนที่ปลอดภัย และพักไว้ให้หยิบใช้ได้ทันที',
+        durationMinutes: 2,
+        completionCue: 'เครื่องปรุงละลายเข้ากัน ไม่มีน้ำตาลหรือเกลือจับก้อน',
+      ),
+    ];
+    final cooking = switch (method) {
+      'ทอด' => <RecipeStep>[
+        RecipeStep(
+          title: 'ตั้งน้ำมัน',
+          instruction: 'ตั้งน้ำมันให้ร้อนสม่ำเสมอก่อนใส่$heroName',
+          durationMinutes: 3,
+          heatLevel: 'กลาง',
+          completionCue: 'น้ำมันร้อนแต่ยังไม่เกิดควัน',
+        ),
+        RecipeStep(
+          title: 'ทอดด้านแรก',
+          instruction: 'วาง$heroNameลงทอดโดยไม่วางชิ้นซ้อนกัน',
+          ingredientIds: <String>[heroId],
+          durationMinutes: 4,
+          heatLevel: 'กลาง',
+          completionCue: 'ด้านล่างเป็นสีเหลืองทองและหลุดจากกระทะง่าย',
+        ),
+        RecipeStep(
+          title: 'ทอดให้สุกทั่ว',
+          instruction: 'กลับด้านแล้วทอดต่อ ลดไฟหากผิวเข้มเร็วเกินไป',
+          durationMinutes: 4,
+          heatLevel: 'กลาง',
+          completionCue: '$heroNameสุกถึงด้านในและผิวกรอบ',
+        ),
       ],
-      'ทอด' => <String>[
-        preparation,
-        'ปรุงรสหรือคลุก$heroNameกับส่วนผสมตามสูตร',
-        'ตั้งน้ำมันให้ร้อน ทอดจนสุกเหลือง แล้วพักให้สะเด็ดน้ำมัน',
+      'ต้ม' || 'แกง' => <RecipeStep>[
+        RecipeStep(
+          title: 'สร้างน้ำซุป',
+          instruction: 'ต้มน้ำหรือน้ำซุปกับเครื่องหอมจนเดือดและส่งกลิ่นหอม',
+          durationMinutes: 5,
+          heatLevel: 'กลางค่อนแรง',
+          completionCue: 'น้ำซุปเดือดทั่วและมีกลิ่นเครื่องสมุนไพร',
+        ),
+        RecipeStep(
+          title: 'ทำให้วัตถุดิบหลักสุก',
+          instruction: 'ใส่$heroNameลงต้มและช้อนฟองออกเพื่อให้น้ำซุปใส',
+          ingredientIds: <String>[heroId],
+          durationMinutes: 8,
+          heatLevel: 'กลาง',
+          completionCue: '$heroNameสุกถึงด้านใน',
+        ),
+        RecipeStep(
+          title: 'เติมผักและปรุงรส',
+          instruction:
+              'ใส่วัตถุดิบที่สุกง่ายและเครื่องปรุง ชิมแล้วปรับทีละน้อย',
+          durationMinutes: 4,
+          heatLevel: 'อ่อน',
+          completionCue: 'ผักสุกแต่ยังคงเนื้อสัมผัสและรสกลมกล่อม',
+        ),
       ],
-      'ต้ม' => <String>[
-        preparation,
-        'ต้มน้ำหรือน้ำซุปกับเครื่องสมุนไพรจนเดือดและมีกลิ่นหอม',
-        'ใส่$heroName ต้มจนสุก ปรุงรส แล้วปิดไฟ',
+      'ย่าง' || 'อบ' || 'นึ่ง' => <RecipeStep>[
+        RecipeStep(
+          title: 'เตรียมความร้อน',
+          instruction: 'อุ่นอุปกรณ์ให้ถึงความร้อนที่เหมาะกับการ$method',
+          durationMinutes: 5,
+          heatLevel: 'กลาง',
+          completionCue: 'ความร้อนคงที่ก่อนนำอาหารเข้า',
+        ),
+        RecipeStep(
+          title: '$methodวัตถุดิบหลัก',
+          instruction: 'จัด$heroNameให้ได้รับความร้อนทั่วถึงโดยไม่วางซ้อนกัน',
+          ingredientIds: <String>[heroId],
+          durationMinutes: 10,
+          heatLevel: 'กลาง',
+          completionCue: '$heroNameสุกถึงด้านในและยังชุ่มฉ่ำ',
+        ),
+        RecipeStep(
+          title: 'พักและตรวจความสุก',
+          instruction: 'นำออกจากความร้อน พักสั้น ๆ แล้วตรวจส่วนที่หนาที่สุด',
+          durationMinutes: 3,
+          completionCue: 'ไม่มีส่วนดิบและน้ำที่ไหลออกมาใส',
+        ),
       ],
-      'แกง' => <String>[
-        preparation,
-        'ผัดหรือละลายพริกแกงกับน้ำหรือกะทิจนหอม',
-        'ใส่$heroNameและผัก ต้มจนสุก แล้วปรุงรสให้กลมกล่อม',
-      ],
-      'ยำ' => <String>[
-        preparation,
-        'ทำ$heroNameให้สุก แล้วพักไว้ให้คลายร้อนเล็กน้อย',
-        'ผสมน้ำยำ ใส่$heroNameและผัก คลุกเบา ๆ แล้วเสิร์ฟ',
-      ],
-      'นึ่ง' => <String>[
-        preparation,
-        'จัด$heroNameและเครื่องปรุงลงจานสำหรับนึ่ง',
-        'นึ่งจน$heroNameสุก ราดน้ำปรุง แล้วเสิร์ฟขณะร้อน',
-      ],
-      'ย่าง' => <String>[
-        preparation,
-        'หมัก$heroNameกับเครื่องปรุงให้เข้าเนื้อ',
-        'ย่างด้วยไฟปานกลางจนสุกหอม พลิกเป็นระยะ แล้วเสิร์ฟ',
-      ],
-      'อบ' => <String>[
-        preparation,
-        'จัด$heroNameและวัตถุดิบลงภาชนะ ปรุงรสให้ทั่ว',
-        'อบจนทุกอย่างสุกและน้ำซอสเข้าเนื้อ แล้วเสิร์ฟ',
-      ],
-      'คั่ว' => <String>[
-        preparation,
-        'ผัดเครื่องหอมด้วยไฟกลางจนมีกลิ่นหอม',
-        'ใส่$heroName คั่วจนสุกและแห้งกำลังดี แล้วปรุงรส',
-      ],
-      _ => <String>[
-        preparation,
-        'ปรุง$heroNameกับวัตถุดิบตามสูตรจนสุกและเข้ากัน',
-        'ชิมรส ตักใส่จาน และเสิร์ฟขณะร้อน',
+      _ => <RecipeStep>[
+        RecipeStep(
+          title: 'ผัดเครื่องหอม',
+          instruction: 'ตั้งกระทะ ใส่น้ำมัน แล้วผัดเครื่องหอมให้ส่งกลิ่น',
+          durationMinutes: 2,
+          heatLevel: 'กลาง',
+          completionCue: 'เครื่องหอมนุ่มและไม่ไหม้',
+        ),
+        RecipeStep(
+          title: 'ทำให้วัตถุดิบหลักสุก',
+          instruction: 'ใส่$heroName กระจายให้สัมผัสกระทะ และผัดอย่างสม่ำเสมอ',
+          ingredientIds: <String>[heroId],
+          durationMinutes: 5,
+          heatLevel: 'กลางค่อนแรง',
+          completionCue: '$heroNameสุกทั่วและไม่มีส่วนดิบ',
+        ),
+        RecipeStep(
+          title: 'รวมรสชาติ',
+          instruction: 'ใส่วัตถุดิบที่เหลือและน้ำปรุง คลุกจนเคลือบทั่ว',
+          durationMinutes: 3,
+          heatLevel: 'กลาง',
+          completionCue: 'ซอสเคลือบวัตถุดิบและไม่มีน้ำขังเกินไป',
+        ),
       ],
     };
+    return <RecipeStep>[
+      ...common,
+      ...cooking,
+      RecipeStep(
+        title: 'ชิมและเสิร์ฟ',
+        instruction:
+            'ปิดไฟ ชิมรสสุดท้าย ปรับเฉพาะที่จำเป็น แล้วตักเสิร์ฟขณะเหมาะสม',
+        durationMinutes: 2,
+        heatLevel: 'ปิดไฟ',
+        completionCue: 'รสชาติสมดุลและอาหารพร้อมรับประทาน',
+      ),
+    ];
   }
 }
 

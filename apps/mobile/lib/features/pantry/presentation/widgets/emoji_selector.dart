@@ -1,83 +1,79 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../domain/models/food_category.dart';
+import '../../../../app/providers/canonical_ingredient_providers.dart';
+import '../../data/ingredient_hierarchy_loader.dart';
+import '../../domain/models/ingredient_hierarchy.dart';
 
-class EmojiSelector extends StatefulWidget {
+typedef IngredientSelectedCallback =
+    void Function(
+      String category,
+      String name,
+      String emoji,
+      String canonicalIngredientId,
+    );
+
+class EmojiSelector extends ConsumerStatefulWidget {
   const EmojiSelector({
     super.key,
     required this.onSelected,
     this.initialName,
     this.initialSearchQuery,
+    this.loader,
+    this.initialHierarchy,
   });
 
-  final void Function(String category, String name, String emoji) onSelected;
+  final IngredientSelectedCallback onSelected;
   final String? initialName;
   final String? initialSearchQuery;
+  final IngredientHierarchyLoader? loader;
+  final IngredientHierarchy? initialHierarchy;
 
   @override
-  State<EmojiSelector> createState() => _EmojiSelectorState();
+  ConsumerState<EmojiSelector> createState() => _EmojiSelectorState();
 }
 
-class _EmojiSelectorState extends State<EmojiSelector> {
+class _EmojiSelectorState extends ConsumerState<EmojiSelector> {
   late final TextEditingController _searchController;
-
-  FoodCategory? selectedCategory;
-  FoodItem? selectedItem;
-  String query = '';
+  late Future<IngredientHierarchy> _hierarchy;
+  final Set<String> _expandedNodeIds = <String>{};
+  String? _selectedNodeId;
+  String _query = '';
 
   @override
   void initState() {
     super.initState();
-
-    query = widget.initialSearchQuery?.trim() ?? '';
-    _searchController = TextEditingController(text: query);
-
-    final initialName = widget.initialName?.trim();
-    if (initialName != null && initialName.isNotEmpty) {
-      _selectInitialItem(initialName, notifyParent: false);
-      return;
-    }
-
-    if (query.isNotEmpty) {
-      final exactMatch = allFoodCatalogItems.where((entry) {
-        return entry.item.name.toLowerCase() == query.toLowerCase();
-      }).firstOrNull;
-
-      if (exactMatch != null) {
-        final category = foodCategories.firstWhere(
-          (candidate) => candidate.name == exactMatch.category,
-        );
-        selectedCategory = category;
-        selectedItem = exactMatch.item;
-        query = '';
-        _searchController.clear();
-
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          widget.onSelected(
-            exactMatch.category,
-            exactMatch.item.name,
-            exactMatch.item.emoji,
-          );
-        });
-      }
-    }
+    _query = widget.initialSearchQuery?.trim() ?? '';
+    _searchController = TextEditingController(text: _query);
+    _hierarchy = widget.initialHierarchy == null
+        ? _load()
+        : Future<IngredientHierarchy>.value(widget.initialHierarchy);
   }
 
-  void _selectInitialItem(String name, {required bool notifyParent}) {
-    for (final category in foodCategories) {
-      for (final item in category.items) {
-        if (item.name == name) {
-          selectedCategory = category;
-          selectedItem = item;
-          if (notifyParent) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              widget.onSelected(category.name, item.name, item.emoji);
-            });
-          }
-          return;
+  Future<IngredientHierarchy> _load() async {
+    final registry = ref.read(canonicalIngredientRegistryProvider);
+    if (registry == null) {
+      throw StateError('Canonical ingredient registry is unavailable.');
+    }
+    final hierarchy = await (widget.loader ?? IngredientHierarchyLoader()).load(
+      registry: registry,
+    );
+    final initialName = widget.initialName?.trim();
+    if (initialName != null && initialName.isNotEmpty) {
+      for (final result in hierarchy.search(initialName)) {
+        if (result.ingredient.localizedDisplayName == initialName ||
+            result.ingredient.canonicalIngredientId == initialName) {
+          _selectedNodeId = result.ingredient.id;
+          _expandedNodeIds.addAll(
+            result.path
+                .where((node) => !node.selectable)
+                .map((node) => node.id),
+          );
+          break;
         }
       }
     }
+    return hierarchy;
   }
 
   @override
@@ -86,174 +82,220 @@ class _EmojiSelectorState extends State<EmojiSelector> {
     super.dispose();
   }
 
-  List<FoodCatalogItem> get _searchResults {
-    if (query.trim().isEmpty) {
-      return const <FoodCatalogItem>[];
-    }
-
-    return allFoodCatalogItems
-        .where((entry) {
-          return entry.item.matches(query) ||
-              entry.category.toLowerCase().contains(query.trim().toLowerCase());
-        })
-        .take(12)
-        .toList(growable: false);
+  void _toggleExpanded(String id) {
+    setState(() {
+      if (!_expandedNodeIds.add(id)) {
+        _expandedNodeIds.remove(id);
+      }
+    });
   }
 
-  void _selectCatalogItem(FoodCatalogItem entry) {
-    final category = foodCategories.firstWhere(
-      (candidate) => candidate.name == entry.category,
+  void _select(IngredientHierarchy hierarchy, IngredientHierarchyNode node) {
+    if (!node.selectable || node.canonicalIngredientId == null) return;
+    final registry = ref.read(canonicalIngredientRegistryProvider);
+    final canonical = registry?.byId(node.canonicalIngredientId!);
+    if (canonical == null) return;
+    final path = hierarchy.pathTo(node.id);
+    final category = path.length > 1
+        ? path.first.localizedDisplayName
+        : canonical.category;
+    setState(() {
+      _selectedNodeId = node.id;
+    });
+    widget.onSelected(
+      category,
+      canonical.displayName(),
+      canonical.emoji,
+      canonical.id,
     );
-
-    setState(() {
-      selectedCategory = category;
-      selectedItem = entry.item;
-      query = '';
-      _searchController.clear();
-    });
-
-    widget.onSelected(entry.category, entry.item.name, entry.item.emoji);
   }
 
-  void _selectItem(FoodCategory category, FoodItem item) {
-    setState(() {
-      selectedCategory = category;
-      selectedItem = item;
-    });
-
-    widget.onSelected(category.name, item.name, item.emoji);
+  void _selectSearchResult(
+    IngredientHierarchy hierarchy,
+    IngredientHierarchySearchResult result,
+  ) {
+    _select(hierarchy, result.ingredient);
   }
 
   @override
   Widget build(BuildContext context) {
-    final results = _searchResults;
+    return FutureBuilder<IngredientHierarchy>(
+      future: _hierarchy,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Text(
+            'ไม่สามารถโหลดรายการวัตถุดิบได้',
+            key: const Key('ingredient-hierarchy-error'),
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          );
+        }
+        final hierarchy = snapshot.data;
+        if (hierarchy == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        return _buildSelector(context, hierarchy);
+      },
+    );
+  }
 
+  Widget _buildSelector(BuildContext context, IngredientHierarchy hierarchy) {
+    final results = hierarchy.search(_query).take(20).toList(growable: false);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         TextField(
+          key: const Key('ingredient-hierarchy-search'),
           controller: _searchController,
-          keyboardType: TextInputType.text,
           textInputAction: TextInputAction.search,
-          autocorrect: false,
-          enableSuggestions: true,
-          onChanged: (value) {
-            setState(() {
-              query = value;
-            });
-          },
+          onChanged: (value) => setState(() => _query = value),
           decoration: InputDecoration(
             labelText: 'ค้นหาวัตถุดิบ',
-            hintText: 'เช่น น้ำมัน น้ำปลา กะเพรา',
+            hintText: 'เช่น หมูสามชั้น น้ำปลา มะนาว',
             prefixIcon: const Icon(Icons.search_rounded),
-            suffixIcon: query.isEmpty
+            suffixIcon: _query.isEmpty
                 ? null
                 : IconButton(
                     tooltip: 'ล้างคำค้นหา',
-                    onPressed: () {
-                      setState(() {
-                        query = '';
-                        _searchController.clear();
-                      });
-                    },
+                    onPressed: () => setState(() {
+                      _query = '';
+                      _searchController.clear();
+                    }),
                     icon: const Icon(Icons.close_rounded),
                   ),
           ),
         ),
-        if (query.trim().isNotEmpty) ...[
-          const SizedBox(height: 10),
-          if (results.isEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                'ไม่พบ "$query" ในรายการวัตถุดิบ',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-            )
-          else
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 260),
-              child: Material(
-                color: Theme.of(context).colorScheme.surfaceContainerLowest,
-                borderRadius: BorderRadius.circular(12),
-                clipBehavior: Clip.antiAlias,
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: results.length,
-                  separatorBuilder: (context, index) =>
-                      const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final entry = results[index];
-                    return ListTile(
-                      dense: true,
-                      leading: Text(
-                        entry.item.emoji,
-                        style: const TextStyle(fontSize: 24),
-                      ),
-                      title: Text(entry.item.name),
-                      subtitle: Text(entry.category),
-                      trailing: const Icon(Icons.add_circle_outline_rounded),
-                      onTap: () => _selectCatalogItem(entry),
-                    );
-                  },
-                ),
-              ),
+        const SizedBox(height: 12),
+        if (_query.trim().isNotEmpty)
+          _buildSearchResults(context, hierarchy, results)
+        else ...[
+          Text(
+            'เลือกตามหมวดหมู่',
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 6),
+          for (final category in hierarchy.topLevel)
+            _TreeNodeRow(
+              key: Key('ingredient-node-${category.id}'),
+              node: category,
+              depth: 0,
+              expandedNodeIds: _expandedNodeIds,
+              selectedNodeId: _selectedNodeId,
+              onToggleExpanded: _toggleExpanded,
+              onSelected: (node) => _select(hierarchy, node),
             ),
         ],
-        const SizedBox(height: 20),
-        const Text(
-          'เลือกจากหมวดหมู่',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: foodCategories
-              .map((category) {
-                final selected = selectedCategory == category;
-                return ChoiceChip(
-                  avatar: Text(category.emoji),
-                  label: Text(category.name),
-                  selected: selected,
-                  onSelected: (_) {
-                    setState(() {
-                      selectedCategory = category;
-                      selectedItem = null;
-                    });
-                  },
-                );
-              })
-              .toList(growable: false),
-        ),
-        if (selectedCategory != null) ...[
-          const SizedBox(height: 20),
-          Text(
-            'เลือกวัตถุดิบในหมวด ${selectedCategory!.name}',
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      ],
+    );
+  }
+
+  Widget _buildSearchResults(
+    BuildContext context,
+    IngredientHierarchy hierarchy,
+    List<IngredientHierarchySearchResult> results,
+  ) {
+    if (results.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        child: Text('ไม่พบ “$_query” ในรายการวัตถุดิบ'),
+      );
+    }
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxHeight: 280),
+      child: ListView.separated(
+        shrinkWrap: true,
+        itemCount: results.length,
+        separatorBuilder: (_, _) => const Divider(height: 1),
+        itemBuilder: (context, index) {
+          final result = results[index];
+          return ListTile(
+            key: Key('ingredient-search-${result.ingredient.id}'),
+            dense: true,
+            leading: Text(result.ingredient.emoji),
+            title: Text(result.ingredient.localizedDisplayName),
+            subtitle: Text(result.localizedPath),
+            onTap: () => _selectSearchResult(hierarchy, result),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _TreeNodeRow extends StatelessWidget {
+  const _TreeNodeRow({
+    super.key,
+    required this.node,
+    required this.depth,
+    required this.expandedNodeIds,
+    required this.selectedNodeId,
+    required this.onToggleExpanded,
+    required this.onSelected,
+  });
+
+  final IngredientHierarchyNode node;
+  final int depth;
+  final Set<String> expandedNodeIds;
+  final String? selectedNodeId;
+  final ValueChanged<String> onToggleExpanded;
+  final ValueChanged<IngredientHierarchyNode> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasChildren = node.children.isNotEmpty;
+    final expanded = expandedNodeIds.contains(node.id);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(left: depth * 12.0),
+          child: Row(
+            children: [
+              if (hasChildren)
+                IconButton(
+                  key: Key('expand-${node.id}'),
+                  tooltip: expanded ? 'ยุบ' : 'ขยาย',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => onToggleExpanded(node.id),
+                  icon: Icon(
+                    expanded
+                        ? Icons.keyboard_arrow_down_rounded
+                        : Icons.keyboard_arrow_right_rounded,
+                  ),
+                )
+              else
+                const SizedBox(width: 40),
+              if (node.selectable)
+                Checkbox(
+                  key: Key('select-${node.id}'),
+                  value: selectedNodeId == node.id,
+                  onChanged: (_) => onSelected(node),
+                )
+              else
+                const SizedBox(width: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  node.localizedDisplayName,
+                  key: Key('label-${node.id}'),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: selectedCategory!.items
-                .map((item) {
-                  final selected = selectedItem == item;
-                  return FilterChip(
-                    avatar: Text(item.emoji),
-                    label: Text(item.name),
-                    selected: selected,
-                    onSelected: (_) => _selectItem(selectedCategory!, item),
-                  );
-                })
-                .toList(growable: false),
-          ),
-        ],
+        ),
+        if (hasChildren && expanded)
+          for (final child in node.children)
+            _TreeNodeRow(
+              key: Key('ingredient-node-${child.id}'),
+              node: child,
+              depth: depth + 1,
+              expandedNodeIds: expandedNodeIds,
+              selectedNodeId: selectedNodeId,
+              onToggleExpanded: onToggleExpanded,
+              onSelected: onSelected,
+            ),
       ],
     );
   }

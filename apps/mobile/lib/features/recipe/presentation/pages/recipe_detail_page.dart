@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../application/recipe_missing_shopping_controller.dart';
+import '../../../substitution/presentation/widgets/recipe_substitution_panel.dart';
 import '../../domain/entities/recipe.dart';
 import '../providers/recipe_provider.dart';
 import '../providers/recipe_shopping_provider.dart';
@@ -72,7 +73,22 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                     ),
                   ),
           ),
+          if (readiness != null &&
+              readiness.recipe.supportsSubstitutions &&
+              readiness.substitutionCandidates.isNotEmpty)
+            AnimatedSize(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOut,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: RecipeSubstitutionPanel(
+                  recipeId: widget.recipe.id,
+                  readiness: readiness,
+                ),
+              ),
+            ),
           Expanded(
+            key: const ValueKey<String>('recipe-primary-workflow'),
             child: MediaQuery.removePadding(
               context: context,
               removeTop: true,
