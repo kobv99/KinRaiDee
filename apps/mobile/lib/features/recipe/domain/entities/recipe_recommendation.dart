@@ -141,6 +141,7 @@ class RecommendationFilter {
     this.maximumMissingIngredients,
     this.pantryFriendlyOnly = false,
     this.healthyOnly = false,
+    this.usesExpiringIngredientsOnly = false,
   });
 
   final int? minimumMatchPercent;
@@ -152,4 +153,5 @@ class RecommendationFilter {
   final int? maximumMissingIngredients;
   final bool pantryFriendlyOnly;
   final bool healthyOnly;
+  final bool usesExpiringIngredientsOnly;
 }

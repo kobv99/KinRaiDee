@@ -142,3 +142,52 @@ Product Owner environment: `flutter run -d web-server`.
 - Recipe Detail scrolling
 - Expansion state
 - Recommendation metrics and Shopping Preview
+
+## Feature: Interactive Recommendation Dashboard
+
+### Test Steps
+
+1. Open the Recipe recommendation page with Pantry ingredients available.
+2. Select each summary: All Recipes, Ready to Cook, Pantry Friendly,
+   Quick Meals, and Uses Expiring Ingredients.
+3. Observe the Recipe list after each selection.
+4. Select All Recipes again.
+
+### Expected Result
+
+- Every summary is clickable and the selected summary is visually identified.
+- The Recipe list immediately applies the matching domain filter.
+- Quick Meals shows Recipes taking no more than 30 minutes.
+- Uses Expiring Ingredients shows only Recipes using expiring Pantry items.
+- All Recipes clears the dashboard filter.
+
+### Possible Regression Areas
+
+- Recommendation ranking
+- Filter state
+- Summary counts
+- Expiring Ingredient detection
+
+## Feature: Production-friendly Recommendation Language
+
+### Test Steps
+
+1. Open Recipe recommendations in normal user mode.
+2. Review Recipe cards and expand `ทำไมถึงแนะนำเมนูนี้?`.
+3. Open Recommendation QA from the bug icon.
+
+### Expected Result
+
+- Normal Recipe cards show Pantry Match and a human-readable readiness label.
+- The explanation uses labels such as Perfect Match or Almost Ready.
+- The internal weighted Recommendation Score is not shown in normal UI.
+- Final Score and score components remain available only in Recommendation QA.
+- The Pantry recommendation banner is compact by default.
+- Missing-ingredient details and the Shopping action appear only after expansion.
+
+### Possible Regression Areas
+
+- Recipe card badges
+- Recipe Detail expansion
+- Add Missing Ingredients
+- Developer QA visibility

@@ -14,4 +14,5 @@ Recipe ID last. Identical inputs therefore always produce identical results.
 
 Filters execute before sorting and support Recipe Match, cooking time,
 difficulty, cuisine, main ingredient, meal type, missing count, Pantry Friendly,
-and Healthy.
+Healthy, and Uses Expiring Ingredients. Dashboard summaries construct these
+same domain filters; widgets do not duplicate filtering logic.

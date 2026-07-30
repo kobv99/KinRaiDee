@@ -27,7 +27,7 @@ class RecipeRecommendationExplanationPanel extends StatelessWidget {
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             subtitle: Text(
-              'คะแนน ${recommendation.scorePercent} • '
+              '${_matchLabel(recommendation)} • '
               'ตรงกับ Pantry ${recommendation.recipeMatchPercent}%',
             ),
             childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -87,6 +87,16 @@ class RecipeRecommendationExplanationPanel extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _matchLabel(RecipeRecommendation value) {
+    if (value.recipeMatchPercent == 100) {
+      return 'พร้อมทำ';
+    }
+    if (value.missingIngredientCount <= 2) {
+      return 'เกือบพร้อม';
+    }
+    return 'เมนูน่าลอง';
   }
 }
 

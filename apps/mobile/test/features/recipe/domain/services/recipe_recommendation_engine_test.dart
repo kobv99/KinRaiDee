@@ -103,6 +103,30 @@ void main() {
     );
   });
 
+  test('expiring dashboard filter is applied by the domain engine', () {
+    final results = engine.evaluateAll(
+      matches: <RecipeMatch>[
+        _match(id: 'uses-expiring', score: .8),
+        _match(id: 'regular', score: .8),
+      ],
+      pantry: <Ingredient>[
+        _pantry('rice', now, expiryDate: now.add(const Duration(days: 1))),
+        _pantry('egg', now),
+      ],
+      evaluatedAt: now,
+      filter: const RecommendationFilter(usesExpiringIngredientsOnly: true),
+    );
+
+    expect(results, isNotEmpty);
+    expect(
+      results.every(
+        (item) =>
+            item.badges.contains(RecommendationBadge.usesExpiringIngredients),
+      ),
+      isTrue,
+    );
+  });
+
   test('dashboard and why-not use the same explainable result data', () {
     final results = engine.evaluateAll(
       matches: <RecipeMatch>[

@@ -25,13 +25,13 @@ void main() {
       expect(find.text('ความพร้อม 40%'), findsOneWidget);
       expect(
         find.byKey(const ValueKey<String>('recipe-readiness-recommendation')),
-        findsOneWidget,
+        findsNothing,
       );
-      expect(find.textContaining('คุณยังเริ่มทำอาหารได้เสมอ'), findsOneWidget);
+      expect(find.textContaining('คุณยังเริ่มทำอาหารได้เสมอ'), findsNothing);
       expect(find.text('เราแนะนำให้เตรียมเพิ่ม'), findsNothing);
       expect(
         find.byKey(const ValueKey<String>('add-missing-to-shopping')),
-        findsOneWidget,
+        findsNothing,
       );
       expect(find.text('เริ่มทำอาหารสำหรับ 2 คน'), findsOneWidget);
 
@@ -41,6 +41,14 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('เราแนะนำให้เตรียมเพิ่ม'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('recipe-readiness-recommendation')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('add-missing-to-shopping')),
+        findsOneWidget,
+      );
       expect(
         find.textContaining('Rice · แนะนำเพิ่ม 0.8 kilogram'),
         findsOneWidget,
@@ -127,7 +135,7 @@ void main() {
     );
     expect(
       find.byKey(const ValueKey<String>('add-missing-to-shopping')),
-      findsOneWidget,
+      findsNothing,
     );
     expect(find.text('เริ่มทำอาหารสำหรับ 2 คน'), findsOneWidget);
 
@@ -140,6 +148,10 @@ void main() {
       tester,
       exception: tester.takeException(),
       phase: 'expanded',
+    );
+    expect(
+      find.byKey(const ValueKey<String>('add-missing-to-shopping')),
+      findsOneWidget,
     );
     expect(find.text('เราแนะนำให้เตรียมเพิ่ม'), findsOneWidget);
     expect(find.text('เริ่มทำอาหารสำหรับ 2 คน'), findsOneWidget);

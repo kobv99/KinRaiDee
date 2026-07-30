@@ -23,6 +23,12 @@
   ingredients are missing.
 - The Recipe catalog is search-first and uses lazy, limited result rendering
   instead of building the entire Knowledge Base at once.
+- Recommendation Dashboard summaries now apply their corresponding domain
+  filters and visibly identify the active selection.
+- Normal user surfaces use Pantry Match and readiness labels; internal weighted
+  scores remain in Recommendation QA.
+- The Pantry recommendation banner is compact by default and reveals guidance
+  and Shopping actions only when requested.
 
 ## Fixed
 
@@ -31,6 +37,9 @@
 - Chicken Breast remains a real canonical leaf instead of redirecting to the
   generic Chicken parent.
 - Expanded recommendation explanations no longer overflow short viewports.
+- Static Recommendation Dashboard summaries now work as primary filter actions.
+- Internal Recommendation Score values no longer leak into normal Recipe cards
+  or explanation panels.
 
 ## Known Limitations
 

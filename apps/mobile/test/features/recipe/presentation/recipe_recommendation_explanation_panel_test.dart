@@ -34,6 +34,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
+      expect(find.textContaining('คะแนน 62'), findsNothing);
+      expect(find.textContaining('ตรงกับ Pantry 65%'), findsOneWidget);
       expect(
         tester
             .getSize(find.byType(RecipeRecommendationExplanationPanel))

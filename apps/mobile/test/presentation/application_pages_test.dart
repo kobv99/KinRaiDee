@@ -416,6 +416,28 @@ void main() {
 
       await _pumpPage(tester, harness.container, const RecipePage());
       expect(find.textContaining('Egg'), findsWidgets);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('dashboard-filter-quick')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        harness.container
+            .read(recipeRecommendationQueryProvider)
+            .filter
+            .maximumCookTimeMinutes,
+        30,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('dashboard-filter-all')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        harness.container
+            .read(recipeRecommendationQueryProvider)
+            .filter
+            .maximumCookTimeMinutes,
+        isNull,
+      );
       expect(find.byType(ExpansionTile), findsOneWidget);
       await tester.tap(find.byType(ExpansionTile));
       await tester.pumpAndSettle();

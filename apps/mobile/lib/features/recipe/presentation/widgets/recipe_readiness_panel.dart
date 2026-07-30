@@ -54,56 +54,58 @@ class RecipeReadinessPanel extends StatelessWidget {
                     minHeight: 5,
                     borderRadius: BorderRadius.circular(99),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _recommendationText(value),
-                    key: const ValueKey<String>(
-                      'recipe-readiness-recommendation',
-                    ),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: colors.onSurfaceVariant,
-                    ),
-                  ),
-                  if (value.missingIngredients.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.tonal(
-                        key: const ValueKey<String>('add-missing-to-shopping'),
-                        style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 12,
-                          ),
-                        ),
-                        onPressed: isAddingMissing ? null : onAddMissing,
-                        child: Wrap(
-                          alignment: WrapAlignment.center,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          spacing: 8,
-                          runSpacing: 4,
-                          children: [
-                            if (isAddingMissing)
-                              const SizedBox.square(
-                                dimension: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            else
-                              const Icon(Icons.add_shopping_cart_outlined),
-                            Text(
-                              isAddingMissing
-                                  ? 'กำลังเพิ่มไป Shopping'
-                                  : 'เพิ่มวัตถุดิบที่ขาด',
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
+                  if (expanded) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      _recommendationText(value),
+                      key: const ValueKey<String>(
+                        'recipe-readiness-recommendation',
+                      ),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colors.onSurfaceVariant,
                       ),
                     ),
-                  ],
-                  if (expanded) ...[
+                    if (value.missingIngredients.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.tonal(
+                          key: const ValueKey<String>(
+                            'add-missing-to-shopping',
+                          ),
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                          ),
+                          onPressed: isAddingMissing ? null : onAddMissing,
+                          child: Wrap(
+                            alignment: WrapAlignment.center,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 8,
+                            runSpacing: 4,
+                            children: [
+                              if (isAddingMissing)
+                                const SizedBox.square(
+                                  dimension: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              else
+                                const Icon(Icons.add_shopping_cart_outlined),
+                              Text(
+                                isAddingMissing
+                                    ? 'กำลังเพิ่มไป Shopping'
+                                    : 'เพิ่มวัตถุดิบที่ขาด',
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     ConstrainedBox(
                       constraints: const BoxConstraints(maxHeight: 220),

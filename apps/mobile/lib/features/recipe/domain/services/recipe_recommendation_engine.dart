@@ -286,7 +286,9 @@ class RecipeRecommendationEngine {
         (!filter.pantryFriendlyOnly ||
             item.badges.contains(RecommendationBadge.pantryFriendly)) &&
         (!filter.healthyOnly ||
-            item.badges.contains(RecommendationBadge.healthyChoice));
+            item.badges.contains(RecommendationBadge.healthyChoice)) &&
+        (!filter.usesExpiringIngredientsOnly ||
+            item.badges.contains(RecommendationBadge.usesExpiringIngredients));
   }
 
   int _compare(

@@ -76,6 +76,7 @@ class RecipePage extends ConsumerWidget {
         error: (error, stackTrace) =>
             _ErrorView(onRetry: () => ref.invalidate(recipesProvider)),
         data: (result) {
+          final query = ref.watch(recipeRecommendationQueryProvider);
           if (!result.requestedSelectionAvailable) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               ref.read(heroSelectionProvider.notifier).useAutomatic();
@@ -121,10 +122,17 @@ class RecipePage extends ConsumerWidget {
                   dashboard: RecommendationDashboard.from(
                     recommendationDetails,
                   ),
+                  activeFilter: query.filter,
+                  onSelected: (filter) {
+                    ref
+                        .read(recipeRecommendationQueryProvider.notifier)
+                        .update(filter: filter);
+                    ref.read(recommendationSessionProvider.notifier).reset();
+                  },
                 ),
                 const SizedBox(height: 12),
                 _RecommendationControls(
-                  query: ref.watch(recipeRecommendationQueryProvider),
+                  query: query,
                   onSort: (sort) {
                     ref
                         .read(recipeRecommendationQueryProvider.notifier)
@@ -533,9 +541,15 @@ class _RecommendationControls extends StatelessWidget {
 }
 
 class _RecommendationDashboardCard extends StatelessWidget {
-  const _RecommendationDashboardCard({required this.dashboard});
+  const _RecommendationDashboardCard({
+    required this.dashboard,
+    required this.activeFilter,
+    required this.onSelected,
+  });
 
   final RecommendationDashboard dashboard;
+  final RecommendationFilter activeFilter;
+  final ValueChanged<RecommendationFilter> onSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -557,21 +571,51 @@ class _RecommendationDashboardCard extends StatelessWidget {
               runSpacing: 8,
               children: [
                 _SummaryChip(
+                  key: const ValueKey<String>('dashboard-filter-all'),
                   label: 'สูตรทั้งหมด',
                   value: dashboard.totalRecipes,
+                  selected: _isAll,
+                  onTap: () => onSelected(const RecommendationFilter()),
                 ),
                 _SummaryChip(
+                  key: const ValueKey<String>('dashboard-filter-ready'),
                   label: 'พร้อมครบ',
                   value: dashboard.perfectMatches,
+                  selected: activeFilter.minimumMatchPercent == 100,
+                  onTap: () => onSelected(
+                    const RecommendationFilter(minimumMatchPercent: 100),
+                  ),
                 ),
                 _SummaryChip(
+                  key: const ValueKey<String>(
+                    'dashboard-filter-pantry-friendly',
+                  ),
                   label: 'Pantry Friendly',
                   value: dashboard.pantryFriendly,
+                  selected: activeFilter.pantryFriendlyOnly,
+                  onTap: () => onSelected(
+                    const RecommendationFilter(pantryFriendlyOnly: true),
+                  ),
                 ),
-                _SummaryChip(label: 'เมนูด่วน', value: dashboard.quickMeals),
                 _SummaryChip(
+                  key: const ValueKey<String>('dashboard-filter-quick'),
+                  label: 'เมนูด่วน',
+                  value: dashboard.quickMeals,
+                  selected: activeFilter.maximumCookTimeMinutes == 30,
+                  onTap: () => onSelected(
+                    const RecommendationFilter(maximumCookTimeMinutes: 30),
+                  ),
+                ),
+                _SummaryChip(
+                  key: const ValueKey<String>('dashboard-filter-expiring'),
                   label: 'ใช้ของใกล้หมดอายุ',
                   value: dashboard.usingExpiringIngredients,
+                  selected: activeFilter.usesExpiringIngredientsOnly,
+                  onTap: () => onSelected(
+                    const RecommendationFilter(
+                      usesExpiringIngredientsOnly: true,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -580,19 +624,40 @@ class _RecommendationDashboardCard extends StatelessWidget {
       ),
     );
   }
+
+  bool get _isAll =>
+      activeFilter.minimumMatchPercent == null &&
+      activeFilter.maximumCookTimeMinutes == null &&
+      !activeFilter.pantryFriendlyOnly &&
+      !activeFilter.healthyOnly &&
+      !activeFilter.usesExpiringIngredientsOnly;
 }
 
 class _SummaryChip extends StatelessWidget {
-  const _SummaryChip({required this.label, required this.value});
+  const _SummaryChip({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.selected,
+    required this.onTap,
+  });
 
   final String label;
   final int value;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Chip(
-      avatar: CircleAvatar(child: Text('$value')),
-      label: Text(label),
+    return ActionChip(
+      avatar: CircleAvatar(
+        child: selected ? const Icon(Icons.check, size: 16) : Text('$value'),
+      ),
+      label: Text(selected ? '$label ($value)' : label),
+      onPressed: onTap,
+      backgroundColor: selected
+          ? Theme.of(context).colorScheme.secondaryContainer
+          : null,
     );
   }
 }
@@ -758,8 +823,9 @@ class _RecipeMatchCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              _ScoreBadge(
-                score: recommendation?.scorePercent ?? match.scorePercent,
+              _MatchBadge(
+                matchPercent: match.scorePercent,
+                missingCount: match.missingRequiredCount,
               ),
               const SizedBox(width: 2),
               const Icon(Icons.chevron_right),
@@ -804,28 +870,38 @@ class _InfoChip extends StatelessWidget {
   }
 }
 
-class _ScoreBadge extends StatelessWidget {
-  const _ScoreBadge({required this.score});
+class _MatchBadge extends StatelessWidget {
+  const _MatchBadge({required this.matchPercent, required this.missingCount});
 
-  final int score;
+  final int matchPercent;
+  final int missingCount;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
 
     return Container(
-      width: 48,
-      height: 48,
+      constraints: const BoxConstraints(minWidth: 54, minHeight: 48),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: colors.surfaceContainerHighest,
         shape: BoxShape.circle,
       ),
-      child: Text(
-        '$score%',
-        style: Theme.of(
-          context,
-        ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$matchPercent%',
+            style: Theme.of(
+              context,
+            ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          Text(
+            missingCount == 0 ? 'พร้อมทำ' : 'Pantry',
+            style: Theme.of(context).textTheme.labelSmall,
+          ),
+        ],
       ),
     );
   }
