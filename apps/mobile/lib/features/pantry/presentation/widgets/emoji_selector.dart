@@ -114,13 +114,6 @@ class _EmojiSelectorState extends ConsumerState<EmojiSelector> {
     IngredientHierarchy hierarchy,
     IngredientHierarchySearchResult result,
   ) {
-    setState(() {
-      _query = '';
-      _searchController.clear();
-      _expandedNodeIds.addAll(
-        result.path.where((node) => !node.selectable).map((node) => node.id),
-      );
-    });
     _select(hierarchy, result.ingredient);
   }
 
@@ -223,7 +216,6 @@ class _EmojiSelectorState extends ConsumerState<EmojiSelector> {
             leading: Text(result.ingredient.emoji),
             title: Text(result.ingredient.localizedDisplayName),
             subtitle: Text(result.localizedPath),
-            trailing: const Icon(Icons.add_circle_outline_rounded),
             onTap: () => _selectSearchResult(hierarchy, result),
           );
         },
@@ -258,7 +250,7 @@ class _TreeNodeRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: EdgeInsets.only(left: depth * 20.0),
+          padding: EdgeInsets.only(left: depth * 12.0),
           child: Row(
             children: [
               if (hasChildren)
@@ -282,12 +274,7 @@ class _TreeNodeRow extends StatelessWidget {
                   onChanged: (_) => onSelected(node),
                 )
               else
-                Icon(
-                  node.nodeType == IngredientNodeType.category
-                      ? Icons.folder_outlined
-                      : Icons.account_tree_outlined,
-                  size: 20,
-                ),
+                const SizedBox(width: 20),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(

@@ -319,9 +319,10 @@ void main() {
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
       expect(find.byType(AlertDialog), findsOneWidget);
-      await tester.tap(find.byType(ElevatedButton).last);
-      await tester.pump();
-      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(
+        find.widgetWithText(ElevatedButton, 'เพิ่มเข้า Pantry'),
+        findsNothing,
+      );
       await tester.tap(find.byType(TextButton).last);
       await tester.pumpAndSettle();
 

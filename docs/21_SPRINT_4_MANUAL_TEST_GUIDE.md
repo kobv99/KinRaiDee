@@ -280,3 +280,52 @@ Product Owner tests with `flutter run -d web-server`.
 - Tree expansion state
 - Pantry persistence
 - Recipe and Shopping canonical matching
+
+## Feature: Search Quick Add is independent from Browse
+
+**Test Steps**
+
+1. Open Add Ingredient and type `หมูสามชั้น`.
+2. Tap the search-result row once.
+3. Enter a quantity and add it to Pantry.
+4. Reopen Add Ingredient, expand Meat and Pork, and select Pork Belly using its
+   checkbox.
+
+**Expected Results**
+
+- While the search query is non-empty, no tree branches are visible.
+- The search row has no extra plus button or checkbox.
+- One tap closes the picker and focuses the Quantity field.
+- Search selection does not expand Pork or any unrelated branch.
+- Browse expansion state and Search selection do not affect each other.
+- Both routes submit canonical ID `pork_belly`.
+
+**Possible Regression Areas**
+
+- Quantity and unit defaults
+- Keyboard focus
+- Dialog height on mobile
+- Canonical Pantry merge
+
+## Feature: Variable-length structured cooking instructions
+
+**Test Steps**
+
+1. Open simple, normal, and longer Recipes from different cooking methods.
+2. Review titles, instructions, duration, heat, and completion cues.
+3. Start Cooking and complete each checkbox in order.
+
+**Expected Results**
+
+- Recipes are not all forced into three generic steps.
+- Each displayed step describes a specific action and observable completion.
+- Cooking mode displays `ขั้นตอน N จาก M` using the Recipe's actual count.
+- The final step and completion action remain reachable on narrow screens.
+- Substitution recommendations remain optional throughout cooking.
+
+**Possible Regression Areas**
+
+- Recipe JSON parsing
+- Cooking checklist completion
+- Responsive scrolling
+- Pantry deduction after cooking

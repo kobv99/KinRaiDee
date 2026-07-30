@@ -60,6 +60,23 @@ void main() {
             .supportsSubstitutions,
         isFalse,
       );
+      expect(
+        recipes.where((recipe) => recipe.instructions.length > 3).length,
+        greaterThan(150),
+        reason: 'Recipe packs must not be forced into a three-step template',
+      );
+      expect(
+        recipes
+            .where((recipe) => recipe.detailedSteps.isNotEmpty)
+            .expand((recipe) => recipe.instructions)
+            .every(
+              (step) =>
+                  step.title.trim().isNotEmpty &&
+                  step.instruction.trim().isNotEmpty &&
+                  step.completionCue?.trim().isNotEmpty == true,
+            ),
+        isTrue,
+      );
     },
   );
 

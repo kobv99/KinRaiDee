@@ -110,7 +110,7 @@ void main() {
     expect(_checkbox(tester, 'minced_pork').value, isFalse);
   });
 
-  testWidgets('search selects canonical ingredient and reveals its path', (
+  testWidgets('search quick-add selects canonical leaf without opening tree', (
     tester,
   ) async {
     String? selectedCanonicalId;
@@ -132,7 +132,8 @@ void main() {
     await tester.tap(find.byKey(const Key('ingredient-search-pork_belly')));
     await tester.pump();
     expect(selectedCanonicalId, 'pork_belly');
-    expect(_checkbox(tester, 'pork_belly').value, isTrue);
+    expect(find.byKey(const Key('label-family_pork')), findsNothing);
+    expect(find.byKey(const Key('select-pork_belly')), findsNothing);
   });
 
   test('category and family nodes cannot be recipe ingredient IDs', () {

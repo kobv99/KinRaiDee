@@ -6,6 +6,7 @@ import '../../../../core/providers/pantry_provider.dart';
 import '../../../../core/presentation/unit_presentation.dart';
 import '../../../pantry/domain/models/pantry_quantity_transaction.dart';
 import '../../domain/entities/recipe.dart';
+import '../../domain/entities/recipe_step.dart';
 import '../../domain/services/pantry_deduction_planner.dart';
 import '../../domain/services/recipe_serving_calculator.dart';
 
@@ -27,8 +28,8 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
   bool _isFinishing = false;
 
   bool get _allStepsCompleted {
-    return widget.recipe.steps.isEmpty ||
-        _completedSteps.length == widget.recipe.steps.length;
+    return widget.recipe.instructions.isEmpty ||
+        _completedSteps.length == widget.recipe.instructions.length;
   }
 
   @override
@@ -205,7 +206,7 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
     );
     final colors = Theme.of(context).colorScheme;
     final completedCount = _completedSteps.length;
-    final totalSteps = widget.recipe.steps.length;
+    final totalSteps = widget.recipe.instructions.length;
 
     return Scaffold(
       appBar: AppBar(title: const Text('สูตรอาหาร')),
@@ -315,13 +316,13 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
               title: _cookingMode ? 'โหมดทำอาหาร' : 'วิธีทำ',
               subtitle: _cookingMode
                   ? 'ทำทีละขั้น แล้วกด “ทำเสร็จแล้ว” เพื่ออัปเดต Pantry'
-                  : '${widget.recipe.steps.length} ขั้นตอน',
+                  : '${widget.recipe.instructions.length} ขั้นตอน',
             ),
           ),
           const SizedBox(height: 12),
           if (_cookingMode)
             _CookingChecklist(
-              steps: widget.recipe.steps,
+              steps: widget.recipe.instructions,
               completedSteps: _completedSteps,
               onChanged: (index, completed) {
                 setState(() {
@@ -332,7 +333,8 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                   }
                 });
 
-                if (_allStepsCompleted && widget.recipe.steps.isNotEmpty) {
+                if (_allStepsCompleted &&
+                    widget.recipe.instructions.isNotEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text(
@@ -344,7 +346,7 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
               },
             )
           else
-            _RecipeSteps(steps: widget.recipe.steps),
+            _RecipeSteps(steps: widget.recipe.instructions),
           const SizedBox(height: 24),
           _RecipeMetadata(recipe: widget.recipe),
         ],
@@ -989,7 +991,7 @@ class _CookingChecklist extends StatelessWidget {
     required this.onChanged,
   });
 
-  final List<String> steps;
+  final List<RecipeStep> steps;
   final Set<int> completedSteps;
   final void Function(int index, bool completed) onChanged;
 
@@ -1009,12 +1011,13 @@ class _CookingChecklist extends StatelessWidget {
                 onChanged: (value) => onChanged(entry.$1, value ?? false),
                 controlAffinity: ListTileControlAffinity.leading,
                 title: Text(
-                  'ขั้นตอน ${entry.$1 + 1}',
+                  'ขั้นตอน ${entry.$1 + 1} จาก ${steps.length} · '
+                  '${entry.$2.title}',
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 subtitle: Padding(
                   padding: const EdgeInsets.only(top: 4),
-                  child: Text(entry.$2),
+                  child: Text(entry.$2.accessibleInstruction),
                 ),
               ),
             ),
@@ -1027,7 +1030,7 @@ class _CookingChecklist extends StatelessWidget {
 class _RecipeSteps extends StatelessWidget {
   const _RecipeSteps({required this.steps});
 
-  final List<String> steps;
+  final List<RecipeStep> steps;
 
   @override
   Widget build(BuildContext context) {
@@ -1048,7 +1051,17 @@ class _RecipeSteps extends StatelessWidget {
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.only(top: 5),
-                      child: Text(entry.$2),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            entry.$2.title,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(entry.$2.accessibleInstruction),
+                        ],
+                      ),
                     ),
                   ),
                 ],

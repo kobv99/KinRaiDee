@@ -20,6 +20,10 @@
   selectable ingredient nodes.
 - Canonical pork, chicken, beef, and duck cuts for hierarchical Pantry
   selection.
+- Structured Recipe step model supporting titles, ingredient references,
+  quantities, duration, heat, completion cues, and tips.
+- Ingredient, Recipe, Knowledge Base, Substitution, and cross-system
+  architecture guidelines.
 
 ## Improved
 
@@ -43,6 +47,11 @@
   search with localized breadcrumb paths.
 - Generic meat and fish choices are explicit selectable leaves; their family
   nodes are navigation-only.
+- Browse and Search now use independent interaction paths; Search selection
+  proceeds directly to Quantity without opening the tree.
+- Legacy Recipe packs now produce method-aware multi-step workflows instead of
+  a fixed three-step sequence, while authored Recipes may define any valid
+  number of structured steps.
 
 ## Fixed
 
@@ -64,6 +73,7 @@
 - Hiding the panel no longer leaves empty layout spacing.
 - Expanding or collapsing a category no longer changes ingredient selection,
   and selecting one leaf no longer affects its siblings.
+- Cooking progress now derives from the actual Recipe step count.
 
 ## Known Limitations
 

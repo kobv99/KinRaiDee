@@ -96,7 +96,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('โหมดทำอาหาร'), findsOneWidget);
-    expect(find.text('ขั้นตอน 1'), findsOneWidget);
+    expect(find.textContaining('ขั้นตอน 1 จาก 1'), findsOneWidget);
   });
 
   testWidgets('compact and expanded advisory do not overflow small screens', (
