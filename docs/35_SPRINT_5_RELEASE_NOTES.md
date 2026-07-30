@@ -21,6 +21,8 @@
   household unit differences.
 - Almost-ready Recipes remain visible when only a small number of required
   ingredients are missing.
+- The Recipe catalog is search-first and uses lazy, limited result rendering
+  instead of building the entire Knowledge Base at once.
 
 ## Fixed
 
@@ -28,12 +30,14 @@
   assumptions.
 - Chicken Breast remains a real canonical leaf instead of redirecting to the
   generic Chicken parent.
+- Expanded recommendation explanations no longer overflow short viewports.
 
 ## Known Limitations
 
 - Favourite Recipe input is architecturally supported but the product has no
   Recipe favourite persistence control yet.
 - Available substitution mapping remains supplied by the substitution boundary.
+- Recipe catalog searches display at most 30 results per query.
 - “Why Not?” data is available through comparable score breakdowns; a dedicated
   comparison screen is not included.
 

@@ -95,3 +95,50 @@ Product Owner environment: `flutter run -d web-server`.
 - Small-screen overflow
 - Recipe Detail scrolling
 - Substitution acceptance
+
+## Feature: Search-first Recipe Catalog
+
+### Test Steps
+
+1. Open Recipes and select `ค้นหาสูตร`.
+2. Confirm that no Recipe cards are displayed before entering a query.
+3. Search by a Recipe name, ingredient name, and category.
+4. Open one result, return to search, then clear the query.
+
+### Expected Result
+
+- The catalog does not render every Recipe when first opened.
+- Only matching Recipes are displayed after an explicit search.
+- At most 30 results are displayed per query; broader searches ask the user to
+  refine the query.
+- Clearing the query hides the results and returns to the search prompt.
+- Opening a result still reaches the correct Recipe Detail.
+
+### Possible Regression Areas
+
+- Recipe Hub navigation
+- Thai and English ingredient search
+- Recipe Detail navigation
+- Large Knowledge Base performance
+
+## Feature: Responsive Recommendation Explanation
+
+### Test Steps
+
+1. Use a short browser viewport.
+2. Open a recommended Recipe.
+3. Expand `ทำไมถึงแนะนำเมนูนี้?`.
+4. Scroll through every reason and Shopping Preview item.
+
+### Expected Result
+
+- The explanation remains inside the available viewport.
+- Long explanation content scrolls inside the panel.
+- Flutter does not display `BOTTOM OVERFLOWED`.
+- The rest of Recipe Detail remains usable.
+
+### Possible Regression Areas
+
+- Recipe Detail scrolling
+- Expansion state
+- Recommendation metrics and Shopping Preview

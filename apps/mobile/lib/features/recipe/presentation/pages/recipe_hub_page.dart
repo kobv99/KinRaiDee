@@ -23,7 +23,7 @@ class RecipeHubPage extends StatelessWidget {
               children: [
                 const Expanded(
                   child: Text(
-                    'คำแนะนำเป็นทางเลือก คุณยังดูสูตรทั้งหมดได้',
+                    'คำแนะนำเป็นทางเลือก คุณยังค้นหาสูตรอื่นได้',
                     maxLines: 2,
                   ),
                 ),
@@ -36,7 +36,7 @@ class RecipeHubPage extends StatelessWidget {
                     ),
                   ),
                   icon: const Icon(Icons.menu_book_outlined),
-                  label: const Text('สูตรทั้งหมด'),
+                  label: const Text('ค้นหาสูตร'),
                 ),
               ],
             ),

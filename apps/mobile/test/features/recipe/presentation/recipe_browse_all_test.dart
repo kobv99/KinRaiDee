@@ -36,16 +36,28 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('สูตรทั้งหมด'), findsOneWidget);
+      expect(find.text('ค้นหาสูตรอาหาร'), findsOneWidget);
       expect(
-        find.byKey(const ValueKey<String>('all-recipes-freedom-notice')),
+        find.byKey(const ValueKey<String>('recipe-catalog-search-field')),
         findsOneWidget,
       );
-      expect(find.text('Omelette'), findsOneWidget);
-      expect(find.text('Fried Rice'), findsOneWidget);
+      expect(find.text('Omelette'), findsNothing);
+      expect(find.text('Fried Rice'), findsNothing);
 
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('recipe-catalog-search-field')),
+        'Fried Rice',
+      );
+      await tester.pump();
       await tester.tap(
-        find.byKey(const ValueKey<String>('all-recipe-fried-rice')),
+        find.byKey(const ValueKey<String>('recipe-catalog-search')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Omelette'), findsNothing);
+      expect(find.text('Fried Rice'), findsNWidgets(2));
+      await tester.tap(
+        find.byKey(const ValueKey<String>('recipe-search-result-fried-rice')),
       );
       await tester.pumpAndSettle();
 

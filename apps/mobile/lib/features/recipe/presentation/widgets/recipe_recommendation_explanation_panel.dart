@@ -13,70 +13,78 @@ class RecipeRecommendationExplanationPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Card(
-      child: ExpansionTile(
-        leading: const Icon(Icons.lightbulb_outline),
-        title: const Text(
-          'ทำไมถึงแนะนำเมนูนี้?',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Text(
-          'คะแนน ${recommendation.scorePercent} • '
-          'ตรงกับ Pantry ${recommendation.recipeMatchPercent}%',
-        ),
-        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        children: [
-          LinearProgressIndicator(
-            value: recommendation.pantryCompletionPercent / 100,
-          ),
-          const SizedBox(height: 8),
-          _Metric(
-            label: 'วัตถุดิบที่มี',
-            value:
-                '${recommendation.availableIngredientCount} / '
-                '${recommendation.totalIngredientCount} '
-                '(${recommendation.pantryCompletionPercent}%)',
-          ),
-          _Metric(
-            label: 'ใช้ของใน Pantry',
-            value:
-                '${recommendation.usedPantryIngredientCount} / '
-                '${recommendation.pantryIngredientCount} '
-                '(${recommendation.pantryUtilizationPercent}%)',
-          ),
-          _Metric(
-            label: 'ต้องซื้อเพิ่ม',
-            value: '${recommendation.shoppingPreview.length} รายการ',
-          ),
-          const Divider(height: 24),
-          ...recommendation.reasons.map(
-            (reason) => ListTile(
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.check_circle_outline, size: 20),
-              title: Text(reason),
+    final maxHeight = (MediaQuery.sizeOf(context).height * 0.48)
+        .clamp(220.0, 420.0)
+        .toDouble();
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: maxHeight),
+      child: SingleChildScrollView(
+        child: Card(
+          child: ExpansionTile(
+            leading: const Icon(Icons.lightbulb_outline),
+            title: const Text(
+              'ทำไมถึงแนะนำเมนูนี้?',
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
-          ),
-          if (recommendation.shoppingPreview.isNotEmpty) ...[
-            const Divider(height: 24),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'ตัวอย่างรายการที่ต้องซื้อ',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
+            subtitle: Text(
+              'คะแนน ${recommendation.scorePercent} • '
+              'ตรงกับ Pantry ${recommendation.recipeMatchPercent}%',
+            ),
+            childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            children: [
+              LinearProgressIndicator(
+                value: recommendation.pantryCompletionPercent / 100,
+              ),
+              const SizedBox(height: 8),
+              _Metric(
+                label: 'วัตถุดิบที่มี',
+                value:
+                    '${recommendation.availableIngredientCount} / '
+                    '${recommendation.totalIngredientCount} '
+                    '(${recommendation.pantryCompletionPercent}%)',
+              ),
+              _Metric(
+                label: 'ใช้ของใน Pantry',
+                value:
+                    '${recommendation.usedPantryIngredientCount} / '
+                    '${recommendation.pantryIngredientCount} '
+                    '(${recommendation.pantryUtilizationPercent}%)',
+              ),
+              _Metric(
+                label: 'ต้องซื้อเพิ่ม',
+                value: '${recommendation.shoppingPreview.length} รายการ',
+              ),
+              const Divider(height: 24),
+              ...recommendation.reasons.map(
+                (reason) => ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.check_circle_outline, size: 20),
+                  title: Text(reason),
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
-            ...recommendation.shoppingPreview.map(
-              (ingredient) => Align(
-                alignment: Alignment.centerLeft,
-                child: Text('• ${ingredient.name}'),
-              ),
-            ),
-          ],
-        ],
+              if (recommendation.shoppingPreview.isNotEmpty) ...[
+                const Divider(height: 24),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'ตัวอย่างรายการที่ต้องซื้อ',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...recommendation.shoppingPreview.map(
+                  (ingredient) => Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('• ${ingredient.name}'),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
