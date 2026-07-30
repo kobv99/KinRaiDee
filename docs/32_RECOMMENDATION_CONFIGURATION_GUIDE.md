@@ -13,6 +13,7 @@ Configurable values include:
 - Pantry Friendly match threshold;
 - few-missing threshold;
 - healthy Recipe tags.
+- maximum missing required ingredients for almost-ready candidate visibility.
 
 Weights may be zero. The engine normalizes by their total, so configurations do
 not need to sum to one. Configuration should later be loaded from a versioned

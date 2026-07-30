@@ -56,4 +56,27 @@ void main() {
     expect(result.recommendedUnitIds, <String>['egg', 'pack']);
     expect(result.family, IngredientUnitFamily.egg);
   });
+
+  test('everyday ingredients use sensible natural default units', () {
+    const expected = <String, String>{
+      'chili': 'piece',
+      'holy_basil': 'bunch',
+      'spring_onion': 'stalk',
+      'coriander': 'stalk',
+      'lime': 'piece',
+      'tomato': 'piece',
+      'onion': 'bulb',
+      'potato': 'bulb',
+    };
+
+    for (final entry in expected.entries) {
+      final result = policy.forDefinition(
+        canonicalId: entry.key,
+        category: 'herb',
+        defaultInventoryUnitId: entry.value,
+        defaultPurchaseUnitId: entry.value,
+      );
+      expect(result.preferredUnitId, entry.value, reason: entry.key);
+    }
+  });
 }

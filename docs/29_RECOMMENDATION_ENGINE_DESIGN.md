@@ -19,3 +19,12 @@ canonical ID once, then evaluates recipes linearly. Final ties use Recipe ID.
 Future nutrition, cost, preference, popularity, rating, and AI signals must
 enter through typed factor inputs and configuration. AI must not bypass the
 deterministic explanation contract.
+
+Pantry readiness is availability-first. Canonical tracking metadata decides
+whether quantity is Presence, Count, Weight, or Stock based. Candidate
+visibility allows almost-ready Recipes with only a small number of missing
+required ingredients; removing one ingredient must not erase the decision
+option.
+
+The internal QA surface contains Knowledge Base Health, reusable Pantry
+Profiles, per-factor Debug View, and Why Not comparisons.

@@ -102,6 +102,22 @@ void main() {
       orderedEquals(<String>['quick', 'slow']),
     );
   });
+
+  test('dashboard and why-not use the same explainable result data', () {
+    final results = engine.evaluateAll(
+      matches: <RecipeMatch>[
+        _match(id: 'best', score: .95, missing: 0),
+        _match(id: 'second', score: .8, missing: 1),
+      ],
+      pantry: <Ingredient>[_pantry('rice', now), _pantry('egg', now)],
+      evaluatedAt: now,
+    );
+    final dashboard = RecommendationDashboard.from(results);
+
+    expect(dashboard.totalRecipes, 2);
+    expect(dashboard.pantryFriendly, 2);
+    expect(results.first.whyRankedHigherThan(results.last), contains('Pantry'));
+  });
 }
 
 RecipeMatch _match({

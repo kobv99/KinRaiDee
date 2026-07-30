@@ -181,15 +181,13 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(
-        find.byKey(const ValueKey('recipe-substitution-collapsed')),
-        findsOneWidget,
-      );
+      expect(find.text('มีวัตถุดิบทดแทน'), findsOneWidget);
       await tester.tap(
-        find.byKey(const ValueKey('recipe-substitution-collapsed')),
+        find.byKey(const ValueKey<String>('view-substitution-popup')),
       );
       await tester.pumpAndSettle();
 
+      expect(find.text('วัตถุดิบทดแทน'), findsOneWidget);
       expect(
         find.byKey(const ValueKey('recipe-substitution-panel')),
         findsOneWidget,

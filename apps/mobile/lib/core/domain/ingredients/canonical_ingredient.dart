@@ -1,5 +1,12 @@
 enum IngredientStorageType { ambient, refrigerated, frozen, pantry }
 
+enum IngredientTrackingType {
+  presenceOnly,
+  countBased,
+  weightBased,
+  stockBased,
+}
+
 enum IngredientUnitFamily {
   liquid,
   fish,
@@ -41,6 +48,11 @@ class CanonicalIngredient {
     List<String>? recommendedUnitIds,
     this.unitFamily,
     this.parentId,
+    this.trackingType = IngredientTrackingType.weightBased,
+    this.perishable = false,
+    this.typicalShelfLifeDays,
+    this.substitutable = true,
+    this.recommendedStorage = '',
     this.metadata = const IngredientMetadata(),
   }) : localizedNames = Map<String, String>.unmodifiable(localizedNames),
        aliases = List<String>.unmodifiable(aliases),
@@ -65,6 +77,11 @@ class CanonicalIngredient {
   final List<String> recommendedUnitIds;
   final IngredientUnitFamily? unitFamily;
   final String? parentId;
+  final IngredientTrackingType trackingType;
+  final bool perishable;
+  final int? typicalShelfLifeDays;
+  final bool substitutable;
+  final String recommendedStorage;
   final IngredientMetadata metadata;
 
   Iterable<String> get searchableNames sync* {

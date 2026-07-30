@@ -5,10 +5,21 @@ import '../entities/recipe_match.dart';
 import '../entities/recipe_readiness.dart';
 import 'recipe_readiness_service.dart';
 
+class RecipeCandidatePolicy {
+  const RecipeCandidatePolicy({this.maximumMissingRequiredWithoutPrimary = 2})
+    : assert(maximumMissingRequiredWithoutPrimary >= 0);
+
+  final int maximumMissingRequiredWithoutPrimary;
+}
+
 class RecipeCandidateService {
-  const RecipeCandidateService({required this.readinessService});
+  const RecipeCandidateService({
+    required this.readinessService,
+    this.policy = const RecipeCandidatePolicy(),
+  });
 
   final RecipeReadinessService readinessService;
+  final RecipeCandidatePolicy policy;
 
   List<RecipeMatch> findCandidates({
     required List<Recipe> recipes,
@@ -58,7 +69,11 @@ class RecipeCandidateService {
       servings: servings,
       evaluatedAt: evaluatedAt,
     );
-    if (!_hasPrimaryIngredientInPantry(readiness)) {
+    if (!_hasPrimaryIngredientInPantry(readiness) &&
+        readiness.missingIngredients
+                .where((item) => item.ingredient.required)
+                .length >
+            policy.maximumMissingRequiredWithoutPrimary) {
       return null;
     }
     final matched = <RecipeIngredient>[];

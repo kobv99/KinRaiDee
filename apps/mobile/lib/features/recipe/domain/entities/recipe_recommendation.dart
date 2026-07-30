@@ -65,6 +65,60 @@ class RecipeRecommendation {
       match.missingRequiredIngredients;
 
   String get whyThisRecipe => reasons.join(' ');
+
+  String whyRankedHigherThan(RecipeRecommendation other) {
+    if (recipeMatchPercent != other.recipeMatchPercent) {
+      return recipeMatchPercent > other.recipeMatchPercent
+          ? 'ใช้วัตถุดิบจาก Pantry ได้ตรงกับสูตรมากกว่า'
+          : 'คะแนนรวมจากปัจจัยอื่นสูงกว่า';
+    }
+    if (missingIngredientCount != other.missingIngredientCount) {
+      return missingIngredientCount < other.missingIngredientCount
+          ? 'ต้องซื้อวัตถุดิบน้อยกว่า'
+          : 'คะแนนรวมจากปัจจัยอื่นสูงกว่า';
+    }
+    if (usedPantryIngredientCount != other.usedPantryIngredientCount) {
+      return usedPantryIngredientCount > other.usedPantryIngredientCount
+          ? 'ใช้วัตถุดิบใน Pantry ได้มากกว่า'
+          : 'คะแนนรวมจากปัจจัยอื่นสูงกว่า';
+    }
+    return scorePercent >= other.scorePercent
+        ? 'ได้คะแนนรวมจากกฎแนะนำสูงกว่า'
+        : 'อยู่ในลำดับรองตามกฎเรียงที่เลือก';
+  }
+}
+
+class RecommendationDashboard {
+  const RecommendationDashboard({
+    required this.totalRecipes,
+    required this.perfectMatches,
+    required this.pantryFriendly,
+    required this.quickMeals,
+    required this.usingExpiringIngredients,
+  });
+
+  final int totalRecipes;
+  final int perfectMatches;
+  final int pantryFriendly;
+  final int quickMeals;
+  final int usingExpiringIngredients;
+
+  factory RecommendationDashboard.from(
+    Iterable<RecipeRecommendation> recommendations,
+  ) {
+    final items = recommendations.toList(growable: false);
+    int count(RecommendationBadge badge) =>
+        items.where((item) => item.badges.contains(badge)).length;
+    return RecommendationDashboard(
+      totalRecipes: items.length,
+      perfectMatches: count(RecommendationBadge.perfectMatch),
+      pantryFriendly: count(RecommendationBadge.pantryFriendly),
+      quickMeals: count(RecommendationBadge.quickMeal),
+      usingExpiringIngredients: count(
+        RecommendationBadge.usesExpiringIngredients,
+      ),
+    );
+  }
 }
 
 enum RecommendationSort {

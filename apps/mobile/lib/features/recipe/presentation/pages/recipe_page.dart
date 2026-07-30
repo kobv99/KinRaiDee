@@ -6,6 +6,7 @@ import '../../domain/entities/recipe_recommendation.dart';
 import '../../domain/entities/smart_recommendation.dart';
 import '../providers/recipe_provider.dart';
 import 'recipe_detail_page.dart';
+import 'recommendation_qa_page.dart';
 
 class RecipePage extends ConsumerWidget {
   const RecipePage({super.key});
@@ -22,9 +23,54 @@ class RecipePage extends ConsumerWidget {
     final detailsByRecipeId = <String, RecipeRecommendation>{
       for (final item in recommendationDetails) item.match.recipe.id: item,
     };
+    ref.listen(recipeRecommendationResultsProvider, (previous, next) {
+      final items = switch (next) {
+        AsyncData(:final value) => value,
+        _ => const <RecipeRecommendation>[],
+      };
+      final affected = items
+          .where((item) => item.expiringIngredientIds.isNotEmpty)
+          .length;
+      final previousAffected = switch (previous) {
+        AsyncData(:final value) =>
+          value.where((item) => item.expiringIngredientIds.isNotEmpty).length,
+        _ => 0,
+      };
+      if (affected <= 0 || affected == previousAffected) {
+        return;
+      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) {
+          return;
+        }
+        final messenger = ScaffoldMessenger.of(context);
+        messenger.clearSnackBars();
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              'มีวัตถุดิบใกล้หมดอายุ อัปเดตคำแนะนำ $affected เมนูแล้ว',
+            ),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      });
+    });
 
     return Scaffold(
-      appBar: AppBar(title: const Text('ทำอะไรกินดี 🍳')),
+      appBar: AppBar(
+        title: const Text('ทำอะไรกินดี 🍳'),
+        actions: [
+          IconButton(
+            tooltip: 'Recommendation QA',
+            onPressed: () => Navigator.of(context).push<void>(
+              MaterialPageRoute<void>(
+                builder: (_) => const RecommendationQaPage(),
+              ),
+            ),
+            icon: const Icon(Icons.bug_report_outlined),
+          ),
+        ],
+      ),
       body: recommendation.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stackTrace) =>
@@ -71,6 +117,12 @@ class RecipePage extends ConsumerWidget {
                   },
                 ),
                 const SizedBox(height: 22),
+                _RecommendationDashboardCard(
+                  dashboard: RecommendationDashboard.from(
+                    recommendationDetails,
+                  ),
+                ),
+                const SizedBox(height: 12),
                 _RecommendationControls(
                   query: ref.watch(recipeRecommendationQueryProvider),
                   onSort: (sort) {
@@ -119,6 +171,7 @@ class RecipePage extends ConsumerWidget {
                     child: _RecipeMatchCard(
                       match: match,
                       recommendation: detailsByRecipeId[match.recipe.id],
+                      rankedAbove: recommendationDetails.firstOrNull,
                       onOpen: () => _openRecipeDetail(context, match),
                     ),
                   ),
@@ -153,6 +206,7 @@ class RecipePage extends ConsumerWidget {
                   _MoreRecipesSection(
                     matches: result.moreMatches,
                     detailsByRecipeId: detailsByRecipeId,
+                    rankedAbove: recommendationDetails.firstOrNull,
                     onOpen: (match) => _openRecipeDetail(context, match),
                   ),
                 ],
@@ -478,15 +532,82 @@ class _RecommendationControls extends StatelessWidget {
   }
 }
 
+class _RecommendationDashboardCard extends StatelessWidget {
+  const _RecommendationDashboardCard({required this.dashboard});
+
+  final RecommendationDashboard dashboard;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'คำแนะนำวันนี้',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _SummaryChip(
+                  label: 'สูตรทั้งหมด',
+                  value: dashboard.totalRecipes,
+                ),
+                _SummaryChip(
+                  label: 'พร้อมครบ',
+                  value: dashboard.perfectMatches,
+                ),
+                _SummaryChip(
+                  label: 'Pantry Friendly',
+                  value: dashboard.pantryFriendly,
+                ),
+                _SummaryChip(label: 'เมนูด่วน', value: dashboard.quickMeals),
+                _SummaryChip(
+                  label: 'ใช้ของใกล้หมดอายุ',
+                  value: dashboard.usingExpiringIngredients,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SummaryChip extends StatelessWidget {
+  const _SummaryChip({required this.label, required this.value});
+
+  final String label;
+  final int value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Chip(
+      avatar: CircleAvatar(child: Text('$value')),
+      label: Text(label),
+    );
+  }
+}
+
 class _MoreRecipesSection extends StatelessWidget {
   const _MoreRecipesSection({
     required this.matches,
     required this.detailsByRecipeId,
+    required this.rankedAbove,
     required this.onOpen,
   });
 
   final List<RecipeMatch> matches;
   final Map<String, RecipeRecommendation> detailsByRecipeId;
+  final RecipeRecommendation? rankedAbove;
   final ValueChanged<RecipeMatch> onOpen;
 
   @override
@@ -508,6 +629,7 @@ class _MoreRecipesSection extends StatelessWidget {
                 child: _RecipeMatchCard(
                   match: match,
                   recommendation: detailsByRecipeId[match.recipe.id],
+                  rankedAbove: rankedAbove,
                   compact: true,
                   onOpen: () => onOpen(match),
                 ),
@@ -524,11 +646,13 @@ class _RecipeMatchCard extends StatelessWidget {
     required this.match,
     required this.onOpen,
     this.recommendation,
+    this.rankedAbove,
     this.compact = false,
   });
 
   final RecipeMatch match;
   final RecipeRecommendation? recommendation;
+  final RecipeRecommendation? rankedAbove;
   final VoidCallback onOpen;
   final bool compact;
 
@@ -556,6 +680,16 @@ class _RecipeMatchCard extends StatelessWidget {
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 7),
+                    if (recommendation != null) ...[
+                      Text(
+                        'ใช้ของใน Pantry '
+                        '${recommendation!.usedPantryIngredientCount} / '
+                        '${recommendation!.pantryIngredientCount} • '
+                        'ขาด ${recommendation!.missingIngredientCount} รายการ',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 7),
+                    ],
                     Wrap(
                       spacing: 6,
                       runSpacing: 6,
@@ -574,6 +708,10 @@ class _RecipeMatchCard extends StatelessWidget {
                             icon: Icons.schedule,
                             label: '${match.recipe.cookTimeMinutes} นาที',
                           ),
+                        _InfoChip(
+                          icon: Icons.signal_cellular_alt,
+                          label: _difficultyLabel(match.recipe.difficulty),
+                        ),
                         if (!compact)
                           _InfoChip(
                             icon: Icons.groups_2_outlined,
@@ -589,6 +727,33 @@ class _RecipeMatchCard extends StatelessWidget {
                             ),
                       ],
                     ),
+                    if (recommendation != null &&
+                        recommendation!.reasons.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        '✓ ${recommendation!.reasons.take(2).join(' • ')}',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                    if (recommendation != null &&
+                        rankedAbove != null &&
+                        recommendation!.match.recipe.id !=
+                            rankedAbove!.match.recipe.id) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        'ทำไมไม่อันดับ 1: '
+                        '${rankedAbove!.whyRankedHigherThan(recommendation!)}',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -779,6 +944,15 @@ String _badgeLabel(RecommendationBadge badge) {
     RecommendationBadge.fewMissing => 'ขาดเพียงเล็กน้อย',
     RecommendationBadge.usesExpiringIngredients => 'ใช้ของใกล้หมดอายุ',
     RecommendationBadge.healthyChoice => 'ทางเลือกสุขภาพ',
+  };
+}
+
+String _difficultyLabel(String difficulty) {
+  return switch (difficulty.toLowerCase()) {
+    'easy' => 'ง่าย',
+    'medium' => 'ปานกลาง',
+    'hard' => 'ยาก',
+    _ => difficulty,
   };
 }
 

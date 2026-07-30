@@ -9,6 +9,7 @@ import '../../data/datasources/local_recipe_datasource.dart';
 import '../../data/repositories/local_hero_selection_repository.dart';
 import '../../data/repositories/local_recipe_repository.dart';
 import '../../domain/entities/recipe.dart';
+import '../../domain/entities/knowledge_base_health.dart';
 import '../../domain/entities/recipe_match.dart';
 import '../../domain/entities/recipe_recommendation.dart';
 import '../../domain/entities/recipe_readiness.dart';
@@ -16,6 +17,7 @@ import '../../domain/entities/smart_recommendation.dart';
 import '../../domain/repositories/hero_selection_repository.dart';
 import '../../domain/repositories/recipe_repository.dart';
 import '../../domain/services/recipe_candidate_service.dart';
+import '../../domain/services/knowledge_base_health_service.dart';
 import '../../domain/services/recipe_readiness_service.dart';
 import '../../domain/services/recipe_recommendation_engine.dart';
 import '../../domain/services/smart_recommendation_engine.dart';
@@ -26,6 +28,24 @@ final recipeRepositoryProvider = Provider<RecipeRepository>((ref) {
 
 final recipesProvider = FutureProvider<List<Recipe>>((ref) {
   return ref.read(recipeRepositoryProvider).getRecipes();
+});
+
+final knowledgeBaseHealthProvider = FutureProvider<KnowledgeBaseHealth>((
+  ref,
+) async {
+  final registry = ref.watch(canonicalIngredientRegistryProvider);
+  if (registry == null) {
+    throw StateError('Canonical Ingredient Registry is not ready.');
+  }
+  final recipes = await ref.watch(recipesProvider.future);
+  final substitutions = await ref
+      .watch(ingredientSubstitutionRepositoryProvider)
+      .getAll();
+  return const KnowledgeBaseHealthService().inspect(
+    registry: registry,
+    recipes: recipes,
+    substitutions: substitutions,
+  );
 });
 
 final recipeReadinessServiceProvider = Provider<RecipeReadinessService?>((ref) {

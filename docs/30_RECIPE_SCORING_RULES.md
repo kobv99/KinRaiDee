@@ -16,3 +16,8 @@ Default factors:
 
 Recipe Match % remains the readiness score and is not replaced by the broader
 Recommendation Score. Unknown cooking time receives a neutral quick-meal value.
+
+Presence-only and stock-based ingredients earn availability when a positive,
+unexpired canonical Pantry lot exists, regardless of display unit. Count and
+weight types use compatible quantity where possible and safely fall back to
+identity availability for incompatible legacy units.

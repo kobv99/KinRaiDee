@@ -12,20 +12,19 @@ void main() {
             'chicken_breast',
             canonicalName: 'Chicken breast',
             thaiName: 'อกไก่',
+            parentId: 'chicken',
           ),
         ],
         redirects: defaultCanonicalIngredientRedirects,
       );
 
-      for (final value in <String>[
-        'Chicken Breast',
-        'Chicken breast',
-        'Chicken',
-        'Boneless Chicken Breast',
-        'อกไก่',
-      ]) {
-        expect(registry.resolve(value).ingredient?.id, 'chicken');
-      }
+      expect(registry.resolve('Chicken').ingredient?.id, 'chicken');
+      expect(
+        registry.resolve('Chicken Breast').ingredient?.id,
+        'chicken_breast',
+      );
+      expect(registry.resolve('อกไก่').ingredient?.id, 'chicken_breast');
+      expect(registry.areCompatibleIds('chicken', 'chicken_breast'), isTrue);
     });
 
     test('forbids duplicate IDs and reports ambiguous aliases', () {

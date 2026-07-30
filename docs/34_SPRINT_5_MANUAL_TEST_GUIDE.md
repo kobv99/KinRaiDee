@@ -48,3 +48,50 @@ Product Owner environment: `flutter run -d web-server`.
 - Time-zone/date handling
 - Stable ranking
 - Pantry quantity matching
+
+## Feature: Tracking Types and unit mismatch
+
+### Test Steps
+
+1. Add Chili using Piece and Soy Sauce using Bottle.
+2. Open Recipes that express Chili in Gram and Soy Sauce in Tablespoon.
+3. Remove Holy Basil from an otherwise almost-ready Pad Krapow Pantry.
+
+### Expected Result
+
+- Chili and Soy Sauce count as available despite the unit difference.
+- Recipe Match is based on availability and does not drop for incompatible
+  presentation units.
+- Pad Krapow remains visible, shows Holy Basil as missing, and includes it in
+  Shopping Preview.
+
+### Possible Regression Areas
+
+- Count/weight quantity matching
+- Canonical compatibility
+- Candidate visibility
+
+## Feature: Dashboard, QA, Debug, and substitution popup
+
+### Test Steps
+
+1. Open Recommendations and review the summary card and Recipe cards.
+2. Open the bug icon to enter Recommendation QA.
+3. Expand Knowledge Base Health, Test Pantry Profiles, and Debug View.
+4. Open a Recipe with a substitution and select `ดู`.
+
+### Expected Result
+
+- Dashboard counts Perfect Match, Pantry Friendly, Quick Meal, and expiring
+  recommendations.
+- Cards show score, time, difficulty, Pantry use, missing count, badges, and
+  concise reasons.
+- QA lists health metrics, profiles, score components, and Why Not.
+- Substitution occupies only a compact launcher until opened in a dismissible
+  popup.
+
+### Possible Regression Areas
+
+- Small-screen overflow
+- Recipe Detail scrolling
+- Substitution acceptance

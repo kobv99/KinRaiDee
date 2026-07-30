@@ -87,6 +87,9 @@ void main() {
             isTrue,
           );
           expect(definition.unitFamily, isNotNull);
+          expect(definition.trackingType, isNotNull);
+          expect(definition.typicalShelfLifeDays, greaterThan(0));
+          expect(definition.recommendedStorage, isNotEmpty);
           expect(definition.metadata.schemaVersion, greaterThan(0));
           expect(definition.metadata.revision, greaterThan(0));
         }
@@ -106,6 +109,15 @@ void main() {
         expect(registry.byId('egg')?.preferredUnitId, 'egg');
         expect(registry.byId('cooking_oil')?.preferredUnitId, 'bottle');
         expect(registry.byId('tofu')?.preferredUnitId, 'block');
+        expect(registry.byId('chicken_breast')?.parentId, 'chicken');
+        expect(
+          registry.byId('chili')?.trackingType,
+          IngredientTrackingType.presenceOnly,
+        );
+        expect(
+          registry.byId('soy_sauce')?.trackingType,
+          IngredientTrackingType.stockBased,
+        );
       },
     );
   });

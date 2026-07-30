@@ -49,6 +49,16 @@ class IngredientUnitPolicy {
     'canned_tuna',
     'canned_food',
   };
+  static const Map<String, String> _naturalUnitIds = <String, String>{
+    'chili': 'piece',
+    'holy_basil': 'bunch',
+    'spring_onion': 'stalk',
+    'coriander': 'stalk',
+    'lime': 'piece',
+    'tomato': 'piece',
+    'onion': 'bulb',
+    'potato': 'bulb',
+  };
 
   IngredientUnitRecommendation forDefinition({
     required String canonicalId,
@@ -57,6 +67,14 @@ class IngredientUnitPolicy {
     required String defaultPurchaseUnitId,
     String? parentId,
   }) {
+    final naturalUnit = _naturalUnitIds[canonicalId];
+    if (naturalUnit != null) {
+      return _recommend(
+        preferred: naturalUnit,
+        units: <String>[naturalUnit],
+        family: IngredientUnitFamily.vegetable,
+      );
+    }
     if (_fishIds.contains(canonicalId) || parentId == 'fish') {
       return _recommend(
         preferred: 'whole',

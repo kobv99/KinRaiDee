@@ -156,6 +156,26 @@ class IngredientCatalog {
       recommendedUnitIds: recommendedUnitIds,
       unitFamily: unitFamily,
       parentId: json['parentId']?.toString(),
+      trackingType:
+          _trackingType(json['trackingType']?.toString()) ??
+          _defaultTrackingType(category: category, unitFamily: unitFamily),
+      perishable:
+          _boolValue(json['perishable']) ??
+          _storageType(
+                json['defaultStorageType']?.toString(),
+                category: category,
+              ) ==
+              IngredientStorageType.refrigerated,
+      typicalShelfLifeDays:
+          _nullableIntValue(json['typicalShelfLifeDays']) ??
+          _defaultShelfLifeDays(category),
+      substitutable: _boolValue(json['substitutable']) ?? true,
+      recommendedStorage:
+          json['recommendedStorage']?.toString() ??
+          _storageType(
+            json['defaultStorageType']?.toString(),
+            category: category,
+          ).name,
       metadata: IngredientMetadata(
         schemaVersion: _intValue(json['schemaVersion'], fallback: 1),
         revision: _intValue(json['revision'], fallback: 1),
@@ -163,6 +183,45 @@ class IngredientCatalog {
       ),
     );
   }
+}
+
+IngredientTrackingType? _trackingType(String? value) {
+  for (final type in IngredientTrackingType.values) {
+    if (type.name == value) {
+      return type;
+    }
+  }
+  return null;
+}
+
+IngredientTrackingType _defaultTrackingType({
+  required String category,
+  required IngredientUnitFamily unitFamily,
+}) {
+  return switch (unitFamily) {
+    IngredientUnitFamily.egg ||
+    IngredientUnitFamily.canned => IngredientTrackingType.countBased,
+    IngredientUnitFamily.meat ||
+    IngredientUnitFamily.fish => IngredientTrackingType.weightBased,
+    IngredientUnitFamily.liquid || IngredientUnitFamily.dryIngredient =>
+      category == 'seasoning'
+          ? IngredientTrackingType.stockBased
+          : IngredientTrackingType.weightBased,
+    IngredientUnitFamily.garlic ||
+    IngredientUnitFamily.vegetable ||
+    IngredientUnitFamily.tofu ||
+    IngredientUnitFamily.generic => IngredientTrackingType.presenceOnly,
+  };
+}
+
+int _defaultShelfLifeDays(String category) {
+  return switch (category) {
+    'protein' || 'seafood' => 3,
+    'vegetable' || 'herb' => 7,
+    'seasoning' => 365,
+    'staple' => 180,
+    _ => 30,
+  };
 }
 
 IngredientUnitFamily? _unitFamily(String? value) {
@@ -209,6 +268,27 @@ int _intValue(Object? value, {required int fallback}) {
     return value;
   }
   return int.tryParse(value?.toString() ?? '') ?? fallback;
+}
+
+int? _nullableIntValue(Object? value) {
+  if (value is int) {
+    return value;
+  }
+  return int.tryParse(value?.toString() ?? '');
+}
+
+bool? _boolValue(Object? value) {
+  if (value is bool) {
+    return value;
+  }
+  if (value == null) {
+    return null;
+  }
+  return switch (value.toString().toLowerCase()) {
+    'true' => true,
+    'false' => false,
+    _ => null,
+  };
 }
 
 Map<String, String> _applicableRedirects(
