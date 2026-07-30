@@ -1,0 +1,29 @@
+{
+  "root": {
+    "id": "ingredients",
+    "parentId": null,
+    "nodeType": "root",
+    "canonicalName": "Ingredients",
+    "localizedDisplayName": "วัตถุดิบ",
+    "aliases": [],
+    "selectable": false,
+    "sortOrder": 0
+  },
+  "categories": [
+    {"id":"category_meat","parentId":"ingredients","nodeType":"category","canonicalName":"Meat","localizedDisplayName":"เนื้อสัตว์","aliases":["เนื้อ"],"selectable":false,"sortOrder":10,"sourceCategories":["protein"],"excludeIds":["egg","duck_egg","salted_egg","tofu"]},
+    {"id":"category_seafood","parentId":"ingredients","nodeType":"category","canonicalName":"Seafood","localizedDisplayName":"อาหารทะเล","aliases":["ซีฟู้ด"],"selectable":false,"sortOrder":20,"sourceCategories":["seafood"]},
+    {"id":"category_egg","parentId":"ingredients","nodeType":"category","canonicalName":"Eggs","localizedDisplayName":"ไข่","aliases":[],"selectable":false,"sortOrder":30,"includeIds":["egg","duck_egg","salted_egg"]},
+    {"id":"category_plant_protein","parentId":"ingredients","nodeType":"category","canonicalName":"Plant Protein","localizedDisplayName":"โปรตีนจากพืช","aliases":[],"selectable":false,"sortOrder":40,"includeIds":["tofu"]},
+    {"id":"category_vegetable","parentId":"ingredients","nodeType":"category","canonicalName":"Vegetables","localizedDisplayName":"ผัก","aliases":[],"selectable":false,"sortOrder":50,"sourceCategories":["vegetable"]},
+    {"id":"category_herb","parentId":"ingredients","nodeType":"category","canonicalName":"Herbs","localizedDisplayName":"สมุนไพรและเครื่องหอม","aliases":["สมุนไพร"],"selectable":false,"sortOrder":60,"sourceCategories":["herb"]},
+    {"id":"category_seasoning","parentId":"ingredients","nodeType":"category","canonicalName":"Seasonings","localizedDisplayName":"เครื่องปรุง","aliases":[],"selectable":false,"sortOrder":70,"sourceCategories":["seasoning"]},
+    {"id":"category_staple","parentId":"ingredients","nodeType":"category","canonicalName":"Staples","localizedDisplayName":"อาหารหลักและของแห้ง","aliases":["ของแห้ง"],"selectable":false,"sortOrder":80,"sourceCategories":["staple"]}
+  ],
+  "families": [
+    {"id":"family_pork","parentId":"category_meat","nodeType":"family","canonicalName":"Pork","localizedDisplayName":"หมู","aliases":[],"selectable":false,"sortOrder":10,"memberIds":["pork","minced_pork","pork_belly","pork_neck","pork_ribs"],"genericCanonicalId":"pork","genericLocalizedDisplayName":"หมูทั่วไป"},
+    {"id":"family_chicken","parentId":"category_meat","nodeType":"family","canonicalName":"Chicken","localizedDisplayName":"ไก่","aliases":[],"selectable":false,"sortOrder":20,"memberIds":["chicken","chicken_breast","chicken_thigh","chicken_drumstick","chicken_wing"],"genericCanonicalId":"chicken","genericLocalizedDisplayName":"ไก่ทั่วไป"},
+    {"id":"family_beef","parentId":"category_meat","nodeType":"family","canonicalName":"Beef","localizedDisplayName":"เนื้อวัว","aliases":[],"selectable":false,"sortOrder":30,"memberIds":["beef","ground_beef","beef_tenderloin","beef_striploin","beef_ribeye","beef_brisket","beef_shank"],"genericCanonicalId":"beef","genericLocalizedDisplayName":"เนื้อวัวทั่วไป"},
+    {"id":"family_duck","parentId":"category_meat","nodeType":"family","canonicalName":"Duck","localizedDisplayName":"เป็ด","aliases":[],"selectable":false,"sortOrder":40,"memberIds":["duck"],"genericCanonicalId":"duck","genericLocalizedDisplayName":"เป็ดทั่วไป"},
+    {"id":"family_fish","parentId":"category_seafood","nodeType":"family","canonicalName":"Fish","localizedDisplayName":"ปลา","aliases":[],"selectable":false,"sortOrder":10,"memberIds":["fish","mackerel","catfish","tilapia","sea_bass","salmon"],"genericCanonicalId":"fish","genericLocalizedDisplayName":"ปลาทั่วไป"}
+  ]
+}

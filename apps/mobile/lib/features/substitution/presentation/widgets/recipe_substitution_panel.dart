@@ -224,9 +224,9 @@ class _ExpandedSubstitutionCard extends StatelessWidget {
               Text(
                 'คำแนะนำเหล่านี้เป็นทางเลือก คุณข้ามหรือซ่อนได้ '
                 'และยังเริ่มทำอาหารต่อได้โดยไม่ต้องยอมรับ',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: colors.onSurfaceVariant,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
               ),
               Align(
                 alignment: Alignment.centerRight,
@@ -234,9 +234,7 @@ class _ExpandedSubstitutionCard extends StatelessWidget {
                   spacing: 4,
                   children: [
                     TextButton.icon(
-                      key: const ValueKey<String>(
-                        'recipe-substitution-ignore',
-                      ),
+                      key: const ValueKey<String>('recipe-substitution-ignore'),
                       onPressed: onIgnore,
                       icon: const Icon(Icons.keyboard_arrow_up_rounded),
                       label: const Text('ไว้ทีหลัง'),
@@ -339,9 +337,9 @@ class _SubstitutionOption extends ConsumerWidget {
           const SizedBox(height: 4),
           Text(
             recommendation.reason,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: colors.onSurfaceVariant,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
           ),
           const SizedBox(height: 8),
           Align(

@@ -228,3 +228,55 @@ Product Owner tests with `flutter run -d web-server`.
 - Recipe recommendation coverage
 - Recipe Readiness weighting
 - Shopping ingredient localization
+
+## Feature: Ingredient hierarchy and progressive disclosure
+
+**Test Steps**
+
+1. Open Pantry and choose Add Ingredient.
+2. Confirm that only top-level categories are visible.
+3. Expand `เนื้อสัตว์`, then expand `หมู`.
+4. Select `หมูสามชั้น`, collapse `หมู`, and expand it again.
+5. Expand `ไก่` and `เนื้อวัว` independently.
+
+**Expected Results**
+
+- Opening the selector displays only top-level categories.
+- Expanding `เนื้อสัตว์` displays only Pork, Chicken, Beef, and Duck families.
+- Expanding `หมู` displays only pork ingredients.
+- The expansion button does not select an ingredient.
+- Selecting Pork Belly does not select its siblings.
+- Collapsing and reopening Pork preserves the Pork Belly selection.
+- Category and family rows cannot be selected or submitted to Pantry.
+
+**Possible Regression Areas**
+
+- Add Ingredient dialog
+- Canonical ingredient mapping
+- Unit recommendations
+- Dialog scrolling on small screens
+
+## Feature: Full-hierarchy ingredient search
+
+**Test Steps**
+
+1. Open Add Ingredient and search for `หมูสามชั้น`.
+2. Review the displayed result and breadcrumb.
+3. Select the result, clear the search, and inspect the tree.
+4. Add the ingredient to Pantry and reopen it for editing.
+
+**Expected Results**
+
+- Search returns the canonical Pork Belly ingredient.
+- The result displays `เนื้อสัตว์ > หมู > หมูสามชั้น`.
+- Selecting the result reveals only its ancestor path; unrelated branches stay
+  collapsed.
+- The selected leaf remains selected after rebuild and when reopened.
+- Pantry stores canonical ID `pork_belly`, not a category or family ID.
+
+**Possible Regression Areas**
+
+- Search aliases
+- Tree expansion state
+- Pantry persistence
+- Recipe and Shopping canonical matching

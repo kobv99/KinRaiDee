@@ -182,10 +182,19 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
+        find.byKey(const ValueKey('recipe-substitution-collapsed')),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('recipe-substitution-collapsed')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
         find.byKey(const ValueKey('recipe-substitution-panel')),
         findsOneWidget,
       );
-      expect(find.text('แทน น้ำปลา'), findsOneWidget);
+      expect(find.text('น้ำปลา'), findsOneWidget);
       expect(find.text('ซีอิ๊วขาว'), findsWidgets);
 
       final acceptButton = find.byKey(
@@ -197,10 +206,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('ใช้ตัวเลือกนี้แล้ว'), findsOneWidget);
-      expect(
-        find.textContaining('ใช้ ซีอิ๊วขาว แทน น้ำปลา แล้ว'),
-        findsOneWidget,
-      );
+      expect(find.text('เลือกใช้ ซีอิ๊วขาว แทน น้ำปลา'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );

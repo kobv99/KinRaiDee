@@ -109,7 +109,7 @@ void main() {
     expect(_unitSelector(tester, 0).value, 'whole');
 
     final selector = tester.widget<EmojiSelector>(find.byType(EmojiSelector));
-    selector.onSelected('ไข่', 'ไข่ไก่', '🥚');
+    selector.onSelected('ไข่', 'ไข่ไก่', '🥚', 'egg');
     await tester.pump();
 
     final refreshed = _unitSelector(tester, 0);

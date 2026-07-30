@@ -149,6 +149,7 @@ class _AddIngredientDialogState extends ConsumerState<AddIngredientDialog> {
     String selectedCategory,
     String selectedName,
     String selectedEmoji,
+    String canonicalIngredientId,
   ) {
     final previousCanonicalId = _canonicalIngredientId;
     final previousUnitId = _selectedUnitId;
@@ -156,9 +157,12 @@ class _AddIngredientDialogState extends ConsumerState<AddIngredientDialog> {
     category = selectedCategory;
     name = selectedName;
     emoji = selectedEmoji;
+    _canonicalIngredientId = canonicalIngredientId;
     _showIngredientError = false;
 
-    final canonical = _resolveCanonicalIngredient();
+    final canonical = _resolveCanonicalIngredient(
+      preferredId: canonicalIngredientId,
+    );
     _setRecommendations(canonical);
     final ingredientChanged =
         previousCanonicalId == null ||
@@ -307,15 +311,22 @@ class _AddIngredientDialogState extends ConsumerState<AddIngredientDialog> {
                           widget.initialCatalogItem == null
                       ? widget.initialSearchQuery
                       : null,
-                  onSelected: (selectedCategory, selectedName, selectedEmoji) {
-                    setState(() {
-                      _ingredientSelected(
+                  onSelected:
+                      (
                         selectedCategory,
                         selectedName,
                         selectedEmoji,
-                      );
-                    });
-                  },
+                        canonicalIngredientId,
+                      ) {
+                        setState(() {
+                          _ingredientSelected(
+                            selectedCategory,
+                            selectedName,
+                            selectedEmoji,
+                            canonicalIngredientId,
+                          );
+                        });
+                      },
                 ),
                 const SizedBox(height: 20),
                 if (name.isNotEmpty)

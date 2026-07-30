@@ -16,6 +16,10 @@
 - A compact reopen chip after the user hides a recommendation.
 - Widget regression coverage for Ignore, Hide, Reopen, recommendation changes,
   optional Accept, and uninterrupted Start Cooking.
+- Data-driven Ingredient Hierarchy with separate root, category, family, and
+  selectable ingredient nodes.
+- Canonical pork, chicken, beef, and duck cuts for hierarchical Pantry
+  selection.
 
 ## Improved
 
@@ -35,6 +39,10 @@
   signature remains unchanged.
 - A materially changed recommendation returns as a compact collapsed card
   instead of forcing the full panel open.
+- Ingredient selection now uses progressive disclosure and full-hierarchy
+  search with localized breadcrumb paths.
+- Generic meat and fish choices are explicit selectable leaves; their family
+  nodes are navigation-only.
 
 ## Fixed
 
@@ -54,14 +62,15 @@
   Recipe detail.
 - Ignore, Hide, and Reopen no longer gate Recipe browsing or Start Cooking.
 - Hiding the panel no longer leaves empty layout spacing.
+- Expanding or collapsing a category no longer changes ingredient selection,
+  and selecting one leaf no longer affects its siblings.
 
 ## Known Limitations
 
 - Initial Knowledge Base covers a focused set of canonical Thai ingredients.
+- Newly separated meat cuts currently improve Pantry identity and hierarchy;
+  additional cut-specific Recipes remain a future Knowledge Base expansion.
 - Product Acceptance remains pending Product Owner manual testing.
-- This environment cannot run Flutter CLI verification; format, analysis,
-  automated tests, web build, and manual responsive checks must be rerun on a
-  configured development machine before merge.
 
 ## Out of Scope
 
