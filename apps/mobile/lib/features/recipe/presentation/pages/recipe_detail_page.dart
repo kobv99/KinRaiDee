@@ -6,6 +6,7 @@ import '../../domain/entities/recipe.dart';
 import '../providers/recipe_provider.dart';
 import '../providers/recipe_shopping_provider.dart';
 import '../widgets/recipe_readiness_panel.dart';
+import 'cooking_wizard_page.dart';
 import 'recipe_detail_legacy.dart' as legacy;
 
 class RecipeDetailPage extends ConsumerStatefulWidget {
@@ -49,6 +50,16 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('สูตรอาหาร')),
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'start-cooking-wizard',
+        onPressed: () => Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            builder: (_) => CookingWizardPage(recipe: widget.recipe),
+          ),
+        ),
+        icon: const Icon(Icons.play_arrow_rounded),
+        label: const Text('เริ่มทำอาหาร'),
+      ),
       body: Column(
         children: [
           AnimatedSize(

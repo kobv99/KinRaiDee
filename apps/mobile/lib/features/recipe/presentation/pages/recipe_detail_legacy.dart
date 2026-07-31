@@ -110,11 +110,11 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
       return;
     }
 
-    final selection = await showModalBottomSheet<_DeductionSelection>(
+    final selection = await showModalBottomSheet<DeductionSelection>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (_) => _DeductionConfirmationSheet(plan: deductionPlan),
+      builder: (_) => DeductionConfirmationSheet(plan: deductionPlan),
     );
     if (selection == null || !mounted) {
       return;
@@ -379,8 +379,8 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
   }
 }
 
-class _DeductionSelection {
-  const _DeductionSelection({
+class DeductionSelection {
+  const DeductionSelection({
     required this.selectedLineKeys,
     required this.quantitiesByLineKey,
   });
@@ -389,18 +389,18 @@ class _DeductionSelection {
   final Map<String, double> quantitiesByLineKey;
 }
 
-class _DeductionConfirmationSheet extends StatefulWidget {
-  const _DeductionConfirmationSheet({required this.plan});
+class DeductionConfirmationSheet extends StatefulWidget {
+  const DeductionConfirmationSheet({required this.plan});
 
   final PantryDeductionPlan plan;
 
   @override
-  State<_DeductionConfirmationSheet> createState() =>
-      _DeductionConfirmationSheetState();
+  State<DeductionConfirmationSheet> createState() =>
+      DeductionConfirmationSheetState();
 }
 
-class _DeductionConfirmationSheetState
-    extends State<_DeductionConfirmationSheet> {
+class DeductionConfirmationSheetState
+    extends State<DeductionConfirmationSheet> {
   final Map<String, TextEditingController> _controllers =
       <String, TextEditingController>{};
   final Set<String> _selectedKeys = <String>{};
@@ -462,7 +462,7 @@ class _DeductionConfirmationSheetState
     }
 
     Navigator.of(context).pop(
-      _DeductionSelection(
+      DeductionSelection(
         selectedLineKeys: Set<String>.unmodifiable(_selectedKeys),
         quantitiesByLineKey: Map<String, double>.unmodifiable(quantities),
       ),
