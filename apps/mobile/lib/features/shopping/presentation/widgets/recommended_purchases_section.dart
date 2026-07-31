@@ -5,6 +5,7 @@ import '../../../../app/theme/app_spacing.dart';
 import '../../../../shared/widgets/app_card.dart';
 import '../../application/shopping_recommendation_controller.dart';
 import '../../domain/entities/shopping_recommendation.dart';
+import '../providers/recommendation_ui_provider.dart';
 import '../providers/shopping_recommendation_provider.dart';
 
 class RecommendedPurchasesSection extends ConsumerStatefulWidget {
@@ -17,12 +18,10 @@ class RecommendedPurchasesSection extends ConsumerStatefulWidget {
 
 class _RecommendedPurchasesSectionState
     extends ConsumerState<RecommendedPurchasesSection> {
-  bool _dismissed = false;
-  String? _busyIngredientId;
-
   @override
   Widget build(BuildContext context) {
-    if (_dismissed) {
+    final uiState = ref.watch(recommendationUiProvider);
+    if (uiState.dismissed) {
       return const SizedBox.shrink();
     }
     final recommendations = ref.watch(shoppingRecommendationsProvider);
@@ -65,7 +64,8 @@ class _RecommendedPurchasesSectionState
                       'recommended-purchases-dismiss',
                     ),
                     tooltip: 'ซ่อนคำแนะนำครั้งนี้',
-                    onPressed: () => setState(() => _dismissed = true),
+                    onPressed: () =>
+                        ref.read(recommendationUiProvider.notifier).dismiss(),
                     icon: const Icon(Icons.close),
                   ),
                 ],
@@ -79,7 +79,7 @@ class _RecommendedPurchasesSectionState
                       child: _RecommendationCard(
                         recommendation: recommendation,
                         isBusy:
-                            _busyIngredientId ==
+                            uiState.busyIngredientId ==
                             recommendation.canonicalIngredientId,
                         onShowDetails: () => _showDetails(recommendation),
                         onAdd: () => _addRecommendation(recommendation),
@@ -120,7 +120,8 @@ class _RecommendedPurchasesSectionState
   }
 
   Future<void> _addRecommendation(ShoppingRecommendation recommendation) async {
-    if (_busyIngredientId != null) {
+    final uiNotifier = ref.read(recommendationUiProvider.notifier);
+    if (ref.read(recommendationUiProvider).busyIngredientId != null) {
       return;
     }
     final controller = ref.read(shoppingRecommendationControllerProvider);
@@ -128,7 +129,7 @@ class _RecommendedPurchasesSectionState
       _showMessage('ระบบคำแนะนำยังไม่พร้อม กรุณาลองใหม่อีกครั้ง');
       return;
     }
-    setState(() => _busyIngredientId = recommendation.canonicalIngredientId);
+    uiNotifier.setBusyIngredient(recommendation.canonicalIngredientId);
     try {
       final result = await controller.addToShopping(recommendation);
       if (!mounted) {
@@ -155,7 +156,7 @@ class _RecommendedPurchasesSectionState
       }
     } finally {
       if (mounted) {
-        setState(() => _busyIngredientId = null);
+        uiNotifier.setBusyIngredient(null);
       }
     }
   }
@@ -238,7 +239,9 @@ class _RecommendedPurchasesSectionState
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
-                    onPressed: _busyIngredientId == null
+                    onPressed:
+                        ref.read(recommendationUiProvider).busyIngredientId ==
+                            null
                         ? () {
                             Navigator.of(context).pop();
                             _addRecommendation(recommendation);

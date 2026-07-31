@@ -20,6 +20,7 @@ import '../../domain/entities/shopping_item.dart';
 import '../../domain/entities/shopping_list.dart';
 import '../../domain/models/shopping_mutation.dart';
 import '../providers/shopping_view_provider.dart';
+import '../widgets/recommended_purchases_section.dart';
 import '../widgets/shopping_item_card.dart';
 
 class ShoppingPage extends ConsumerStatefulWidget {
@@ -146,6 +147,17 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
                         setState(() => _selectedListId = value),
                     onPlanRecipe: _openRecipes,
                   ),
+                ),
+              ),
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(
+                  horizontal,
+                  AppSpacing.md,
+                  horizontal,
+                  0,
+                ),
+                sliver: const SliverToBoxAdapter(
+                  child: RecommendedPurchasesSection(),
                 ),
               ),
               SliverPadding(

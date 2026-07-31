@@ -6,6 +6,7 @@ import '../../../../app/theme/app_spacing.dart';
 import '../../../../shared/widgets/app_card.dart';
 import '../../../shopping/application/shopping_recommendation_controller.dart';
 import '../../../shopping/domain/entities/shopping_recommendation.dart';
+import '../../../shopping/presentation/providers/recommendation_ui_provider.dart';
 import '../../../shopping/presentation/providers/shopping_recommendation_provider.dart';
 import '../../domain/entities/pantry_insight.dart';
 import '../providers/pantry_insight_provider.dart';
@@ -20,19 +21,19 @@ class PantryIntelligenceSection extends ConsumerStatefulWidget {
 
 class _PantryIntelligenceSectionState
     extends ConsumerState<PantryIntelligenceSection> {
-  bool _recommendationsDismissed = false;
-  String? _busyIngredientId;
-
   @override
   Widget build(BuildContext context) {
     final insight = ref.watch(pantryInsightProvider);
     final recommendations = ref.watch(shoppingRecommendationsProvider);
+    final dismissed = ref.watch(
+      recommendationUiProvider.select((state) => state.dismissed),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _PantryInsightsCard(insight: insight),
-        if (!_recommendationsDismissed) ...[
+        if (!dismissed) ...[
           const SizedBox(height: AppSpacing.md),
           recommendations.when(
             data: (items) {
@@ -42,7 +43,7 @@ class _PantryIntelligenceSectionState
               return _RecommendationPreview(
                 recommendations: items,
                 onDismiss: () {
-                  setState(() => _recommendationsDismissed = true);
+                  ref.read(recommendationUiProvider.notifier).dismiss();
                 },
                 onSelect: _showDetails,
                 onViewAll: () => _showAll(items),
@@ -217,7 +218,9 @@ class _PantryIntelligenceSectionState
                       'pantry-recommendation-add-'
                       '${recommendation.canonicalIngredientId}',
                     ),
-                    onPressed: _busyIngredientId == null
+                    onPressed:
+                        ref.read(recommendationUiProvider).busyIngredientId ==
+                            null
                         ? () {
                             Navigator.of(sheetContext).pop();
                             _addRecommendation(recommendation);
@@ -236,7 +239,8 @@ class _PantryIntelligenceSectionState
   }
 
   Future<void> _addRecommendation(ShoppingRecommendation recommendation) async {
-    if (_busyIngredientId != null) {
+    final uiNotifier = ref.read(recommendationUiProvider.notifier);
+    if (ref.read(recommendationUiProvider).busyIngredientId != null) {
       return;
     }
     final controller = ref.read(shoppingRecommendationControllerProvider);
@@ -245,7 +249,7 @@ class _PantryIntelligenceSectionState
       return;
     }
 
-    setState(() => _busyIngredientId = recommendation.canonicalIngredientId);
+    uiNotifier.setBusyIngredient(recommendation.canonicalIngredientId);
     try {
       final result = await controller.addToShopping(recommendation);
       if (!mounted) {
@@ -274,7 +278,7 @@ class _PantryIntelligenceSectionState
       }
     } finally {
       if (mounted) {
-        setState(() => _busyIngredientId = null);
+        uiNotifier.setBusyIngredient(null);
       }
     }
   }
