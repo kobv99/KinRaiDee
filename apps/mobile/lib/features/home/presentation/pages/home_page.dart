@@ -9,6 +9,7 @@ import '../../../../core/design_system/design_tokens/app_typography.dart';
 import '../../../../core/providers/pantry_provider.dart';
 import '../../../recipe/presentation/providers/recipe_provider.dart';
 import '../widgets/daily_summary_card.dart';
+import '../widgets/expiring_soon_section.dart';
 import '../widgets/home_recipe_filter.dart';
 import '../widgets/top_picks_section.dart';
 
@@ -51,14 +52,21 @@ class _HomePageState extends ConsumerState<HomePage> {
           .length,
       orElse: () => 0,
     );
-    final expiringSoonCount = ref.watch(
-      pantryProvider.select(
-        (ingredients) => ingredients.where((i) {
+    final expiringSoonIngredients = ref.watch(
+      pantryProvider.select((ingredients) {
+        final filtered = ingredients.where((i) {
           final days = i.daysUntilExpiry;
           return !i.isExpired && days != null && days <= 7;
-        }).length,
-      ),
+        }).toList(growable: false);
+        filtered.sort((a, b) {
+          final da = a.daysUntilExpiry ?? 9999;
+          final db = b.daysUntilExpiry ?? 9999;
+          return da.compareTo(db);
+        });
+        return filtered;
+      }),
     );
+    final expiringSoonCount = expiringSoonIngredients.length;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -105,6 +113,14 @@ class _HomePageState extends ConsumerState<HomePage> {
                 // 5-6. Top picks + เปลี่ยนชุด (recipes appear above the fold)
                 TopPicksSection(filter: _filter),
                 const SizedBox(height: AppSpacing.xl),
+                // Brought back per user testing feedback: compact expiry
+                // awareness (top 3 only, not the full old dashboard).
+                ExpiringSoonSection(
+                  ingredients: expiringSoonIngredients,
+                  onOpenPantry: widget.onOpenPantry,
+                ),
+                if (expiringSoonIngredients.isNotEmpty)
+                  const SizedBox(height: AppSpacing.xl),
                 // 7. Search field — routes to Recipe tab, where search lives
                 _SearchEntryField(onTap: widget.onOpenRecipes ?? widget.onOpenPantry),
               ],

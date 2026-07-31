@@ -21,7 +21,6 @@ import '../widgets/pantry_catalog_panel.dart';
 import '../widgets/pantry_filter_bar.dart';
 import '../widgets/pantry_frequent_section.dart';
 import '../widgets/pantry_overview_card.dart';
-import '../widgets/pantry_recent_section.dart';
 import '../widgets/pantry_search_field.dart';
 import '../widgets/pantry_use_soon_section.dart';
 
@@ -287,13 +286,6 @@ class _PantryContent extends StatelessWidget {
     ).take(8).toList(growable: false);
   }
 
-  List<Ingredient> get _recentIngredients {
-    final recent = List<Ingredient>.of(allIngredients)
-      ..sort((first, second) => second.createdAt.compareTo(first.createdAt));
-
-    return recent.take(5).toList(growable: false);
-  }
-
   List<Ingredient> get _useSoonIngredients {
     return PantryExpiryPriority.useSoonItems(allIngredients, limit: 3);
   }
@@ -354,53 +346,6 @@ class _PantryContent extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (useSoonIngredients.isNotEmpty)
-                  SliverPadding(
-                    padding: EdgeInsets.fromLTRB(
-                      horizontalPadding,
-                      AppSpacing.sm,
-                      horizontalPadding,
-                      AppSpacing.md,
-                    ),
-                    sliver: SliverToBoxAdapter(
-                      child: PantryUseSoonSection(
-                        ingredients: useSoonIngredients,
-                        loadingIngredientId: loadingRecipeIngredientId,
-                        onFindRecipes: onFindRecipes,
-                      ),
-                    ),
-                  ),
-                if (frequentItems.isNotEmpty)
-                  SliverPadding(
-                    padding: EdgeInsets.fromLTRB(
-                      horizontalPadding,
-                      AppSpacing.sm,
-                      horizontalPadding,
-                      AppSpacing.md,
-                    ),
-                    sliver: SliverToBoxAdapter(
-                      child: PantryFrequentSection(
-                        items: frequentItems,
-                        onItemTap: onAddFrequentIngredient,
-                        onRemove: onRemoveFrequentIngredient,
-                      ),
-                    ),
-                  ),
-                if (allIngredients.isNotEmpty)
-                  SliverPadding(
-                    padding: EdgeInsets.fromLTRB(
-                      horizontalPadding,
-                      AppSpacing.sm,
-                      horizontalPadding,
-                      AppSpacing.md,
-                    ),
-                    sliver: SliverToBoxAdapter(
-                      child: PantryRecentSection(
-                        ingredients: _recentIngredients,
-                        onIngredientTap: onEdit,
-                      ),
-                    ),
-                  ),
                 SliverPadding(
                   padding: EdgeInsets.fromLTRB(
                     horizontalPadding,
@@ -435,6 +380,38 @@ class _PantryContent extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (useSoonIngredients.isNotEmpty)
+                  SliverPadding(
+                    padding: EdgeInsets.fromLTRB(
+                      horizontalPadding,
+                      AppSpacing.sm,
+                      horizontalPadding,
+                      AppSpacing.md,
+                    ),
+                    sliver: SliverToBoxAdapter(
+                      child: PantryUseSoonSection(
+                        ingredients: useSoonIngredients,
+                        loadingIngredientId: loadingRecipeIngredientId,
+                        onFindRecipes: onFindRecipes,
+                      ),
+                    ),
+                  ),
+                if (frequentItems.isNotEmpty)
+                  SliverPadding(
+                    padding: EdgeInsets.fromLTRB(
+                      horizontalPadding,
+                      AppSpacing.sm,
+                      horizontalPadding,
+                      AppSpacing.md,
+                    ),
+                    sliver: SliverToBoxAdapter(
+                      child: PantryFrequentSection(
+                        items: frequentItems,
+                        onItemTap: onAddFrequentIngredient,
+                        onRemove: onRemoveFrequentIngredient,
+                      ),
+                    ),
+                  ),
                 SliverPadding(
                   padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                   sliver: SliverToBoxAdapter(

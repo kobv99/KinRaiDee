@@ -18,6 +18,7 @@ class PantryReadinessCard extends StatelessWidget {
     required this.totalCount,
     required this.missingCount,
     this.onAddMissingIngredients,
+    this.isAddingMissing = false,
   });
 
   final int readyPercent;
@@ -25,6 +26,7 @@ class PantryReadinessCard extends StatelessWidget {
   final int totalCount;
   final int missingCount;
   final VoidCallback? onAddMissingIngredients;
+  final bool isAddingMissing;
 
   @override
   Widget build(BuildContext context) {
@@ -71,7 +73,8 @@ class PantryReadinessCard extends StatelessWidget {
                   label: 'เพิ่มวัตถุดิบ',
                   variant: AppButtonVariant.secondary,
                   expand: false,
-                  onPressed: onAddMissingIngredients,
+                  loading: isAddingMissing,
+                  onPressed: isAddingMissing ? null : onAddMissingIngredients,
                 ),
               ],
             ),

@@ -6,6 +6,7 @@ import '../../../../core/design_system/design_tokens/app_colors.dart';
 import '../../../../core/design_system/design_tokens/app_spacing.dart';
 import '../../application/recipe_missing_shopping_controller.dart';
 import '../../domain/entities/recipe.dart';
+import '../providers/favorite_recipe_ids_provider.dart';
 import '../providers/recipe_provider.dart';
 import '../providers/recipe_shopping_provider.dart';
 import '../widgets/recipe_detail_header.dart';
@@ -54,6 +55,10 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                     readiness == null || readiness.missingIngredients.isEmpty
                     ? null
                     : _addMissingIngredients,
+                isAddingMissing: _isAddingMissing,
+                isFavorite: ref.watch(favoriteRecipeIdsProvider).contains(widget.recipe.id),
+                onToggleFavorite: () =>
+                    ref.read(favoriteRecipeIdsProvider.notifier).toggle(widget.recipe.id),
                 onStartCooking: () => Navigator.of(context).push<void>(
                   MaterialPageRoute(
                     builder: (_) => CookingWizardPage(recipe: widget.recipe),

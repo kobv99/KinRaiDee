@@ -7,7 +7,6 @@ import '../../../../app/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_card.dart';
 import '../pages/cooking_history_page.dart';
 import '../providers/cooking_history_provider.dart';
-import 'pantry_intelligence_section.dart';
 
 class PantryOverviewCard extends ConsumerWidget {
   const PantryOverviewCard({
@@ -97,8 +96,6 @@ class PantryOverviewCard extends ConsumerWidget {
             ],
           ),
         ),
-        const SizedBox(height: AppSpacing.md),
-        const PantryIntelligenceSection(),
       ],
     );
   }
