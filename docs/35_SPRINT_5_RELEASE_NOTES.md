@@ -33,6 +33,12 @@
   Recommendation Dashboard, one Top Recommendation List, then Search.
 - Recommendation refresh belongs to the recommendation list header and uses a
   lightweight text button instead of a large action at the bottom of the page.
+- Cooking Mode is now a dedicated full-screen workflow: Recipe summary,
+  ingredient checklist, one cooking step at a time, then a completion screen.
+- Cooking Mode shows `ขั้นตอน X / N`, a progress bar, and the estimated
+  remaining time, and supports Previous, Next, and a confirmed exit.
+- Starting Cooking Mode creates a Cooking Session that stores the Recipe,
+  serving count, and start time, ready for cooking history and statistics.
 
 ## Fixed
 
@@ -46,6 +52,8 @@
   or explanation panels.
 - The duplicated “More Recipes from Main Ingredient” section and the duplicated
   match-threshold chips no longer compete with the primary recommendation list.
+- Recipe Detail no longer doubles as the cooking screen, so planning and
+  cooking assistance never share the same surface.
 
 ## Known Limitations
 

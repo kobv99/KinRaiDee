@@ -215,3 +215,56 @@ Product Owner environment: `flutter run -d web-server`.
 - Recipe Detail expansion
 - Add Missing Ingredients
 - Developer QA visibility
+
+## Feature: Recipe Detail is planning only
+
+### Test Steps
+
+1. Open a Recipe from the recommendation list.
+2. Review the readiness summary, choose a serving size, and review the
+   missing ingredients.
+3. Confirm that no cooking checklist appears on Recipe Detail.
+4. Press `เริ่มทำอาหารสำหรับ N คน`.
+
+### Expected Result
+
+- Recipe Detail shows recommendation summary, serving selection, scaled
+  ingredients, and instructions for reading only.
+- Cooking steps cannot be checked off inside Recipe Detail.
+- Start Cooking opens a new full-screen page, not a popup or an inline mode.
+
+### Possible Regression Areas
+
+- Serving recalculation
+- Missing ingredient advisory
+- Add Missing Ingredients
+
+## Feature: Full-screen Cooking Mode workflow
+
+### Test Steps
+
+1. Press Start Cooking from Recipe Detail.
+2. Review the Recipe summary and press `เริ่มทำอาหาร`.
+3. Review the ingredient checklist (required, missing, optional) and press
+   `ถัดไป`.
+4. Walk the cooking steps with `ขั้นตอนถัดไป` and `ขั้นตอนก่อนหน้า`.
+5. Press the close icon in the middle of the steps and choose `ทำต่อ`.
+6. Finish the last step with `ทำอาหารเสร็จแล้ว` and confirm the Pantry
+   deduction sheet.
+
+### Expected Result
+
+- Cooking Mode fills the screen and hides recommendation panels, the
+  Recommendation Dashboard, and filters.
+- Exactly one cooking step is visible at a time with `ขั้นตอน X / N`, a
+  progress bar, and the estimated remaining time.
+- Exiting mid-flow asks `ออกจากโหมดทำอาหาร?` and warns that progress is lost.
+- Finishing shows the Pantry deduction sheet, then a completion screen with
+  the Recipe name, serving count, and elapsed cooking time.
+- Undo from the deduction snackbar still restores Pantry quantities.
+
+### Possible Regression Areas
+
+- Pantry deduction and undo
+- Cooking history
+- Serving scaling

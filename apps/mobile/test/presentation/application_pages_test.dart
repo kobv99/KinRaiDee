@@ -53,17 +53,7 @@ void main() {
       );
 
       expect(find.text('Egg'), findsWidgets);
-      await tester.tap(find.byType(FilledButton).first);
-      await tester.pumpAndSettle();
-
-      final checklist = find.byType(CheckboxListTile);
-      expect(checklist, findsNWidgets(2));
-      await tester.tap(checklist.at(0));
-      await tester.pump();
-      await tester.tap(checklist.at(1));
-      await tester.pump();
-      await tester.tap(find.byType(FilledButton).first);
-      await tester.pumpAndSettle();
+      await _walkCookingMode(tester);
 
       expect(find.byType(BottomSheet), findsOneWidget);
       final deductionField = find.byType(TextField).last;
@@ -108,15 +98,7 @@ void main() {
         RecipeDetailPage(recipe: _recipe()),
       );
 
-      await tester.tap(find.byType(FilledButton).first);
-      await tester.pumpAndSettle();
-      for (final checkbox
-          in find.byType(CheckboxListTile).evaluate().toList()) {
-        await tester.tap(find.byWidget(checkbox.widget));
-        await tester.pump();
-      }
-      await tester.tap(find.byType(FilledButton).first);
-      await tester.pumpAndSettle();
+      await _walkCookingMode(tester);
 
       expect(find.byType(AlertDialog), findsOneWidget);
       await tester.tap(find.byType(FilledButton).last);
@@ -667,6 +649,32 @@ Future<void> _pumpPage(
       child: MaterialApp(home: page),
     ),
   );
+  await tester.pumpAndSettle();
+}
+
+/// Walks the full-screen Cooking Mode flow: start → checklist → every step →
+/// finish.
+Future<void> _walkCookingMode(WidgetTester tester) async {
+  await tester.tap(find.byKey(const ValueKey<String>('start-cooking-button')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const ValueKey<String>('cooking-start-button')));
+  await tester.pumpAndSettle();
+  await tester.tap(
+    find.byKey(const ValueKey<String>('cooking-checklist-next-button')),
+  );
+  await tester.pumpAndSettle();
+
+  while (find
+      .byKey(const ValueKey<String>('cooking-next-step-button'))
+      .evaluate()
+      .isNotEmpty) {
+    await tester.tap(
+      find.byKey(const ValueKey<String>('cooking-next-step-button')),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  await tester.tap(find.byKey(const ValueKey<String>('cooking-finish-button')));
   await tester.pumpAndSettle();
 }
 

@@ -104,7 +104,21 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('โหมดทำอาหาร'), findsOneWidget);
-    expect(find.textContaining('ขั้นตอน 1 จาก 1'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('recipe-readiness-panel')),
+      findsNothing,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('cooking-start-button')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('cooking-checklist-next-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('ขั้นตอน 1 / 1'), findsOneWidget);
   });
 
   testWidgets('compact and expanded advisory do not overflow small screens', (
