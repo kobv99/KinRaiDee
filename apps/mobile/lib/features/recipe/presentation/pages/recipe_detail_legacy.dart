@@ -214,8 +214,27 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
     final completedCount = _completedSteps.length;
     final totalSteps = widget.recipe.steps.length;
 
+    final isFavorite = ref.watch(
+      favoriteRecipeIdsProvider.select((ids) => ids.contains(widget.recipe.id)),
+    );
+
     return Scaffold(
-      appBar: AppBar(title: const Text('สูตรอาหาร')),
+      appBar: AppBar(
+        title: const Text('สูตรอาหาร'),
+        actions: [
+          IconButton(
+            key: ValueKey<String>('recipe-detail-favorite-${widget.recipe.id}'),
+            tooltip: isFavorite ? 'เอาออกจากรายการโปรด' : 'เพิ่มในรายการโปรด',
+            onPressed: () => ref
+                .read(favoriteRecipeIdsProvider.notifier)
+                .toggle(widget.recipe.id),
+            icon: Icon(
+              isFavorite ? Icons.favorite : Icons.favorite_border,
+              color: isFavorite ? AppColors.primary : null,
+            ),
+          ),
+        ],
+      ),
       bottomNavigationBar: SafeArea(
         minimum: const EdgeInsets.fromLTRB(
           AppSpacing.md,
@@ -693,17 +712,13 @@ class _InfoBox extends StatelessWidget {
   }
 }
 
-class _RecipeHeader extends ConsumerWidget {
+class _RecipeHeader extends StatelessWidget {
   const _RecipeHeader({required this.recipe});
 
   final Recipe recipe;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isFavorite = ref.watch(
-      favoriteRecipeIdsProvider.select((ids) => ids.contains(recipe.id)),
-    );
-
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: const BoxDecoration(
@@ -745,16 +760,6 @@ class _RecipeHeader extends ConsumerWidget {
                   ],
                 ),
               ],
-            ),
-          ),
-          IconButton(
-            key: ValueKey<String>('recipe-detail-favorite-${recipe.id}'),
-            tooltip: isFavorite ? 'เอาออกจากรายการโปรด' : 'เพิ่มในรายการโปรด',
-            onPressed: () =>
-                ref.read(favoriteRecipeIdsProvider.notifier).toggle(recipe.id),
-            icon: Icon(
-              isFavorite ? Icons.favorite : Icons.favorite_border,
-              color: AppColors.primaryDark,
             ),
           ),
         ],

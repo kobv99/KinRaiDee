@@ -57,6 +57,12 @@ void main() {
       expect(find.text('ขั้นตอน 1'), findsOneWidget);
 
       await tester.tap(find.byType(CheckboxListTile));
+      await tester.pump();
+      // Completing the last step shows a 4-second SnackBar ("ทำครบทุก
+      // ขั้นตอนแล้ว 🎉 ...") that can otherwise still cover the bottom
+      // button when pumpAndSettle() returns; advance real time past its
+      // full duration first so it has definitely dismissed itself.
+      await tester.pump(const Duration(seconds: 5));
       await tester.pumpAndSettle();
 
       expect(find.text('ทำเสร็จแล้ว · ตรวจและหัก Pantry'), findsOneWidget);
