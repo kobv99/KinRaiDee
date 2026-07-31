@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import '../design_tokens/app_colors.dart';
-import '../design_tokens/app_radius.dart';
-import '../design_tokens/app_spacing.dart';
 import '../design_tokens/app_typography.dart';
 
 /// Minus / count / plus selector for "สำหรับกี่คน?".
