@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/design_system/design_tokens/app_colors.dart';
 import '../../../../core/design_system/design_tokens/app_spacing.dart';
 import '../../../../core/design_system/design_tokens/app_typography.dart';
-import '../../domain/entities/recipe_readiness.dart';
+import '../../domain/services/recipe_serving_calculator.dart';
 
 /// Read-only ingredient list for Recipe Detail. This replaces the old
 /// embedded legacy page, which duplicated the serving-selector and
@@ -12,14 +12,13 @@ import '../../domain/entities/recipe_readiness.dart';
 /// by user testing). Adjusting servings and starting to cook now only
 /// happens in one place: the cooking wizard.
 class RecipeIngredientList extends StatelessWidget {
-  const RecipeIngredientList({super.key, required this.readiness});
+  const RecipeIngredientList({super.key, required this.servingPlan});
 
-  final RecipeReadiness? readiness;
+  final RecipeServingPlan servingPlan;
 
   @override
   Widget build(BuildContext context) {
-    final value = readiness;
-    if (value == null) return const SizedBox.shrink();
+    if (servingPlan.ingredients.isEmpty) return const SizedBox.shrink();
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
@@ -27,11 +26,11 @@ class RecipeIngredientList extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'วัตถุดิบทั้งหมด (สำหรับ ${value.servings} คน)',
+            'วัตถุดิบทั้งหมด (สำหรับ ${servingPlan.servings} คน)',
             style: AppTypography.label,
           ),
           const SizedBox(height: AppSpacing.sm),
-          for (final item in value.ingredients) _IngredientRow(item: item),
+          for (final item in servingPlan.ingredients) _IngredientRow(item: item),
         ],
       ),
     );
@@ -40,7 +39,7 @@ class RecipeIngredientList extends StatelessWidget {
 
 class _IngredientRow extends StatelessWidget {
   const _IngredientRow({required this.item});
-  final RecipeIngredientReadiness item;
+  final ScaledRecipeIngredient item;
 
   @override
   Widget build(BuildContext context) {
@@ -50,9 +49,9 @@ class _IngredientRow extends StatelessWidget {
       child: Row(
         children: [
           Icon(
-            item.isAvailable ? Icons.check_circle : Icons.remove_circle_outline,
+            item.isEnough ? Icons.check_circle : Icons.remove_circle_outline,
             size: 18,
-            color: item.isAvailable ? AppColors.success : AppColors.warning,
+            color: item.isEnough ? AppColors.success : AppColors.warning,
           ),
           const SizedBox(width: AppSpacing.sm),
           Expanded(

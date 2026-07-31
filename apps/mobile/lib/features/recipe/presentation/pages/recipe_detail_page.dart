@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/providers/canonical_ingredient_providers.dart';
 import '../../../../core/design_system/components/responsive_content.dart';
 import '../../../../core/design_system/design_tokens/app_colors.dart';
 import '../../../../core/design_system/design_tokens/app_spacing.dart';
+import '../../../../core/providers/pantry_provider.dart';
 import '../../application/recipe_missing_shopping_controller.dart';
 import '../../domain/entities/recipe.dart';
+import '../../domain/services/recipe_serving_calculator.dart';
 import '../providers/favorite_recipe_ids_provider.dart';
-import '../providers/recipe_provider.dart';
 import '../providers/recipe_shopping_provider.dart';
 import '../widgets/recipe_detail_header.dart';
 import '../widgets/recipe_ingredient_list.dart';
@@ -34,11 +36,18 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final readiness = ref.watch(
-      recipeReadinessProvider(
-        RecipeReadinessRequest(recipe: widget.recipe, servings: _servings),
-      ),
+    // Uses the same RecipeServingCalculator the cooking wizard uses (rather
+    // than recipeReadinessProvider), which tolerates a not-yet-ready
+    // canonical ingredient registry instead of returning null outright —
+    // this was a real bug: ingredient names failed to show at all whenever
+    // the registry provider hadn't resolved yet.
+    final servingPlan = const RecipeServingCalculator().calculate(
+      recipe: widget.recipe,
+      pantry: ref.watch(pantryProvider),
+      servings: _servings,
+      registry: ref.watch(canonicalIngredientRegistryProvider),
     );
+    final hasMissing = servingPlan.ingredients.any((item) => !item.isEnough);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -49,12 +58,9 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
             children: [
               RecipeDetailHeader(
                 recipe: widget.recipe,
-                readiness: readiness,
+                servingPlan: servingPlan,
                 onBack: () => Navigator.of(context).maybePop(),
-                onAddMissing:
-                    readiness == null || readiness.missingIngredients.isEmpty
-                    ? null
-                    : _addMissingIngredients,
+                onAddMissing: hasMissing ? _addMissingIngredients : null,
                 isAddingMissing: _isAddingMissing,
                 isFavorite: ref.watch(favoriteRecipeIdsProvider).contains(widget.recipe.id),
                 onToggleFavorite: () =>
@@ -66,7 +72,7 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
-              RecipeIngredientList(readiness: readiness),
+              RecipeIngredientList(servingPlan: servingPlan),
               const SizedBox(height: AppSpacing.xxl),
             ],
           ),

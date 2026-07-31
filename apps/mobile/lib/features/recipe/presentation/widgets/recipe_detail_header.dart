@@ -9,21 +9,26 @@ import '../../../../core/design_system/design_tokens/app_typography.dart';
 import '../../../../core/design_system/feature_components/ingredient_status_chip.dart';
 import '../../../../core/design_system/feature_components/pantry_readiness_card.dart';
 import '../../domain/entities/recipe.dart';
-import '../../domain/entities/recipe_readiness.dart';
+import '../../domain/entities/recipe_ingredient.dart';
+import '../../domain/services/recipe_serving_calculator.dart';
 
 /// Recipe Detail hero + readiness section, matching the Sprint 5.5 mockup:
 /// back/favorite/menu icons over the hero area, name + Pantry Friendly
 /// badge, time/difficulty/servings row, then the readiness card and main
 /// ingredients row.
 ///
-/// Every number shown here comes directly from [readiness] (the same
-/// [RecipeReadiness] object already computed by `recipeReadinessProvider`
-/// in recipe_detail_page.dart) — no new readiness math was written.
+/// Every number shown here comes from [servingPlan] — the same
+/// [RecipeServingPlan] computed by [RecipeServingCalculator] that the
+/// cooking wizard already uses. This intentionally does NOT use
+/// recipeReadinessProvider/RecipeReadiness: that provider returns null
+/// outright whenever the canonical ingredient registry hasn't resolved
+/// yet, which meant ingredient names could silently fail to render.
+/// RecipeServingCalculator tolerates a null registry gracefully instead.
 class RecipeDetailHeader extends StatelessWidget {
   const RecipeDetailHeader({
     super.key,
     required this.recipe,
-    required this.readiness,
+    required this.servingPlan,
     required this.onBack,
     required this.onAddMissing,
     this.isAddingMissing = false,
@@ -33,7 +38,7 @@ class RecipeDetailHeader extends StatelessWidget {
   });
 
   final Recipe recipe;
-  final RecipeReadiness? readiness;
+  final RecipeServingPlan servingPlan;
   final VoidCallback onBack;
   final VoidCallback? onAddMissing;
   final bool isAddingMissing;
@@ -43,6 +48,11 @@ class RecipeDetailHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final total = servingPlan.ingredients.length;
+    final haveCount = servingPlan.enoughCount;
+    final missingCount = total - haveCount;
+    final readyPercent = _weightedReadyPercent(servingPlan.ingredients);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -60,7 +70,7 @@ class RecipeDetailHeader extends StatelessWidget {
               Row(
                 children: [
                   Expanded(child: Text(recipe.name, style: AppTypography.headline)),
-                  if (readiness != null && readiness!.scorePercent >= 70)
+                  if (readyPercent >= 70)
                     const AppChip(label: 'Pantry Friendly', tone: AppChipTone.primary),
                 ],
               ),
@@ -71,19 +81,16 @@ class RecipeDetailHeader extends StatelessWidget {
                   const SizedBox(width: AppSpacing.lg),
                   _MetaItem(icon: Icons.local_fire_department_outlined, label: recipe.difficulty),
                   const SizedBox(width: AppSpacing.lg),
-                  _MetaItem(
-                    icon: Icons.people_outline,
-                    label: '${readiness?.servings ?? recipe.servings} คน',
-                  ),
+                  _MetaItem(icon: Icons.people_outline, label: '${servingPlan.servings} คน'),
                 ],
               ),
               const SizedBox(height: AppSpacing.xl),
-              if (readiness != null) ...[
+              if (total > 0) ...[
                 PantryReadinessCard(
-                  readyPercent: readiness!.scorePercent,
-                  haveCount: readiness!.availableIngredients.length,
-                  totalCount: readiness!.ingredients.length,
-                  missingCount: readiness!.missingIngredients.length,
+                  readyPercent: readyPercent,
+                  haveCount: haveCount,
+                  totalCount: total,
+                  missingCount: missingCount,
                   onAddMissingIngredients: onAddMissing,
                   isAddingMissing: isAddingMissing,
                 ),
@@ -93,12 +100,12 @@ class RecipeDetailHeader extends StatelessWidget {
                 Wrap(
                   spacing: AppSpacing.sm,
                   runSpacing: AppSpacing.sm,
-                  children: readiness!.ingredients
-                      .where((item) => item.isPrimary)
+                  children: servingPlan.ingredients
+                      .where((item) => item.ingredient.role == RecipeIngredientRole.primary)
                       .map(
                         (item) => IngredientStatusChip(
                           name: item.ingredient.name,
-                          status: item.isAvailable
+                          status: item.isEnough
                               ? IngredientStatus.available
                               : IngredientStatus.missing,
                         ),
@@ -124,6 +131,35 @@ class RecipeDetailHeader extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Weighted readiness percent, matching RecipeReadinessWeightPolicy's
+/// defaults (primary=5, secondary=2, optional=0.5) with partial credit per
+/// ingredient — computed from data RecipeServingCalculator already
+/// produces, so it works even before the canonical ingredient registry has
+/// fully resolved (unlike RecipeReadinessService, which requires it).
+int _weightedReadyPercent(List<ScaledRecipeIngredient> ingredients) {
+  if (ingredients.isEmpty) return 100;
+  var totalWeight = 0.0;
+  var earnedWeight = 0.0;
+  for (final item in ingredients) {
+    final weight =
+        item.ingredient.readinessWeight ??
+        switch (item.ingredient.role) {
+          RecipeIngredientRole.primary => 5.0,
+          RecipeIngredientRole.secondary => 2.0,
+          RecipeIngredientRole.optional => 0.5,
+          null => 2.0,
+        };
+    final available = item.pantryQuantityInRecipeUnit;
+    final ratio = available == null
+        ? (item.isEnough ? 1.0 : 0.0)
+        : (item.requiredQuantity <= 0 ? 1.0 : (available / item.requiredQuantity).clamp(0.0, 1.0));
+    totalWeight += weight;
+    earnedWeight += weight * ratio;
+  }
+  if (totalWeight <= 0) return 100;
+  return ((earnedWeight / totalWeight) * 100).round();
 }
 
 class _HeroImagePlaceholder extends StatelessWidget {
