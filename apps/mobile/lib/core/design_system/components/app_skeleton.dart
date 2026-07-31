@@ -62,7 +62,7 @@ class _AppSkeletonState extends State<AppSkeleton> with SingleTickerProviderStat
 
 /// Preset skeleton matching a recipe card shape, for Home screen loading.
 class AppRecipeCardSkeleton extends StatelessWidget {
-  const AppRecipeCardSkeleton({super.key, this.width = 160});
+  const AppRecipeCardSkeleton({super.key, this.width = 144});
   final double width;
 
   @override

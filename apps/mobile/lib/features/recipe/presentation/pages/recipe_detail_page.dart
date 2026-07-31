@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/design_system/components/responsive_content.dart';
 import '../../../../core/design_system/design_tokens/app_colors.dart';
 import '../../application/recipe_missing_shopping_controller.dart';
 import '../../domain/entities/recipe.dart';
@@ -51,33 +52,35 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
       backgroundColor: AppColors.background,
       body: SafeArea(
         top: false,
-        child: Column(
-          children: [
-            RecipeDetailHeader(
-              recipe: widget.recipe,
-              readiness: readiness,
-              onBack: () => Navigator.of(context).maybePop(),
-              onAddMissing:
-                  readiness == null || readiness.missingIngredients.isEmpty
-                  ? null
-                  : _addMissingIngredients,
-              onStartCooking: () => Navigator.of(context).push<void>(
-                MaterialPageRoute(
-                  builder: (_) => CookingWizardPage(recipe: widget.recipe),
+        child: ResponsiveContent(
+          child: Column(
+            children: [
+              RecipeDetailHeader(
+                recipe: widget.recipe,
+                readiness: readiness,
+                onBack: () => Navigator.of(context).maybePop(),
+                onAddMissing:
+                    readiness == null || readiness.missingIngredients.isEmpty
+                    ? null
+                    : _addMissingIngredients,
+                onStartCooking: () => Navigator.of(context).push<void>(
+                  MaterialPageRoute(
+                    builder: (_) => CookingWizardPage(recipe: widget.recipe),
+                  ),
                 ),
               ),
-            ),
-            Expanded(
-              child: MediaQuery.removePadding(
-                context: context,
-                removeTop: true,
-                child: Theme(
-                  data: embeddedTheme,
-                  child: legacy.RecipeDetailPage(recipe: widget.recipe),
+              Expanded(
+                child: MediaQuery.removePadding(
+                  context: context,
+                  removeTop: true,
+                  child: Theme(
+                    data: embeddedTheme,
+                    child: legacy.RecipeDetailPage(recipe: widget.recipe),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

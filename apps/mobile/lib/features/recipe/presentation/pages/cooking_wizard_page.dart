@@ -5,6 +5,7 @@ import '../../../../app/providers/canonical_ingredient_providers.dart';
 import '../../../../core/design_system/components/app_button.dart';
 import '../../../../core/design_system/components/app_card.dart';
 import '../../../../core/design_system/components/app_icon_button.dart';
+import '../../../../core/design_system/components/responsive_content.dart';
 import '../../../../core/design_system/design_tokens/app_colors.dart';
 import '../../../../core/design_system/design_tokens/app_spacing.dart';
 import '../../../../core/design_system/design_tokens/app_typography.dart';
@@ -85,18 +86,21 @@ class _CookingWizardPageState extends ConsumerState<CookingWizardPage> {
         title: Text(_phaseLabel(_phase), style: AppTypography.title),
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: switch (_phase) {
-            _WizardPhase.serving => _ServingStep(
-                recipe: widget.recipe,
-                servings: _servings,
-                onChanged: (value) => setState(() => _servings = value),
-              ),
-            _WizardPhase.review => _ReviewStep(servingPlan: servingPlan),
-            _WizardPhase.confirm => _ConfirmStep(servingPlan: servingPlan),
-            _WizardPhase.cooking => const SizedBox.shrink(), // handled above
-          },
+        child: ResponsiveContent(
+          maxWidth: 560,
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: switch (_phase) {
+              _WizardPhase.serving => _ServingStep(
+                  recipe: widget.recipe,
+                  servings: _servings,
+                  onChanged: (value) => setState(() => _servings = value),
+                ),
+              _WizardPhase.review => _ReviewStep(servingPlan: servingPlan),
+              _WizardPhase.confirm => _ConfirmStep(servingPlan: servingPlan),
+              _WizardPhase.cooking => const SizedBox.shrink(), // handled above
+            },
+          ),
         ),
       ),
       bottomNavigationBar: SafeArea(
@@ -130,7 +134,6 @@ class _CookingWizardPageState extends ConsumerState<CookingWizardPage> {
                 vertical: AppSpacing.sm,
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   AppIconButton(
                     icon: Icons.close,
@@ -139,7 +142,6 @@ class _CookingWizardPageState extends ConsumerState<CookingWizardPage> {
                     foreground: AppColors.cookingTextPrimary,
                     onPressed: () => _confirmExitCookingMode(context),
                   ),
-                  const Icon(Icons.timer_outlined, color: AppColors.cookingTextSecondary),
                 ],
               ),
             ),

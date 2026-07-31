@@ -20,7 +20,7 @@ class RecipeCard extends StatelessWidget {
     required this.onTap,
     this.imageProvider,
     this.placeholderEmoji,
-    this.width = 160,
+    this.width = 144,
   });
 
   final String name;

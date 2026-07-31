@@ -107,15 +107,6 @@ class RecipeDetailHeader extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: AppButton(
-                      label: 'ดูขั้นตอน',
-                      variant: AppButtonVariant.secondary,
-                      onPressed: null, // scrolling to steps is handled by the page below
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    flex: 2,
                     child: AppButton(label: 'เริ่มทำอาหาร', onPressed: onStartCooking),
                   ),
                 ],
