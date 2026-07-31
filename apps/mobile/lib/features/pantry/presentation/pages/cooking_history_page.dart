@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/providers/pantry_provider.dart';
+import '../../../../core/presentation/unit_presentation.dart';
 import '../../domain/models/cooking_history_entry.dart';
 import '../../domain/models/pantry_quantity_transaction.dart';
 import '../../domain/services/cooking_history_adjustment_planner.dart';
@@ -16,6 +17,110 @@ class CookingHistoryPage extends ConsumerStatefulWidget {
 
 class _CookingHistoryPageState extends ConsumerState<CookingHistoryPage> {
   String? _processingEntryId;
+  bool _clearingHistory = false;
+
+  Future<void> _deleteEntry(CookingHistoryEntry entry) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('ลบประวัติรายการนี้?'),
+        content: Text(
+          'รายการ ${entry.recipeName} จะถูกลบออกจากประวัติ '
+          'โดยจำนวนวัตถุดิบใน Pantry จะไม่เปลี่ยนแปลง',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('เก็บไว้'),
+          ),
+          FilledButton(
+            key: const ValueKey<String>('history-confirm-delete'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('ลบประวัติ'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    setState(() => _processingEntryId = entry.id);
+    try {
+      await ref.read(pantryProvider.notifier).deleteHistoryEntry(entry.id);
+      if (mounted) {
+        _showRetentionMessage('ลบประวัติ ${entry.recipeName} แล้ว');
+      }
+    } on Object {
+      if (mounted) {
+        _showRetentionMessage(
+          'ไม่สามารถลบประวัติได้ ข้อมูลเดิมยังคงปลอดภัย',
+          isError: true,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _processingEntryId = null);
+      }
+    }
+  }
+
+  Future<void> _clearHistory() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('ล้างประวัติทั้งหมด?'),
+        content: const Text(
+          'ประวัติการทำอาหารทั้งหมดจะถูกลบอย่างถาวร '
+          'โดยจำนวนวัตถุดิบใน Pantry จะไม่เปลี่ยนแปลง',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('ยกเลิก'),
+          ),
+          FilledButton(
+            key: const ValueKey<String>('history-confirm-clear'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('ล้างทั้งหมด'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    setState(() => _clearingHistory = true);
+    try {
+      await ref.read(pantryProvider.notifier).clearCookingHistory();
+      if (mounted) {
+        _showRetentionMessage('ล้างประวัติการทำอาหารทั้งหมดแล้ว');
+      }
+    } on Object {
+      if (mounted) {
+        _showRetentionMessage(
+          'ไม่สามารถล้างประวัติได้ ข้อมูลเดิมยังคงปลอดภัย',
+          isError: true,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _clearingHistory = false);
+      }
+    }
+  }
+
+  void _showRetentionMessage(String message, {bool isError = false}) {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
+      ),
+    );
+  }
 
   Future<void> _editEntry(CookingHistoryEntry entry) async {
     final quantities = await showModalBottomSheet<Map<String, double>>(
@@ -105,25 +210,27 @@ class _CookingHistoryPageState extends ConsumerState<CookingHistoryPage> {
           showCloseIcon: true,
         ),
       );
-    } on CookingHistoryAdjustmentException catch (error) {
+    } on CookingHistoryAdjustmentException {
       if (!mounted) {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error.message),
-          duration: const Duration(seconds: 6),
+        const SnackBar(
+          content: Text('ปรับปริมาณไม่ได้ กรุณาตรวจข้อมูลแล้วลองอีกครั้ง'),
+          duration: Duration(seconds: 6),
           showCloseIcon: true,
         ),
       );
-    } on InventoryTransactionException catch (error) {
+    } on Object {
       if (!mounted) {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('ไม่สามารถบันทึกการเปลี่ยนแปลงได้ (${error.code})'),
-          duration: const Duration(seconds: 6),
+        const SnackBar(
+          content: Text(
+            'ไม่สามารถบันทึกการเปลี่ยนแปลงได้ ข้อมูลเดิมยังคงปลอดภัย',
+          ),
+          duration: Duration(seconds: 6),
           showCloseIcon: true,
         ),
       );
@@ -141,7 +248,25 @@ class _CookingHistoryPageState extends ConsumerState<CookingHistoryPage> {
     final history = ref.watch(cookingHistoryProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('ประวัติการทำอาหาร')),
+      appBar: AppBar(
+        title: const Text('ประวัติการทำอาหาร'),
+        actions: [
+          if (history.isNotEmpty)
+            IconButton(
+              key: const ValueKey<String>('history-clear-all'),
+              tooltip: 'ล้างประวัติทั้งหมด',
+              onPressed: _clearingHistory || _processingEntryId != null
+                  ? null
+                  : _clearHistory,
+              icon: _clearingHistory
+                  ? const SizedBox.square(
+                      dimension: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.delete_sweep_outlined),
+            ),
+        ],
+      ),
       body: history.isEmpty
           ? const _EmptyHistoryView()
           : ListView.separated(
@@ -155,6 +280,7 @@ class _CookingHistoryPageState extends ConsumerState<CookingHistoryPage> {
                   processing: _processingEntryId == entry.id,
                   onEdit: () => _editEntry(entry),
                   onCancel: () => _cancelEntry(entry),
+                  onDelete: () => _deleteEntry(entry),
                 );
               },
             ),
@@ -168,12 +294,14 @@ class _HistoryCard extends StatelessWidget {
     required this.processing,
     required this.onEdit,
     required this.onCancel,
+    required this.onDelete,
   });
 
   final CookingHistoryEntry entry;
   final bool processing;
   final VoidCallback onEdit;
   final VoidCallback onCancel;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -219,7 +347,18 @@ class _HistoryCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                _HistoryStatusChip(status: entry.status),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _HistoryStatusChip(status: entry.status),
+                    IconButton(
+                      key: ValueKey<String>('history-delete-${entry.id}'),
+                      tooltip: 'ลบประวัติรายการนี้',
+                      onPressed: processing ? null : onDelete,
+                      icon: const Icon(Icons.delete_outline),
+                    ),
+                  ],
+                ),
               ],
             ),
             const SizedBox(height: 14),
@@ -447,7 +586,11 @@ class _EditConsumedQuantitySheetState
                             labelText: change.ingredientName,
                             helperText:
                                 'บันทึกเดิม ${_formatQuantity(change.consumedQuantity, change.unit)}',
-                            suffixText: change.unit,
+                            suffixText: UnitPresentation.label(
+                              change.canonicalUnitId.isEmpty
+                                  ? change.unit
+                                  : change.canonicalUnitId,
+                            ),
                             border: const OutlineInputBorder(),
                           ),
                           onChanged: (_) {
@@ -542,7 +685,7 @@ String _formatDateTime(DateTime value) {
 }
 
 String _formatQuantity(double value, String unit) {
-  return '${_formatNumber(value)} $unit'.trim();
+  return UnitPresentation.quantity(value, unit, maximumFractionDigits: 2);
 }
 
 String _formatNumber(double value) {

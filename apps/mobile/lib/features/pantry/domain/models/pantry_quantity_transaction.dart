@@ -3,8 +3,13 @@ enum InventoryTransactionKind {
   undoCooking,
   adjustCookingHistory,
   cancelCookingHistory,
+  deleteCookingHistory,
+  clearCookingHistory,
   pantryMutation,
   canonicalIngredientMigration,
+  shoppingMutation,
+  shoppingPurchase,
+  undoShoppingPurchase,
 }
 
 class PantryQuantityChange {

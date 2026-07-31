@@ -1,0 +1,216 @@
+// ignore_for_file: prefer_initializing_formals
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../app/providers/canonical_ingredient_providers.dart';
+import '../../../core/providers/pantry_provider.dart';
+import '../../pantry/application/inventory_transaction_coordinator.dart';
+import '../../pantry/application/inventory_transaction_providers.dart';
+import '../../pantry/domain/models/pantry_quantity_transaction.dart';
+import '../data/repositories/local_shopping_repository.dart';
+import '../domain/entities/purchase_history_entry.dart';
+import '../domain/entities/shopping_item.dart';
+import '../domain/entities/shopping_item_status.dart';
+import '../domain/entities/shopping_list.dart';
+import '../domain/models/shopping_mutation.dart';
+import '../domain/repositories/shopping_repository.dart';
+import '../domain/services/shopping_engine.dart';
+import 'shopping_completion_coordinator.dart';
+
+final shoppingEngineProvider = Provider<ShoppingEngine?>((ref) {
+  final registry = ref.watch(canonicalIngredientRegistryProvider);
+  return registry == null
+      ? null
+      : ShoppingEngine(
+          registry: registry,
+          unitEngine: ref.watch(unitConversionEngineProvider),
+        );
+});
+
+final shoppingRepositoryProvider = Provider<ShoppingRepository>((ref) {
+  return LocalShoppingRepository(ref.watch(inventoryCommitRepositoryProvider));
+});
+
+final shoppingListsProvider = FutureProvider<List<ShoppingList>>((ref) {
+  return ref.watch(shoppingRepositoryProvider).getLists();
+});
+
+final purchaseHistoryProvider = FutureProvider<List<PurchaseHistoryEntry>>((
+  ref,
+) {
+  return ref.watch(shoppingRepositoryProvider).getPurchaseHistory();
+});
+
+final shoppingCompletionCoordinatorProvider =
+    Provider<ShoppingCompletionCoordinator?>((ref) {
+      final registry = ref.watch(canonicalIngredientRegistryProvider);
+      if (registry == null) {
+        return null;
+      }
+      return ShoppingCompletionCoordinator(
+        repository: ref.watch(inventoryCommitRepositoryProvider),
+        registry: registry,
+        unitEngine: ref.watch(unitConversionEngineProvider),
+        clock: ref.watch(appClockProvider),
+        transactionIdGenerator: ref.watch(transactionIdGeneratorProvider),
+      );
+    });
+
+class ShoppingCompletionController {
+  ShoppingCompletionController({
+    required ShoppingCompletionCoordinator? coordinator,
+    required void Function(InventoryTransactionResult) onDurableCommit,
+  }) : _coordinator = coordinator,
+       _onDurableCommit = onDurableCommit;
+
+  final ShoppingCompletionCoordinator? _coordinator;
+  final void Function(InventoryTransactionResult) _onDurableCommit;
+
+  Future<InventoryTransactionResult> complete({
+    required String listId,
+    required int expectedListRevision,
+    required String itemId,
+    required DateTime createdAt,
+    bool keepSeparate = false,
+  }) {
+    final coordinator = _coordinator;
+    if (coordinator == null) {
+      throw StateError('Canonical Shopping contract is unavailable.');
+    }
+    return _finish(
+      coordinator,
+      coordinator.completeItem(
+        listId: listId,
+        expectedListRevision: expectedListRevision,
+        itemId: itemId,
+        createdAt: createdAt,
+        keepSeparate: keepSeparate,
+      ),
+    );
+  }
+
+  Future<InventoryTransactionResult> undo({
+    required String purchaseTransactionId,
+    required DateTime createdAt,
+  }) {
+    final coordinator = _coordinator;
+    if (coordinator == null) {
+      throw StateError('Canonical Shopping contract is unavailable.');
+    }
+    return _finish(
+      coordinator,
+      coordinator.undoCompletion(
+        purchaseTransactionId: purchaseTransactionId,
+        createdAt: createdAt,
+      ),
+    );
+  }
+
+  Future<InventoryTransactionResult> _finish(
+    ShoppingCompletionCoordinator coordinator,
+    Future<InventoryTransactionResult> operation,
+  ) async {
+    final result = await operation;
+    if (!result.isSuccess) {
+      return result;
+    }
+    final transactionId = result.transaction?.transactionId;
+    if (result.outcome == InventoryTransactionOutcome.committed &&
+        transactionId != null &&
+        transactionId.isNotEmpty) {
+      await coordinator.completePresentation(transactionId);
+    }
+    _onDurableCommit(result);
+    return result;
+  }
+}
+
+final shoppingCompletionControllerProvider =
+    Provider<ShoppingCompletionController>((ref) {
+      return ShoppingCompletionController(
+        coordinator: ref.watch(shoppingCompletionCoordinatorProvider),
+        onDurableCommit: (result) {
+          ref
+              .read(pantryProvider.notifier)
+              .replaceFromCommittedSnapshot(result.snapshot.pantry);
+          ref.invalidate(shoppingListsProvider);
+          ref.invalidate(purchaseHistoryProvider);
+        },
+      );
+    });
+
+class ShoppingMutationController {
+  ShoppingMutationController({
+    required InventoryTransactionCoordinator coordinator,
+    required void Function(InventoryTransactionResult) onDurableCommit,
+  }) : _coordinator = coordinator,
+       _onDurableCommit = onDurableCommit;
+
+  final InventoryTransactionCoordinator _coordinator;
+  final void Function(InventoryTransactionResult) _onDurableCommit;
+
+  Future<InventoryTransactionResult> execute(ShoppingMutation command) async {
+    final prepared = await _preserveHiddenLegacyItems(command);
+    final result = await _coordinator.mutateShopping(prepared);
+    if (!result.isSuccess) {
+      return result;
+    }
+    final transactionId = result.transaction?.transactionId;
+    if (result.outcome == InventoryTransactionOutcome.committed &&
+        transactionId != null) {
+      await _coordinator.completePresentation(transactionId);
+    }
+    _onDurableCommit(result);
+    return result;
+  }
+
+  Future<ShoppingMutation> _preserveHiddenLegacyItems(
+    ShoppingMutation command,
+  ) async {
+    final submitted = command.list;
+    if (command.type != ShoppingMutationType.upsertList || submitted == null) {
+      return command;
+    }
+    final snapshot = await _coordinator.loadSnapshot();
+    final existing = snapshot.shoppingLists
+        .where((list) => list.id == submitted.id)
+        .firstOrNull;
+    if (existing == null) {
+      return command;
+    }
+    final legacy = existing.items
+        .where((item) => item.status != ShoppingItemStatus.active)
+        .toList(growable: false);
+    if (legacy.isEmpty) {
+      return command;
+    }
+    final activeIds = submitted.items.map((item) => item.id).toSet();
+    final preserved = legacy
+        .where((item) => !activeIds.contains(item.id))
+        .toList(growable: false);
+    return command.copyWith(
+      list: submitted.copyWith(
+        items: <ShoppingItem>[...submitted.items, ...preserved],
+      ),
+    );
+  }
+}
+
+final shoppingMutationControllerProvider = Provider<ShoppingMutationController>(
+  (ref) {
+    return ShoppingMutationController(
+      coordinator: ref.watch(inventoryTransactionCoordinatorProvider),
+      onDurableCommit: (result) {
+        final kind = result.transaction?.kind;
+        if (kind == InventoryTransactionKind.shoppingPurchase ||
+            kind == InventoryTransactionKind.undoShoppingPurchase) {
+          ref
+              .read(pantryProvider.notifier)
+              .replaceFromCommittedSnapshot(result.snapshot.pantry);
+        }
+        ref.invalidate(shoppingListsProvider);
+        ref.invalidate(purchaseHistoryProvider);
+      },
+    );
+  },
+);

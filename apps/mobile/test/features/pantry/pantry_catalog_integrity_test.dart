@@ -1,0 +1,32 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mobile/features/pantry/domain/models/food_category.dart';
+import 'package:mobile/features/recipe/data/ingredient_catalog.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('every selectable Pantry catalog item resolves canonically', () async {
+    final registry = await IngredientCatalog().loadRegistry();
+
+    for (final entry in allFoodCatalogItems) {
+      expect(
+        registry.resolve(entry.item.name).ingredient,
+        isNotNull,
+        reason:
+            '${entry.category}/${entry.item.name} must resolve before it can be created',
+      );
+    }
+  });
+
+  test(
+    'critical English and localized aliases resolve deterministically',
+    () async {
+      final registry = await IngredientCatalog().loadRegistry();
+
+      expect(registry.resolve('Chicken Breast').ingredient?.id, 'chicken');
+      expect(registry.resolve('Duck').ingredient?.id, 'duck');
+      expect(registry.resolve('Tilapia').ingredient?.id, 'tilapia');
+      expect(registry.resolve('ปลาทับทิม').ingredient?.id, 'tilapia');
+    },
+  );
+}

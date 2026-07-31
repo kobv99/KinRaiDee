@@ -10,6 +10,7 @@ import '../../features/pantry/data/repositories/hive_pantry_repository.dart';
 import '../../features/pantry/domain/models/pantry_quantity_transaction.dart';
 import '../../features/pantry/domain/repositories/pantry_repository.dart';
 import '../../features/pantry/domain/services/cooking_history_adjustment_planner.dart';
+import '../../features/pantry/domain/services/pantry_canonical_merge_service.dart';
 import '../../features/pantry/presentation/providers/cooking_history_provider.dart';
 import '../models/ingredient.dart';
 import '../services/storage_service.dart';
@@ -112,6 +113,17 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
     return ref.read(inventoryTransactionCoordinatorProvider);
   }
 
+  PantryCanonicalMergeService? get _canonicalMergeService {
+    final registry = ref.read(canonicalIngredientRegistryProvider);
+    if (registry == null) {
+      return null;
+    }
+    return PantryCanonicalMergeService(
+      registry: registry,
+      unitEngine: ref.read(unitConversionEngineProvider),
+    );
+  }
+
   @override
   List<Ingredient> build() {
     final favoriteNames = ref.read(favoriteIngredientNamesProvider);
@@ -129,7 +141,17 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
     final ingredientToAdd = _canonicalize(
       ingredient.copyWith(isFavorite: _favoriteNames.contains(normalizedName)),
     );
-    final updatedIngredients = <Ingredient>[...state, ingredientToAdd];
+    final service = _canonicalMergeService;
+    final updatedIngredients = service == null
+        ? <Ingredient>[...state, ingredientToAdd]
+        : _mergeOrThrow(
+            service.merge(
+              current: state,
+              incoming: ingredientToAdd,
+              mode: PantryCanonicalMergeMode.add,
+              at: ref.read(appClockProvider).now(),
+            ),
+          );
     await _commitPantryMutation(updatedIngredients, source: 'addIngredient');
   }
 
@@ -142,22 +164,37 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
         updatedAt: ref.read(appClockProvider).now(),
       ),
     );
-    final updatedIngredients = state
-        .map((currentIngredient) {
-          if (currentIngredient.id == ingredient.id) {
-            return updatedIngredient;
-          }
-
-          return currentIngredient;
-        })
-        .toList(growable: false);
+    final service = _canonicalMergeService;
+    final updatedIngredients = service == null
+        ? state
+              .map((currentIngredient) {
+                if (currentIngredient.id == ingredient.id) {
+                  return updatedIngredient;
+                }
+                return currentIngredient;
+              })
+              .toList(growable: false)
+        : _mergeOrThrow(
+            service.merge(
+              current: state,
+              incoming: updatedIngredient,
+              mode: PantryCanonicalMergeMode.replace,
+              replaceIngredientId: ingredient.id,
+              at: ref.read(appClockProvider).now(),
+            ),
+          );
 
     await _commitPantryMutation(updatedIngredients, source: 'updateIngredient');
 
     if (originalIngredient != null && wasFavorite) {
+      final replacementName = _resolvedIngredientName(
+        updatedIngredients,
+        updatedIngredient,
+        service,
+      );
       await _favoriteNotifier.replaceName(
         originalIngredient.name,
-        updatedIngredient.name,
+        replacementName,
       );
     }
   }
@@ -171,6 +208,37 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
       registry: registry,
       unitEngine: ref.read(unitConversionEngineProvider),
     ).migratePantryIngredient(ingredient);
+  }
+
+  List<Ingredient> _mergeOrThrow(PantryCanonicalMergeResult result) {
+    final errorCode = result.errorCode;
+    if (errorCode != null) {
+      throw InventoryTransactionException(
+        errorCode,
+        InventoryTransactionOutcome.validationFailure,
+      );
+    }
+    return result.pantry;
+  }
+
+  String _resolvedIngredientName(
+    List<Ingredient> pantry,
+    Ingredient updated,
+    PantryCanonicalMergeService? service,
+  ) {
+    final canonicalId = service?.resolveCanonicalIngredientId(updated);
+    if (canonicalId == null) {
+      return updated.name;
+    }
+    return pantry
+            .where(
+              (ingredient) =>
+                  service?.resolveCanonicalIngredientId(ingredient) ==
+                  canonicalId,
+            )
+            .firstOrNull
+            ?.name ??
+        updated.name;
   }
 
   Future<void> toggleFavorite(String id) async {
@@ -266,6 +334,18 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
     return result;
   }
 
+  Future<InventoryTransactionResult> deleteHistoryEntry(String entryId) async {
+    final result = await _coordinator.deleteCookingHistory(entryId);
+    await _publishCommitted(result);
+    return result;
+  }
+
+  Future<InventoryTransactionResult> clearCookingHistory() async {
+    final result = await _coordinator.clearCookingHistory();
+    await _publishCommitted(result);
+    return result;
+  }
+
   Future<void> removeIngredient(String id) async {
     final updatedIngredients = state
         .where((ingredient) => ingredient.id != id)
@@ -280,10 +360,16 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
 
   Future<void> reload() async {
     final snapshot = await _coordinator.loadSnapshot();
-    state = _applyFavoriteFlags(snapshot.pantry, _favoriteNames);
+    replaceFromCommittedSnapshot(snapshot.pantry);
     ref
         .read(cookingHistoryProvider.notifier)
         .replaceFromCommittedSnapshot(snapshot.history);
+  }
+
+  void replaceFromCommittedSnapshot(List<Ingredient> pantry) {
+    state = List<Ingredient>.unmodifiable(
+      _applyFavoriteFlags(pantry, _favoriteNames),
+    );
   }
 
   Ingredient? _findIngredientById(String id) {

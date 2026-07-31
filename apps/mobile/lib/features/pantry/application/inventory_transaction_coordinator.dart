@@ -1,8 +1,17 @@
 import 'dart:async';
 
+import '../../../core/domain/ingredients/canonical_ingredient_registry.dart';
+import '../../../core/domain/units/unit_contract.dart';
 import '../../../core/models/ingredient.dart';
 import '../../../core/time/app_clock.dart';
 import '../../../core/utils/transaction_id_generator.dart';
+import '../../shopping/domain/entities/shopping_category.dart';
+import '../../shopping/domain/entities/shopping_item.dart';
+import '../../shopping/domain/entities/shopping_item_status.dart';
+import '../../shopping/domain/entities/shopping_list.dart';
+import '../../shopping/domain/entities/shopping_purchase.dart';
+import '../../shopping/domain/entities/shopping_source.dart';
+import '../../shopping/domain/models/shopping_mutation.dart';
 import '../domain/models/cooking_history_entry.dart';
 import '../domain/models/inventory_state_envelope.dart';
 import '../domain/models/inventory_transaction_record.dart';
@@ -47,19 +56,27 @@ class InventoryTransactionCoordinator {
     required InventoryCommitRepository repository,
     AppClock clock = systemAppClock,
     TransactionIdGenerator? transactionIdGenerator,
+    CanonicalIngredientRegistry? canonicalIngredientRegistry,
+    UnitConversionEngine? unitConversionEngine,
   }) : // Private fields keep the coordinator contract intentionally narrow.
        // ignore: prefer_initializing_formals
        _repository = repository,
        // ignore: prefer_initializing_formals
        _clock = clock,
        _transactionIdGenerator =
-           transactionIdGenerator ?? SecureTransactionIdGenerator();
+           transactionIdGenerator ?? SecureTransactionIdGenerator(),
+       // ignore: prefer_initializing_formals
+       _canonicalIngredientRegistry = canonicalIngredientRegistry,
+       // ignore: prefer_initializing_formals
+       _unitConversionEngine = unitConversionEngine;
 
   static const double quantityTolerance = 0.000001;
 
   final InventoryCommitRepository _repository;
   final AppClock _clock;
   final TransactionIdGenerator _transactionIdGenerator;
+  final CanonicalIngredientRegistry? _canonicalIngredientRegistry;
+  final UnitConversionEngine? _unitConversionEngine;
   Future<void> _tail = Future<void>.value();
 
   Future<InventoryStateEnvelope> loadSnapshot() {
@@ -320,6 +337,108 @@ class InventoryTransactionCoordinator {
     });
   }
 
+  Future<InventoryTransactionResult> deleteCookingHistory(String entryId) {
+    return _serialized(() async {
+      final before = await _repository.loadConsistentSnapshot();
+      final normalizedEntryId = entryId.trim();
+      if (normalizedEntryId.isEmpty) {
+        final invalid = PantryQuantityTransaction(
+          transactionId: _transactionIdGenerator.generate(),
+          expectedRevision: before.revision,
+          kind: InventoryTransactionKind.deleteCookingHistory,
+          recipeId: 'history-retention',
+          recipeName: 'Cooking history retention',
+          servings: 1,
+          changes: const <PantryQuantityChange>[],
+          createdAt: _clock.now(),
+        );
+        return _failure(
+          InventoryTransactionOutcome.validationFailure,
+          'missing_history_entry_id',
+          before,
+          invalid,
+        );
+      }
+      if (!before.history.any((entry) => entry.id == normalizedEntryId)) {
+        return InventoryTransactionResult(
+          outcome: InventoryTransactionOutcome.alreadyCommitted,
+          code: 'history_entry_already_deleted',
+          snapshot: before,
+        );
+      }
+
+      final committedAt = _clock.now();
+      final transaction = PantryQuantityTransaction(
+        transactionId: _transactionIdGenerator.generate(),
+        expectedRevision: before.revision,
+        kind: InventoryTransactionKind.deleteCookingHistory,
+        targetHistoryEntryId: normalizedEntryId,
+        recipeId: 'history-retention',
+        recipeName: 'Cooking history retention',
+        servings: 1,
+        changes: const <PantryQuantityChange>[],
+        createdAt: committedAt,
+      );
+      final afterHistory = before.history
+          .where((entry) => entry.id != normalizedEntryId)
+          .toList(growable: false);
+      final after = _targetEnvelope(
+        before,
+        transaction.transactionId,
+        committedAt,
+        pantry: before.pantry,
+        history: afterHistory,
+      );
+      final checksum = calculateChecksum(<String, dynamic>{
+        'transaction': transaction.toJson(),
+        'retainedHistoryIds': afterHistory
+            .map((entry) => entry.id)
+            .toList(growable: false),
+      });
+      return _commit(transaction, checksum, before, after);
+    });
+  }
+
+  Future<InventoryTransactionResult> clearCookingHistory() {
+    return _serialized(() async {
+      final before = await _repository.loadConsistentSnapshot();
+      if (before.history.isEmpty) {
+        return InventoryTransactionResult(
+          outcome: InventoryTransactionOutcome.alreadyCommitted,
+          code: 'history_already_empty',
+          snapshot: before,
+        );
+      }
+
+      final committedAt = _clock.now();
+      final transaction = PantryQuantityTransaction(
+        transactionId: _transactionIdGenerator.generate(),
+        expectedRevision: before.revision,
+        kind: InventoryTransactionKind.clearCookingHistory,
+        targetHistoryEntryId: '*',
+        recipeId: 'history-retention',
+        recipeName: 'Cooking history retention',
+        servings: 1,
+        changes: const <PantryQuantityChange>[],
+        createdAt: committedAt,
+      );
+      final checksum = calculateChecksum(<String, dynamic>{
+        'transaction': transaction.toJson(),
+        'deletedHistoryIds': before.history
+            .map((entry) => entry.id)
+            .toList(growable: false),
+      });
+      final after = _targetEnvelope(
+        before,
+        transaction.transactionId,
+        committedAt,
+        pantry: before.pantry,
+        history: const <CookingHistoryEntry>[],
+      );
+      return _commit(transaction, checksum, before, after);
+    });
+  }
+
   Future<InventoryTransactionResult> replacePantry(
     List<Ingredient> pantry, {
     String source = 'pantryMutation',
@@ -357,6 +476,253 @@ class InventoryTransactionCoordinator {
         now,
         pantry: pantry,
         history: before.history,
+      );
+      return _commit(transaction, checksum, before, after);
+    });
+  }
+
+  /// Applies Shopping state through the same durable journal and envelope used
+  /// by Pantry and Cooking History.
+  Future<InventoryTransactionResult> mutateShopping(
+    ShoppingMutation requested,
+  ) {
+    return _serialized(() async {
+      final before = await _repository.loadConsistentSnapshot();
+      final command = requested.copyWith(
+        transactionId: requested.transactionId.isEmpty
+            ? _transactionIdGenerator.generate()
+            : requested.transactionId,
+        expectedRevision: requested.expectedRevision < 0
+            ? before.revision
+            : requested.expectedRevision,
+      );
+      var transaction = PantryQuantityTransaction(
+        transactionId: command.transactionId,
+        expectedRevision: command.expectedRevision,
+        kind: _shoppingTransactionKind(command.type),
+        reversesTransactionId: _shoppingPurchaseTransactionId(command, before),
+        recipeId: 'shopping:${command.type.name}:${command.listId}',
+        recipeName: 'Shopping ${command.type.name}',
+        servings: 1,
+        changes: const <PantryQuantityChange>[],
+        createdAt: command.createdAt,
+      );
+      final checksum = calculateChecksum(<String, dynamic>{
+        'shoppingMutation': command.toJson(),
+      });
+      final existing = await _existingResult(transaction, checksum, before);
+      if (existing != null) {
+        return existing;
+      }
+      final semanticNoOp = _shoppingSemanticNoOp(command, before, transaction);
+      if (semanticNoOp != null) {
+        return semanticNoOp;
+      }
+      if (command.expectedRevision != before.revision) {
+        return _failure(
+          InventoryTransactionOutcome.conflict,
+          'stale_inventory_revision',
+          before,
+          transaction,
+        );
+      }
+
+      final validation = _validateShoppingMutation(command, before);
+      if (validation != null) {
+        return _failure(validation.$1, validation.$2, before, transaction);
+      }
+
+      final committedAt = _clock.now().toUtc();
+      final lists = List<ShoppingList>.of(before.shoppingLists);
+      final index = lists.indexWhere((list) => list.id == command.listId);
+      var pantry = List<Ingredient>.of(before.pantry);
+      ShoppingList? updatedList;
+      switch (command.type) {
+        case ShoppingMutationType.upsertList:
+          final requestedList = _upgradeShoppingList(command.list!);
+          final persisted = requestedList.copyWith(
+            revision: index < 0 ? 0 : lists[index].revision + 1,
+            updatedAt: committedAt,
+          );
+          if (index < 0) {
+            lists.add(persisted);
+          } else {
+            lists[index] = persisted;
+          }
+          updatedList = persisted;
+        case ShoppingMutationType.removeList:
+          lists.removeAt(index);
+        case ShoppingMutationType.addItem:
+          final current = lists[index];
+          final item = _upgradeShoppingItem(
+            command.item!,
+          ).copyWith(updatedAt: committedAt);
+          updatedList = _withShoppingItems(current, <ShoppingItem>[
+            ...current.items,
+            item,
+          ], committedAt);
+          lists[index] = updatedList;
+        case ShoppingMutationType.removeItem:
+          final current = lists[index];
+          updatedList = _withShoppingItems(
+            current,
+            current.items
+                .where((item) => item.id != command.itemId)
+                .toList(growable: false),
+            committedAt,
+          );
+          lists[index] = updatedList;
+        case ShoppingMutationType.updateQuantity:
+          final current = lists[index];
+          final currentItem = _findShoppingItem(current, command.itemId!)!;
+          final targetUnitId = _unitConversionEngine!.resolveUnitId(
+            command.unitId ?? currentItem.unitId,
+          )!;
+          final rounded = _roundShoppingQuantity(
+            command.quantity!,
+            targetUnitId,
+          );
+          updatedList = _withShoppingItems(
+            current,
+            current.items
+                .map(
+                  (item) => item.id == currentItem.id
+                      ? _upgradeShoppingItem(item).copyWith(
+                          quantity: rounded,
+                          unitId: targetUnitId,
+                          updatedAt: committedAt,
+                        )
+                      : _upgradeShoppingItem(item),
+                )
+                .toList(growable: false),
+            committedAt,
+          );
+          lists[index] = updatedList;
+        case ShoppingMutationType.markPurchased:
+          final current = lists[index];
+          final currentItem = _findShoppingItem(current, command.itemId!)!;
+          final purchase = _applyShoppingPurchase(
+            pantry,
+            currentItem,
+            transaction.transactionId,
+            committedAt,
+          );
+          pantry = purchase.pantry;
+          transaction = transaction.copyWith(
+            changes: <PantryQuantityChange>[purchase.change],
+          );
+          updatedList = _withShoppingItems(
+            current,
+            current.items
+                .map(
+                  (item) => item.id == currentItem.id
+                      ? _upgradeShoppingItem(item).copyWith(
+                          status: ShoppingItemStatus.purchased,
+                          purchase: purchase.receipt,
+                          updatedAt: committedAt,
+                        )
+                      : _upgradeShoppingItem(item),
+                )
+                .toList(growable: false),
+            committedAt,
+          );
+          lists[index] = updatedList;
+        case ShoppingMutationType.markUnpurchased:
+          final current = lists[index];
+          final currentItem = _findShoppingItem(current, command.itemId!)!;
+          final undo = _undoShoppingPurchase(pantry, currentItem, committedAt);
+          pantry = undo.pantry;
+          transaction = transaction.copyWith(
+            changes: <PantryQuantityChange>[undo.change],
+          );
+          updatedList = _withShoppingItems(
+            current,
+            current.items
+                .map(
+                  (item) => item.id == currentItem.id
+                      ? _upgradeShoppingItem(item).copyWith(
+                          status: ShoppingItemStatus.active,
+                          clearPurchase: true,
+                          updatedAt: committedAt,
+                        )
+                      : _upgradeShoppingItem(item),
+                )
+                .toList(growable: false),
+            committedAt,
+          );
+          lists[index] = updatedList;
+        case ShoppingMutationType.archiveCompleted:
+          final current = lists[index];
+          updatedList = _withShoppingItems(
+            current,
+            current.items
+                .map(
+                  (item) => item.status == ShoppingItemStatus.purchased
+                      ? _upgradeShoppingItem(item).copyWith(
+                          status: ShoppingItemStatus.archived,
+                          updatedAt: committedAt,
+                        )
+                      : _upgradeShoppingItem(item),
+                )
+                .toList(growable: false),
+            committedAt,
+          );
+          lists[index] = updatedList;
+        case ShoppingMutationType.restoreArchived:
+          final current = lists[index];
+          updatedList = _withShoppingItems(
+            current,
+            current.items
+                .map(
+                  (item) => item.status == ShoppingItemStatus.archived
+                      ? _upgradeShoppingItem(item).copyWith(
+                          status: ShoppingItemStatus.purchased,
+                          updatedAt: committedAt,
+                        )
+                      : _upgradeShoppingItem(item),
+                )
+                .toList(growable: false),
+            committedAt,
+          );
+          lists[index] = updatedList;
+        case ShoppingMutationType.clearCompleted:
+          final current = lists[index];
+          updatedList = _withShoppingItems(
+            current,
+            current.items
+                .where((item) => item.status == ShoppingItemStatus.active)
+                .map(_upgradeShoppingItem)
+                .toList(growable: false),
+            committedAt,
+          );
+          lists[index] = updatedList;
+      }
+      final listError = updatedList == null
+          ? null
+          : _validateShoppingList(
+              updatedList,
+              registry: _canonicalIngredientRegistry!,
+              unitEngine: _unitConversionEngine!,
+            );
+      final pantryError = _validateCompletePantry(pantry);
+      if (listError != null || pantryError != null) {
+        return _failure(
+          InventoryTransactionOutcome.validationFailure,
+          listError ?? pantryError!,
+          before,
+          transaction,
+        );
+      }
+      lists.sort(
+        (first, second) => second.updatedAt.compareTo(first.updatedAt),
+      );
+      final after = _targetEnvelope(
+        before,
+        transaction.transactionId,
+        committedAt,
+        pantry: pantry,
+        history: before.history,
+        shoppingLists: lists,
       );
       return _commit(transaction, checksum, before, after);
     });
@@ -631,6 +997,713 @@ class InventoryTransactionCoordinator {
     return null;
   }
 
+  (InventoryTransactionOutcome, String)? _validateShoppingMutation(
+    ShoppingMutation command,
+    InventoryStateEnvelope before,
+  ) {
+    final registry = _canonicalIngredientRegistry;
+    final unitEngine = _unitConversionEngine;
+    if (registry == null || unitEngine == null) {
+      return (
+        InventoryTransactionOutcome.validationFailure,
+        'shopping_contract_unavailable',
+      );
+    }
+    if (command.listId.trim().isEmpty) {
+      return (
+        InventoryTransactionOutcome.validationFailure,
+        'missing_shopping_list_id',
+      );
+    }
+    final listIds = <String>{};
+    for (final list in before.shoppingLists) {
+      if (list.id.isEmpty || !listIds.add(list.id)) {
+        return (
+          InventoryTransactionOutcome.recoveryRequired,
+          'invalid_durable_shopping_state',
+        );
+      }
+    }
+    final existing = before.shoppingLists
+        .where((list) => list.id == command.listId)
+        .firstOrNull;
+    switch (command.type) {
+      case ShoppingMutationType.removeList:
+        if (existing == null) {
+          return (
+            InventoryTransactionOutcome.conflict,
+            'shopping_list_not_found',
+          );
+        }
+        if (command.expectedListRevision != existing.revision) {
+          return (
+            InventoryTransactionOutcome.conflict,
+            'stale_shopping_list_revision',
+          );
+        }
+        if (existing.items.any((item) => item.purchase != null)) {
+          return (
+            InventoryTransactionOutcome.validationFailure,
+            'shopping_list_has_purchase_history',
+          );
+        }
+      case ShoppingMutationType.upsertList:
+        final list = command.list;
+        if (list == null || list.id != command.listId) {
+          return (
+            InventoryTransactionOutcome.validationFailure,
+            'shopping_list_identity_mismatch',
+          );
+        }
+        if (command.expectedListRevision != list.revision) {
+          return (
+            InventoryTransactionOutcome.validationFailure,
+            'shopping_list_revision_mismatch',
+          );
+        }
+        if (existing == null && list.revision != 0) {
+          return (
+            InventoryTransactionOutcome.conflict,
+            'invalid_new_shopping_list_revision',
+          );
+        }
+        if (existing == null &&
+            list.items.any(
+              (item) => item.status != ShoppingItemStatus.active,
+            )) {
+          return (
+            InventoryTransactionOutcome.validationFailure,
+            'new_shopping_list_has_completed_items',
+          );
+        }
+        if (existing != null &&
+            (list.revision != existing.revision ||
+                list.createdAt.toUtc() != existing.createdAt.toUtc())) {
+          return (
+            InventoryTransactionOutcome.conflict,
+            'stale_shopping_list_revision',
+          );
+        }
+        if (existing != null &&
+            !_completedShoppingItemsArePreserved(existing, list)) {
+          return (
+            InventoryTransactionOutcome.conflict,
+            'completed_shopping_item_is_immutable',
+          );
+        }
+        final listError = _validateShoppingList(
+          _upgradeShoppingList(list),
+          registry: registry,
+          unitEngine: unitEngine,
+        );
+        if (listError != null) {
+          return (InventoryTransactionOutcome.validationFailure, listError);
+        }
+      case ShoppingMutationType.addItem:
+        final listError = _validateExistingShoppingListRevision(
+          command,
+          existing,
+        );
+        if (listError != null) {
+          return listError;
+        }
+        final item = command.item;
+        if (item == null ||
+            item.id != command.itemId ||
+            item.status != ShoppingItemStatus.active ||
+            item.purchase != null) {
+          return (
+            InventoryTransactionOutcome.validationFailure,
+            'invalid_new_shopping_item',
+          );
+        }
+        if (existing!.items.any((current) => current.id == item.id)) {
+          return (
+            InventoryTransactionOutcome.conflict,
+            'duplicate_shopping_item_id',
+          );
+        }
+      case ShoppingMutationType.removeItem:
+        final listError = _validateExistingShoppingListRevision(
+          command,
+          existing,
+        );
+        if (listError != null) {
+          return listError;
+        }
+        final item = _findShoppingItem(existing!, command.itemId ?? '');
+        if (item == null) {
+          return (
+            InventoryTransactionOutcome.conflict,
+            'shopping_item_not_found',
+          );
+        }
+        if (item.status != ShoppingItemStatus.active) {
+          return (
+            InventoryTransactionOutcome.validationFailure,
+            'completed_item_requires_clear',
+          );
+        }
+      case ShoppingMutationType.updateQuantity:
+        final listError = _validateExistingShoppingListRevision(
+          command,
+          existing,
+        );
+        if (listError != null) {
+          return listError;
+        }
+        final item = _findShoppingItem(existing!, command.itemId ?? '');
+        if (item == null) {
+          return (
+            InventoryTransactionOutcome.conflict,
+            'shopping_item_not_found',
+          );
+        }
+        if (item.status != ShoppingItemStatus.active) {
+          return (
+            InventoryTransactionOutcome.validationFailure,
+            'completed_shopping_item_is_immutable',
+          );
+        }
+        final quantity = command.quantity;
+        final targetUnitId = unitEngine.resolveUnitId(
+          command.unitId ?? item.unitId,
+        );
+        if (quantity == null ||
+            !quantity.isFinite ||
+            quantity <= 0 ||
+            targetUnitId == null ||
+            _roundShoppingQuantity(quantity, targetUnitId) <= 0) {
+          return (
+            InventoryTransactionOutcome.validationFailure,
+            'invalid_shopping_quantity',
+          );
+        }
+        final canonical = registry.byId(item.canonicalIngredientId)!;
+        if (!unitEngine
+            .tryConvert(
+              quantity,
+              fromUnit: targetUnitId,
+              toUnit: canonical.defaultPurchaseUnitId,
+            )
+            .isSuccess) {
+          return (
+            InventoryTransactionOutcome.validationFailure,
+            'invalid_shopping_unit_conversion',
+          );
+        }
+      case ShoppingMutationType.markPurchased:
+        final listError = _validateExistingShoppingListRevision(
+          command,
+          existing,
+        );
+        if (listError != null) {
+          return listError;
+        }
+        final item = _findShoppingItem(existing!, command.itemId ?? '');
+        if (item == null) {
+          return (
+            InventoryTransactionOutcome.conflict,
+            'shopping_item_not_found',
+          );
+        }
+        if (item.status != ShoppingItemStatus.active || item.purchase != null) {
+          return (
+            InventoryTransactionOutcome.validationFailure,
+            'invalid_purchase_state',
+          );
+        }
+        final purchaseError = _validateShoppingPurchaseTarget(
+          item,
+          before.pantry,
+          registry: registry,
+          unitEngine: unitEngine,
+        );
+        if (purchaseError != null) {
+          return purchaseError;
+        }
+      case ShoppingMutationType.markUnpurchased:
+        final listError = _validateExistingShoppingListRevision(
+          command,
+          existing,
+        );
+        if (listError != null) {
+          return listError;
+        }
+        final item = _findShoppingItem(existing!, command.itemId ?? '');
+        if (item == null) {
+          return (
+            InventoryTransactionOutcome.conflict,
+            'shopping_item_not_found',
+          );
+        }
+        if (item.status == ShoppingItemStatus.active || item.purchase == null) {
+          return (
+            InventoryTransactionOutcome.validationFailure,
+            'invalid_purchase_undo_state',
+          );
+        }
+        final undoError = _validateShoppingUndoTarget(item, before.pantry);
+        if (undoError != null) {
+          return undoError;
+        }
+      case ShoppingMutationType.archiveCompleted ||
+          ShoppingMutationType.restoreArchived ||
+          ShoppingMutationType.clearCompleted:
+        final listError = _validateExistingShoppingListRevision(
+          command,
+          existing,
+        );
+        if (listError != null) {
+          return listError;
+        }
+    }
+    return null;
+  }
+
+  (InventoryTransactionOutcome, String)? _validateExistingShoppingListRevision(
+    ShoppingMutation command,
+    ShoppingList? existing,
+  ) {
+    if (existing == null) {
+      return (InventoryTransactionOutcome.conflict, 'shopping_list_not_found');
+    }
+    if (command.expectedListRevision != existing.revision) {
+      return (
+        InventoryTransactionOutcome.conflict,
+        'stale_shopping_list_revision',
+      );
+    }
+    return null;
+  }
+
+  (InventoryTransactionOutcome, String)? _validateShoppingPurchaseTarget(
+    ShoppingItem item,
+    List<Ingredient> pantry, {
+    required CanonicalIngredientRegistry registry,
+    required UnitConversionEngine unitEngine,
+  }) {
+    final canonicalId = registry.canonicalIdFor(item.canonicalIngredientId);
+    for (final lot in pantry) {
+      if (registry.canonicalIdFor(lot.canonicalIngredientId) != canonicalId) {
+        continue;
+      }
+      final lotUnitId = unitEngine.resolveUnitId(
+        lot.canonicalUnitId.isEmpty ? lot.unit : lot.canonicalUnitId,
+      );
+      if (lotUnitId == null ||
+          !unitEngine
+              .tryConvert(
+                item.quantity,
+                fromUnit: item.unitId,
+                toUnit: lotUnitId,
+              )
+              .isSuccess) {
+        return (
+          InventoryTransactionOutcome.validationFailure,
+          'invalid_shopping_unit_conversion',
+        );
+      }
+    }
+    return null;
+  }
+
+  (InventoryTransactionOutcome, String)? _validateShoppingUndoTarget(
+    ShoppingItem item,
+    List<Ingredient> pantry,
+  ) {
+    final purchase = item.purchase!;
+    final lot = pantry
+        .where((candidate) => candidate.id == purchase.pantryLotId)
+        .firstOrNull;
+    if (lot == null) {
+      return (
+        InventoryTransactionOutcome.conflict,
+        'purchase_pantry_lot_missing',
+      );
+    }
+    if (lot.canonicalIngredientId != item.canonicalIngredientId ||
+        lot.canonicalUnitId != purchase.pantryUnitId ||
+        !_nearlyEqual(lot.quantity, purchase.afterQuantity)) {
+      return (
+        InventoryTransactionOutcome.conflict,
+        'purchase_pantry_state_changed',
+      );
+    }
+    return null;
+  }
+
+  String? _validateShoppingList(
+    ShoppingList list, {
+    required CanonicalIngredientRegistry registry,
+    required UnitConversionEngine unitEngine,
+  }) {
+    if (list.metadataVersion != 1 ||
+        list.id.trim().isEmpty ||
+        list.name.trim().isEmpty ||
+        list.revision < 0 ||
+        list.updatedAt.toUtc().isBefore(list.createdAt.toUtc())) {
+      return 'invalid_shopping_list';
+    }
+    final itemIds = <String>{};
+    final activeIdentities = <String>{};
+    for (final item in list.items) {
+      final canonicalId = registry.canonicalIdFor(item.canonicalIngredientId);
+      final unitId = unitEngine.resolveUnitId(item.unitId);
+      if (item.metadataVersion != currentShoppingItemVersion ||
+          item.id.trim().isEmpty ||
+          !itemIds.add(item.id) ||
+          item.displayName.trim().isEmpty ||
+          !item.quantity.isFinite ||
+          item.quantity <= 0 ||
+          item.updatedAt.toUtc().isBefore(item.createdAt.toUtc())) {
+        return 'invalid_shopping_item';
+      }
+      if (canonicalId == null || canonicalId != item.canonicalIngredientId) {
+        return 'unknown_canonical_shopping_ingredient';
+      }
+      if (unitId == null || unitId != item.unitId) {
+        return 'unknown_canonical_shopping_unit';
+      }
+      final canonical = registry.byId(canonicalId)!;
+      if (!unitEngine
+          .tryConvert(
+            item.quantity,
+            fromUnit: unitId,
+            toUnit: canonical.defaultPurchaseUnitId,
+          )
+          .isSuccess) {
+        return 'invalid_shopping_unit_conversion';
+      }
+      if (item.category !=
+          ShoppingCategory.fromCanonicalCategory(canonical.category)) {
+        return 'shopping_category_mismatch';
+      }
+      if (item.source != ShoppingSource.manual &&
+          item.sourceReferenceIds.isEmpty) {
+        return 'missing_shopping_source_reference';
+      }
+      if (item.status == ShoppingItemStatus.active) {
+        if (item.purchase != null) {
+          return 'active_shopping_item_has_purchase';
+        }
+        if (!activeIdentities.add(canonicalId)) {
+          return 'duplicate_active_shopping_ingredient';
+        }
+      } else {
+        final purchase = item.purchase;
+        if (purchase == null ||
+            purchase.metadataVersion != currentShoppingPurchaseVersion ||
+            purchase.transactionId.trim().isEmpty ||
+            purchase.pantryLotId.trim().isEmpty ||
+            purchase.pantryUnitId.trim().isEmpty ||
+            !purchase.beforeQuantity.isFinite ||
+            !purchase.afterQuantity.isFinite ||
+            purchase.beforeQuantity < 0 ||
+            purchase.afterQuantity <= purchase.beforeQuantity ||
+            unitEngine.resolveUnitId(purchase.pantryUnitId) !=
+                purchase.pantryUnitId) {
+          return 'invalid_shopping_purchase';
+        }
+      }
+    }
+    return null;
+  }
+
+  InventoryTransactionKind _shoppingTransactionKind(ShoppingMutationType type) {
+    return switch (type) {
+      ShoppingMutationType.markPurchased =>
+        InventoryTransactionKind.shoppingPurchase,
+      ShoppingMutationType.markUnpurchased =>
+        InventoryTransactionKind.undoShoppingPurchase,
+      _ => InventoryTransactionKind.shoppingMutation,
+    };
+  }
+
+  String? _shoppingPurchaseTransactionId(
+    ShoppingMutation command,
+    InventoryStateEnvelope snapshot,
+  ) {
+    if (command.type != ShoppingMutationType.markUnpurchased) {
+      return null;
+    }
+    final list = snapshot.shoppingLists
+        .where((candidate) => candidate.id == command.listId)
+        .firstOrNull;
+    return list == null
+        ? null
+        : _findShoppingItem(
+            list,
+            command.itemId ?? '',
+          )?.purchase?.transactionId;
+  }
+
+  InventoryTransactionResult? _shoppingSemanticNoOp(
+    ShoppingMutation command,
+    InventoryStateEnvelope snapshot,
+    PantryQuantityTransaction transaction,
+  ) {
+    final list = snapshot.shoppingLists
+        .where((candidate) => candidate.id == command.listId)
+        .firstOrNull;
+    if (list == null) {
+      return null;
+    }
+    final item = _findShoppingItem(list, command.itemId ?? '');
+    final code = switch (command.type) {
+      ShoppingMutationType.markPurchased
+          when item != null && item.status != ShoppingItemStatus.active =>
+        'already_purchased',
+      ShoppingMutationType.markUnpurchased
+          when item != null && item.status == ShoppingItemStatus.active =>
+        'already_unpurchased',
+      ShoppingMutationType.archiveCompleted
+          when !list.items.any(
+            (current) => current.status == ShoppingItemStatus.purchased,
+          ) =>
+        'already_archived',
+      ShoppingMutationType.restoreArchived
+          when !list.items.any(
+            (current) => current.status == ShoppingItemStatus.archived,
+          ) =>
+        'already_restored',
+      ShoppingMutationType.clearCompleted
+          when list.items.every(
+            (current) => current.status == ShoppingItemStatus.active,
+          ) =>
+        'completed_items_already_clear',
+      _ => null,
+    };
+    if (code == null) {
+      return null;
+    }
+    return InventoryTransactionResult(
+      outcome: InventoryTransactionOutcome.alreadyCommitted,
+      code: code,
+      snapshot: snapshot,
+      transaction: transaction,
+    );
+  }
+
+  ShoppingList _upgradeShoppingList(ShoppingList list) {
+    return list.copyWith(
+      items: list.items.map(_upgradeShoppingItem).toList(growable: false),
+    );
+  }
+
+  ShoppingItem _upgradeShoppingItem(ShoppingItem item) {
+    return item.copyWith(
+      metadataVersion: currentShoppingItemVersion,
+      sourceReferenceIds: item.sourceReferenceIds,
+    );
+  }
+
+  ShoppingList _withShoppingItems(
+    ShoppingList current,
+    List<ShoppingItem> items,
+    DateTime committedAt,
+  ) {
+    final sorted = items.map(_upgradeShoppingItem).toList()
+      ..sort(_compareShoppingItems);
+    return current.copyWith(
+      revision: current.revision + 1,
+      items: sorted,
+      updatedAt: committedAt,
+    );
+  }
+
+  ShoppingItem? _findShoppingItem(ShoppingList list, String itemId) {
+    return list.items.where((item) => item.id == itemId).firstOrNull;
+  }
+
+  bool _completedShoppingItemsArePreserved(
+    ShoppingList current,
+    ShoppingList requested,
+  ) {
+    final requestedById = <String, ShoppingItem>{
+      for (final item in requested.items) item.id: item,
+    };
+    for (final item in current.items.where(
+      (candidate) => candidate.status != ShoppingItemStatus.active,
+    )) {
+      final replacement = requestedById[item.id];
+      if (replacement == null ||
+          calculateChecksum(item.toJson()) !=
+              calculateChecksum(replacement.toJson())) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  double _roundShoppingQuantity(double quantity, String unitId) {
+    return _unitConversionEngine!.precisionPolicy.apply(
+      quantity,
+      decimalPlaces: _unitConversionEngine.resolveUnit(unitId)?.decimalPlaces,
+    );
+  }
+
+  _ShoppingPantryChange _applyShoppingPurchase(
+    List<Ingredient> before,
+    ShoppingItem item,
+    String transactionId,
+    DateTime committedAt,
+  ) {
+    final registry = _canonicalIngredientRegistry!;
+    final unitEngine = _unitConversionEngine!;
+    final canonical = registry.byId(item.canonicalIngredientId)!;
+    final candidates =
+        before
+            .where(
+              (lot) =>
+                  lot.quantity >= 0 &&
+                  !lot.isExpiredAt(committedAt) &&
+                  registry.canonicalIdFor(lot.canonicalIngredientId) ==
+                      canonical.id,
+            )
+            .toList()
+          ..sort((first, second) {
+            final firstUnit = unitEngine.resolveUnitId(
+              first.canonicalUnitId.isEmpty
+                  ? first.unit
+                  : first.canonicalUnitId,
+            );
+            final secondUnit = unitEngine.resolveUnitId(
+              second.canonicalUnitId.isEmpty
+                  ? second.unit
+                  : second.canonicalUnitId,
+            );
+            final exact = (firstUnit == item.unitId ? 0 : 1).compareTo(
+              secondUnit == item.unitId ? 0 : 1,
+            );
+            if (exact != 0) {
+              return exact;
+            }
+            final created = first.createdAt.compareTo(second.createdAt);
+            return created != 0 ? created : first.id.compareTo(second.id);
+          });
+
+    if (candidates.isNotEmpty) {
+      final lot = candidates.first;
+      final pantryUnitId = unitEngine.resolveUnitId(
+        lot.canonicalUnitId.isEmpty ? lot.unit : lot.canonicalUnitId,
+      )!;
+      final added = unitEngine
+          .tryConvert(
+            item.quantity,
+            fromUnit: item.unitId,
+            toUnit: pantryUnitId,
+          )
+          .value!;
+      final afterQuantity = _roundShoppingQuantity(
+        lot.quantity + added,
+        pantryUnitId,
+      );
+      final updated = lot.copyWith(
+        quantity: afterQuantity,
+        updatedAt: committedAt,
+      );
+      final pantry = before
+          .map((current) => current.id == lot.id ? updated : current)
+          .toList(growable: false);
+      return _ShoppingPantryChange(
+        pantry: pantry,
+        receipt: ShoppingPurchase(
+          transactionId: transactionId,
+          pantryLotId: lot.id,
+          createdPantryLot: false,
+          pantryUnitId: pantryUnitId,
+          beforeQuantity: lot.quantity,
+          afterQuantity: afterQuantity,
+          purchasedAt: committedAt,
+        ),
+        change: PantryQuantityChange(
+          ingredientId: lot.id,
+          ingredientName: lot.name,
+          unit: lot.unit,
+          beforeQuantity: lot.quantity,
+          afterQuantity: afterQuantity,
+          canonicalIngredientId: canonical.id,
+          canonicalUnitId: pantryUnitId,
+        ),
+      );
+    }
+
+    final pantryLotId = 'shopping-purchase:$transactionId';
+    final lot = Ingredient(
+      id: pantryLotId,
+      name: canonical.displayName(),
+      category: canonical.category,
+      emoji: canonical.emoji,
+      quantity: item.quantity,
+      unit: unitEngine.resolveUnit(item.unitId)!.displayName,
+      createdAt: committedAt,
+      updatedAt: committedAt,
+      canonicalIngredientId: canonical.id,
+      canonicalUnitId: item.unitId,
+      canonicalMappingStatus: CanonicalMappingStatus.mapped,
+    );
+    return _ShoppingPantryChange(
+      pantry: <Ingredient>[...before, lot],
+      receipt: ShoppingPurchase(
+        transactionId: transactionId,
+        pantryLotId: pantryLotId,
+        createdPantryLot: true,
+        pantryUnitId: item.unitId,
+        beforeQuantity: 0,
+        afterQuantity: item.quantity,
+        purchasedAt: committedAt,
+      ),
+      change: PantryQuantityChange(
+        ingredientId: pantryLotId,
+        ingredientName: lot.name,
+        unit: lot.unit,
+        beforeQuantity: 0,
+        afterQuantity: item.quantity,
+        canonicalIngredientId: canonical.id,
+        canonicalUnitId: item.unitId,
+      ),
+    );
+  }
+
+  _ShoppingPantryChange _undoShoppingPurchase(
+    List<Ingredient> before,
+    ShoppingItem item,
+    DateTime committedAt,
+  ) {
+    final receipt = item.purchase!;
+    final lot = before
+        .where((candidate) => candidate.id == receipt.pantryLotId)
+        .first;
+    final pantry = receipt.createdPantryLot
+        ? before
+              .where((current) => current.id != receipt.pantryLotId)
+              .toList(growable: false)
+        : before
+              .map(
+                (current) => current.id == receipt.pantryLotId
+                    ? current.copyWith(
+                        quantity: receipt.beforeQuantity,
+                        updatedAt: committedAt,
+                      )
+                    : current,
+              )
+              .toList(growable: false);
+    return _ShoppingPantryChange(
+      pantry: pantry,
+      receipt: receipt,
+      change: PantryQuantityChange(
+        ingredientId: lot.id,
+        ingredientName: lot.name,
+        unit: lot.unit,
+        beforeQuantity: receipt.afterQuantity,
+        afterQuantity: receipt.beforeQuantity,
+        canonicalIngredientId: item.canonicalIngredientId,
+        canonicalUnitId: receipt.pantryUnitId,
+      ),
+    );
+  }
+
   List<Ingredient> _applyChanges(
     List<Ingredient> pantry,
     List<PantryQuantityChange> changes,
@@ -658,16 +1731,26 @@ class InventoryTransactionCoordinator {
     DateTime updatedAt, {
     required List<Ingredient> pantry,
     required List<CookingHistoryEntry> history,
+    List<ShoppingList>? shoppingLists,
   }) {
+    final targetCapabilities = <String>{...before.capabilities};
+    if (shoppingLists != null) {
+      targetCapabilities
+        ..add(shoppingStateCapability)
+        ..add(shoppingEngineCapability);
+    }
     return InventoryStateEnvelope(
       envelopeVersion: before.envelopeVersion,
-      minimumReaderVersion: before.minimumReaderVersion,
-      capabilities: before.capabilities,
+      minimumReaderVersion: shoppingLists == null
+          ? before.minimumReaderVersion
+          : currentInventoryReaderVersion,
+      capabilities: targetCapabilities.toList()..sort(),
       revision: before.revision + 1,
       lastAppliedTransactionId: transactionId,
       updatedAt: updatedAt,
       pantry: pantry,
       history: history,
+      shoppingLists: shoppingLists ?? before.shoppingLists,
     ).withComputedChecksum();
   }
 
@@ -706,6 +1789,29 @@ class InventoryTransactionCoordinator {
     });
     return completer.future;
   }
+}
+
+class _ShoppingPantryChange {
+  const _ShoppingPantryChange({
+    required this.pantry,
+    required this.receipt,
+    required this.change,
+  });
+
+  final List<Ingredient> pantry;
+  final ShoppingPurchase receipt;
+  final PantryQuantityChange change;
+}
+
+int _compareShoppingItems(ShoppingItem first, ShoppingItem second) {
+  final status = first.status.index.compareTo(second.status.index);
+  if (status != 0) {
+    return status;
+  }
+  final canonical = first.canonicalIngredientId.compareTo(
+    second.canonicalIngredientId,
+  );
+  return canonical != 0 ? canonical : first.id.compareTo(second.id);
 }
 
 CookingHistoryEntry? _findHistoryForTransaction(

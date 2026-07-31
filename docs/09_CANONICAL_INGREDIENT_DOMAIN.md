@@ -3,8 +3,10 @@
 ## Purpose
 
 The Canonical Ingredient System gives Pantry, Recipe, Recommendation, and
-future Shopping one deterministic offline identity and one unit contract. This
-sprint does not implement Shopping UI, lists, or purchasing.
+Shopping one deterministic offline identity and one unit contract. SF-001
+introduces Shopping lists and items; SF-002 adds aggregation and atomic
+purchase-to-Pantry synchronization while continuing to exclude Shopping UI,
+retailer catalogs, and pricing.
 
 ## Canonical Ingredient
 
@@ -18,6 +20,9 @@ sprint does not implement Shopping UI, lists, or purchasing.
 - default storage type;
 - default purchase unit ID;
 - default inventory unit ID;
+- preferred unit ID for new Pantry input;
+- ordered recommended unit IDs;
+- optional ingredient unit family;
 - optional parent ingredient ID for compatible ingredient families; and
 - metadata schema version, revision, and source.
 
@@ -72,6 +77,23 @@ Negative and non-finite quantities fail. Unknown and incompatible units return
 typed failures. Duplicate aliases and circular conversions prevent contract
 construction.
 
+### Ingredient-aware Unit Selection
+
+`IngredientUnitPolicy` derives practical unit metadata from canonical identity
+and category when the master record does not override it. Presentation widgets
+consume `CanonicalIngredient.preferredUnitId` and
+`CanonicalIngredient.recommendedUnitIds`; they do not inspect ingredient names.
+
+The primary Pantry selector contains only recommended units and automatically
+selects the preferred unit for a newly selected ingredient. Changing the
+ingredient recalculates the list immediately. A compatible current unit may be
+retained; an invalid current unit switches to the new preferred unit.
+
+`Other unit…` opens the complete Unit Contract only on demand. Existing lots
+whose unit is unusual or no longer recommended remain visible and editable.
+Their display and canonical unit values are preserved unless the user explicitly
+changes the unit.
+
 ## Feature Contracts
 
 - Pantry normalizes new and edited lots before durable mutation.
@@ -80,15 +102,19 @@ construction.
 - Recommendation hero keys use canonical IDs.
 - Serving and deduction use `UnitConversionEngine`.
 - Transaction and history changes store lot and canonical identities.
-- Future Shopping must reference `canonicalIngredientId`, never create a second
-  ingredient master.
+- Shopping items reference `canonicalIngredientId` and canonical `unitId`;
+  Shopping does not create a second ingredient master.
+- Shopping Engine aggregation converts every requirement to the canonical
+  default purchase unit before subtracting Pantry or merging list entries.
 
 ## Validation Evidence
 
 Relevant tests:
 
 - `test/core/domain/ingredients/canonical_ingredient_registry_test.dart`
+- `test/core/domain/units/ingredient_unit_policy_test.dart`
 - `test/core/domain/units/unit_contract_test.dart`
+- `test/features/pantry/presentation/add_ingredient_dialog_test.dart`
 - `test/features/pantry/application/canonical_ingredient_migration_test.dart`
 - `test/features/recipe/canonical_ingredient_compatibility_test.dart`
 - `test/features/recipe/ingredient_catalog_test.dart`

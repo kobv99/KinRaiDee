@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/providers/canonical_ingredient_providers.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/models/ingredient.dart';
+import '../../../../core/presentation/ingredient_presentation.dart';
+import '../../../../core/presentation/unit_presentation.dart';
 import '../../../../shared/widgets/app_card.dart';
 import '../../../../shared/widgets/section_header.dart';
 
-class PantryRecentSection extends StatelessWidget {
+class PantryRecentSection extends ConsumerWidget {
   const PantryRecentSection({
     required this.ingredients,
     required this.onIngredientTap,
@@ -18,7 +22,7 @@ class PantryRecentSection extends StatelessWidget {
   final ValueChanged<Ingredient> onIngredientTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (ingredients.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -57,7 +61,10 @@ class PantryRecentSection extends StatelessWidget {
                           borderRadius: BorderRadius.all(Radius.circular(14)),
                         ),
                         child: Text(
-                          ingredient.emoji,
+                          IngredientPresentation.emoji(
+                            ingredient,
+                            ref.watch(canonicalIngredientRegistryProvider),
+                          ),
                           style: const TextStyle(fontSize: 27),
                         ),
                       ),
@@ -87,7 +94,13 @@ class PantryRecentSection extends StatelessWidget {
                             ),
                             const SizedBox(height: AppSpacing.xxs),
                             Text(
-                              '${_formatQuantity(ingredient.quantity)} ${ingredient.unit}',
+                              UnitPresentation.quantity(
+                                ingredient.quantity,
+                                ingredient.canonicalUnitId.isEmpty
+                                    ? ingredient.unit
+                                    : ingredient.canonicalUnitId,
+                                maximumFractionDigits: 1,
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: AppTextStyles.bodySmall,
@@ -104,13 +117,5 @@ class PantryRecentSection extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  static String _formatQuantity(double quantity) {
-    if (quantity == quantity.roundToDouble()) {
-      return quantity.toInt().toString();
-    }
-
-    return quantity.toStringAsFixed(1);
   }
 }

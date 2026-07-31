@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/providers/canonical_ingredient_providers.dart';
 import '../../../core/time/app_clock.dart';
 import '../../../core/utils/transaction_id_generator.dart';
 import '../data/repositories/hive_inventory_commit_repository.dart';
@@ -28,5 +29,9 @@ final inventoryTransactionCoordinatorProvider =
         repository: ref.watch(inventoryCommitRepositoryProvider),
         clock: ref.watch(appClockProvider),
         transactionIdGenerator: ref.watch(transactionIdGeneratorProvider),
+        canonicalIngredientRegistry: ref.watch(
+          canonicalIngredientRegistryProvider,
+        ),
+        unitConversionEngine: ref.watch(unitConversionEngineProvider),
       );
     });

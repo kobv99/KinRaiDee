@@ -69,6 +69,7 @@ void main() {
       final first = registry.unmappedIdFor(' Dragon   Fruit Peel ');
       final second = registry.unmappedIdFor('dragon fruit peel');
       expect(first, second);
+      expect(first, 'unmapped_43a6cdcd93150f86');
       expect(first, matches(RegExp(r'^unmapped_[0-9a-f]{16}$')));
     });
   });

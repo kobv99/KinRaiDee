@@ -4,18 +4,29 @@ import 'package:flutter/services.dart';
 
 import '../../../core/domain/ingredients/canonical_ingredient.dart';
 import '../../../core/domain/ingredients/canonical_ingredient_registry.dart';
+import '../../../core/domain/ingredients/ingredient_artwork_policy.dart';
+import '../../../core/domain/units/ingredient_unit_policy.dart';
 import '../../../core/domain/units/unit_contract.dart';
+import 'pantry_catalog_canonical_definitions.dart';
 
 class IngredientCatalog {
   IngredientCatalog({
     AssetBundle? bundle,
     UnitConversionEngine? unitConversionEngine,
+    IngredientUnitPolicy? ingredientUnitPolicy,
+    IngredientArtworkPolicy? ingredientArtworkPolicy,
   }) : _bundle = bundle ?? rootBundle,
        _unitConversionEngine =
-           unitConversionEngine ?? UnitConversionEngine.standard();
+           unitConversionEngine ?? UnitConversionEngine.standard(),
+       _ingredientUnitPolicy =
+           ingredientUnitPolicy ?? const IngredientUnitPolicy(),
+       _ingredientArtworkPolicy =
+           ingredientArtworkPolicy ?? const IngredientArtworkPolicy();
 
   final AssetBundle _bundle;
   final UnitConversionEngine _unitConversionEngine;
+  final IngredientUnitPolicy _ingredientUnitPolicy;
+  final IngredientArtworkPolicy _ingredientArtworkPolicy;
 
   Future<List<CanonicalIngredient>> load({
     String assetPath = 'assets/ingredients/thai_ingredients.json',
@@ -31,8 +42,9 @@ class IngredientCatalog {
   Future<CanonicalIngredientRegistry> loadRegistry({
     String assetPath = 'assets/ingredients/thai_ingredients.json',
   }) async {
+    final bundled = await load(assetPath: assetPath);
     return CanonicalIngredientRegistry(
-      ingredients: await load(assetPath: assetPath),
+      ingredients: applyPantryCatalogCanonicalCoverage(bundled),
       redirects: defaultCanonicalIngredientRedirects,
     );
   }
@@ -76,6 +88,52 @@ class IngredientCatalog {
         'Canonical ingredient $id references an unknown unit contract.',
       );
     }
+    final category = json['category']?.toString() ?? 'other';
+    final policyRecommendation = _ingredientUnitPolicy.forDefinition(
+      canonicalId: id,
+      category: category,
+      defaultInventoryUnitId: inventoryUnitId,
+      defaultPurchaseUnitId: purchaseUnitId,
+      parentId: json['parentId']?.toString(),
+    );
+    final configuredRecommendedUnitIds = _stringList(
+      json['recommendedUnitIds'],
+    );
+    final recommendedUnitIds =
+        (configuredRecommendedUnitIds.isEmpty
+                ? policyRecommendation.recommendedUnitIds
+                : configuredRecommendedUnitIds)
+            .map((value) {
+              final unitId = _unitConversionEngine.resolveUnitId(value);
+              if (unitId == null) {
+                throw FormatException(
+                  'Canonical ingredient $id recommends unknown unit "$value".',
+                );
+              }
+              return unitId;
+            })
+            .toSet()
+            .toList(growable: false);
+    final preferredUnitId = _unitConversionEngine.resolveUnitId(
+      json['preferredUnitId']?.toString() ??
+          policyRecommendation.preferredUnitId,
+    );
+    if (preferredUnitId == null ||
+        !recommendedUnitIds.contains(preferredUnitId)) {
+      throw FormatException(
+        'Canonical ingredient $id must recommend its preferred unit.',
+      );
+    }
+    final unitFamily =
+        _unitFamily(json['unitFamily']?.toString()) ??
+        policyRecommendation.family;
+    final configuredEmoji = json['emoji']?.toString().trim() ?? '';
+    final emoji = configuredEmoji.isEmpty
+        ? _ingredientArtworkPolicy.forDefinition(
+            canonicalId: id,
+            category: category,
+          )
+        : configuredEmoji;
 
     return CanonicalIngredient(
       id: id,
@@ -86,13 +144,17 @@ class IngredientCatalog {
         ..._stringList(json['searchKeywords']),
         ..._stringList(json['tags']),
       ],
-      category: json['category']?.toString() ?? 'other',
+      category: category,
       defaultStorageType: _storageType(
         json['defaultStorageType']?.toString(),
-        category: json['category']?.toString() ?? 'other',
+        category: category,
       ),
       defaultPurchaseUnitId: purchaseUnitId,
       defaultInventoryUnitId: inventoryUnitId,
+      emoji: emoji,
+      preferredUnitId: preferredUnitId,
+      recommendedUnitIds: recommendedUnitIds,
+      unitFamily: unitFamily,
       parentId: json['parentId']?.toString(),
       metadata: IngredientMetadata(
         schemaVersion: _intValue(json['schemaVersion'], fallback: 1),
@@ -101,6 +163,15 @@ class IngredientCatalog {
       ),
     );
   }
+}
+
+IngredientUnitFamily? _unitFamily(String? value) {
+  for (final family in IngredientUnitFamily.values) {
+    if (family.name == value) {
+      return family;
+    }
+  }
+  return null;
 }
 
 List<String> _stringList(Object? value) {

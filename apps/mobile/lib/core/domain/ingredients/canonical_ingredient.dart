@@ -1,5 +1,18 @@
 enum IngredientStorageType { ambient, refrigerated, frozen, pantry }
 
+enum IngredientUnitFamily {
+  liquid,
+  fish,
+  meat,
+  egg,
+  garlic,
+  vegetable,
+  tofu,
+  canned,
+  dryIngredient,
+  generic,
+}
+
 class IngredientMetadata {
   const IngredientMetadata({
     this.schemaVersion = 1,
@@ -23,11 +36,20 @@ class CanonicalIngredient {
     required this.defaultStorageType,
     required this.defaultPurchaseUnitId,
     required this.defaultInventoryUnitId,
+    this.emoji = '',
+    String? preferredUnitId,
+    List<String>? recommendedUnitIds,
+    this.unitFamily,
     this.parentId,
     this.metadata = const IngredientMetadata(),
   }) : localizedNames = Map<String, String>.unmodifiable(localizedNames),
        aliases = List<String>.unmodifiable(aliases),
-       searchKeywords = List<String>.unmodifiable(searchKeywords);
+       searchKeywords = List<String>.unmodifiable(searchKeywords),
+       preferredUnitId = preferredUnitId ?? defaultPurchaseUnitId,
+       recommendedUnitIds = List<String>.unmodifiable(
+         recommendedUnitIds ??
+             <String>[preferredUnitId ?? defaultPurchaseUnitId],
+       );
 
   final String id;
   final String canonicalName;
@@ -38,6 +60,10 @@ class CanonicalIngredient {
   final IngredientStorageType defaultStorageType;
   final String defaultPurchaseUnitId;
   final String defaultInventoryUnitId;
+  final String emoji;
+  final String preferredUnitId;
+  final List<String> recommendedUnitIds;
+  final IngredientUnitFamily? unitFamily;
   final String? parentId;
   final IngredientMetadata metadata;
 

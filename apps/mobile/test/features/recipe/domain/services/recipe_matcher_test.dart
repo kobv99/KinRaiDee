@@ -102,12 +102,7 @@ void main() {
       final expired = matcher
           .match(
             recipes: [recipe],
-            pantry: [
-              _pantry(
-                'ไข่',
-                expiryDate: DateTime.now().subtract(const Duration(days: 1)),
-              ),
-            ],
+            pantry: [_pantry('ไข่', expiryDate: DateTime.utc(2020, 1, 1))],
           )
           .single;
 

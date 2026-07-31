@@ -108,8 +108,14 @@ class Ingredient {
       return false;
     }
 
-    final today = DateTime(now.year, now.month, now.day);
-    final expiryDay = DateTime(expiry.year, expiry.month, expiry.day);
+    final localNow = now.toLocal();
+    final localExpiry = expiry.toLocal();
+    final today = DateTime(localNow.year, localNow.month, localNow.day);
+    final expiryDay = DateTime(
+      localExpiry.year,
+      localExpiry.month,
+      localExpiry.day,
+    );
     return expiryDay.isBefore(today);
   }
 
@@ -121,8 +127,14 @@ class Ingredient {
       return null;
     }
 
-    final today = DateTime(now.year, now.month, now.day);
-    final expiryDay = DateTime(expiry.year, expiry.month, expiry.day);
+    final localNow = now.toLocal();
+    final localExpiry = expiry.toLocal();
+    final today = DateTime(localNow.year, localNow.month, localNow.day);
+    final expiryDay = DateTime(
+      localExpiry.year,
+      localExpiry.month,
+      localExpiry.day,
+    );
     return expiryDay.difference(today).inDays;
   }
 

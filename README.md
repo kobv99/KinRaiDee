@@ -15,11 +15,14 @@ using AI.
 ## Features
 
 - Pantry Management
-- Shopping List
-- Recipe Recommendation
-- AI Chef
-- Meal Planner
-- Nutrition Tracking
+- Pantry Insights
+- Recipe Readiness
+- Pantry-based Purchase Recommendations
+- Shopping and Pantry Merge
+- Cooking History
+
+Planned features include Smart Shopping Optimization, Ingredient Substitution,
+and an AI Cooking Advisor.
 
 ---
 
@@ -54,4 +57,4 @@ flutter run
 
 Current Version
 
-v0.1.0
+v0.2.0

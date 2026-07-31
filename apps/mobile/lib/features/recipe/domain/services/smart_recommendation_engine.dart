@@ -287,11 +287,13 @@ class SmartRecommendationEngine {
     CanonicalIngredientRegistry? registry,
   ) {
     final hero = recipe.heroIngredient;
-    if (hero == null) {
-      return false;
-    }
-
-    return _ingredientMatches(hero, pantryIngredient, registry);
+    return recipe.ingredients.any((ingredient) {
+      final role = ingredient.effectiveRole(
+        isHero: identical(ingredient, hero),
+      );
+      return role == RecipeIngredientRole.primary &&
+          _ingredientMatches(ingredient, pantryIngredient, registry);
+    });
   }
 
   bool _ingredientMatches(

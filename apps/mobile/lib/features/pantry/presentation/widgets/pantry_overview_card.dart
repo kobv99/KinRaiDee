@@ -7,6 +7,7 @@ import '../../../../app/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_card.dart';
 import '../pages/cooking_history_page.dart';
 import '../providers/cooking_history_provider.dart';
+import 'pantry_intelligence_section.dart';
 
 class PantryOverviewCard extends ConsumerWidget {
   const PantryOverviewCard({
@@ -24,74 +25,81 @@ class PantryOverviewCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final historyCount = ref.watch(cookingHistoryProvider).length;
 
-    return AppCard(
-      backgroundColor: AppColors.primaryLight,
-      borderColor: AppColors.primary.withValues(alpha: 0.2),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AppCard(
+          backgroundColor: AppColors.primaryLight,
+          borderColor: AppColors.primary.withValues(alpha: 0.2),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(
-                Icons.dashboard_customize_outlined,
-                color: AppColors.primaryDark,
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              Text('ภาพรวมคลัง', style: AppTextStyles.titleMedium),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            children: [
-              Expanded(
-                child: _OverviewMetric(
-                  icon: Icons.inventory_2_outlined,
-                  value: totalCount,
-                  label: 'ทั้งหมด',
-                  color: AppColors.primaryDark,
-                ),
-              ),
-              const _MetricDivider(),
-              Expanded(
-                child: _OverviewMetric(
-                  icon: Icons.schedule_rounded,
-                  value: expiringCount,
-                  label: 'ใกล้หมดอายุ',
-                  color: AppColors.warning,
-                ),
-              ),
-              const _MetricDivider(),
-              Expanded(
-                child: _OverviewMetric(
-                  icon: Icons.star_rounded,
-                  value: favoriteCount,
-                  label: 'รายการโปรด',
-                  color: AppColors.primary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () {
-                Navigator.of(context).push<void>(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const CookingHistoryPage(),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.dashboard_customize_outlined,
+                    color: AppColors.primaryDark,
                   ),
-                );
-              },
-              icon: const Icon(Icons.history_rounded),
-              label: Text(
-                historyCount == 0
-                    ? 'ประวัติการทำอาหาร'
-                    : 'ประวัติการทำอาหาร $historyCount รายการ',
+                  const SizedBox(width: AppSpacing.xs),
+                  Text('ภาพรวมคลัง', style: AppTextStyles.titleMedium),
+                ],
               ),
-            ),
+              const SizedBox(height: AppSpacing.md),
+              Row(
+                children: [
+                  Expanded(
+                    child: _OverviewMetric(
+                      icon: Icons.inventory_2_outlined,
+                      value: totalCount,
+                      label: 'ทั้งหมด',
+                      color: AppColors.primaryDark,
+                    ),
+                  ),
+                  const _MetricDivider(),
+                  Expanded(
+                    child: _OverviewMetric(
+                      icon: Icons.schedule_rounded,
+                      value: expiringCount,
+                      label: 'ใกล้หมดอายุ',
+                      color: AppColors.warning,
+                    ),
+                  ),
+                  const _MetricDivider(),
+                  Expanded(
+                    child: _OverviewMetric(
+                      icon: Icons.star_rounded,
+                      value: favoriteCount,
+                      label: 'รายการโปรด',
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push<void>(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const CookingHistoryPage(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.history_rounded),
+                  label: Text(
+                    historyCount == 0
+                        ? 'ประวัติการทำอาหาร'
+                        : 'ประวัติการทำอาหาร $historyCount รายการ',
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        const PantryIntelligenceSection(),
+      ],
     );
   }
 }

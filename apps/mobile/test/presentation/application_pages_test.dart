@@ -196,6 +196,57 @@ void main() {
       );
     });
 
+    testWidgets(
+      'history localizes units and supports confirmed retention controls',
+      (tester) async {
+        _useLargeSurface(tester);
+        final ingredient = _ingredient(
+          id: 'egg-lot',
+          name: 'Egg',
+          quantity: 6,
+          unit: 'egg',
+          now: now,
+        );
+        final history = <CookingHistoryEntry>[
+          _historyEntry('history-1', now),
+          _historyEntry('history-2', now),
+        ];
+        final harness = await _Harness.create(
+          pantry: <Ingredient>[ingredient],
+          history: history,
+          now: now,
+        );
+        addTearDown(harness.dispose);
+
+        await _pumpPage(tester, harness.container, const CookingHistoryPage());
+        expect(find.textContaining('ฟอง'), findsWidgets);
+
+        await tester.tap(
+          find.byKey(const ValueKey<String>('history-delete-history-1')),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byType(AlertDialog), findsOneWidget);
+        await tester.tap(
+          find.byKey(const ValueKey<String>('history-confirm-delete')),
+        );
+        await tester.pumpAndSettle();
+        expect(harness.container.read(cookingHistoryProvider), hasLength(1));
+        expect(harness.container.read(pantryProvider).single.quantity, 6);
+
+        await tester.tap(
+          find.byKey(const ValueKey<String>('history-clear-all')),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byType(AlertDialog), findsOneWidget);
+        await tester.tap(
+          find.byKey(const ValueKey<String>('history-confirm-clear')),
+        );
+        await tester.pumpAndSettle();
+        expect(harness.container.read(cookingHistoryProvider), isEmpty);
+        expect(harness.container.read(pantryProvider).single.quantity, 6);
+      },
+    );
+
     testWidgets('pantry controls drive filtering and durable mutations', (
       tester,
     ) async {
@@ -372,7 +423,62 @@ void main() {
       await tester.tap(automaticSelection);
       await tester.pumpAndSettle();
     });
+
+    testWidgets('recipe loading failure never exposes technical details', (
+      tester,
+    ) async {
+      final container = ProviderContainer(
+        overrides: [
+          smartRecommendationProvider.overrideWithValue(
+            AsyncValue<SmartRecommendation>.error(
+              Exception(
+                'RepositoryException: pantry UUID '
+                '20000000-0000-4000-8000-000000000001',
+              ),
+              StackTrace.current,
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await _pumpPage(tester, container, const RecipePage());
+
+      expect(find.text('โหลดเมนูไม่สำเร็จ'), findsOneWidget);
+      expect(
+        find.textContaining('ข้อมูลใน Pantry ของคุณยังปลอดภัย'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('RepositoryException'), findsNothing);
+      expect(find.textContaining('20000000-0000'), findsNothing);
+    });
   });
+}
+
+CookingHistoryEntry _historyEntry(String id, DateTime now) {
+  return CookingHistoryEntry(
+    originatingTransactionId: id,
+    id: id,
+    recipeId: 'omelette',
+    recipeName: 'Omelette',
+    servings: 2,
+    changes: const <CookingHistoryChange>[
+      CookingHistoryChange(
+        ingredientId: 'egg-lot',
+        ingredientName: 'Egg',
+        unit: 'egg',
+        beforeQuantity: 10,
+        originalAfterQuantity: 6,
+        afterQuantity: 6,
+        canonicalIngredientId: 'egg',
+        canonicalUnitId: 'egg',
+        canonicalMappingStatus: CanonicalMappingStatus.mapped,
+      ),
+    ],
+    createdAt: now,
+    updatedAt: now,
+    status: CookingHistoryStatus.completed,
+  );
 }
 
 class _Harness {
