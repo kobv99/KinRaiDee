@@ -776,7 +776,7 @@ class _ShoppingControls extends ConsumerWidget {
             child: Row(
               children: [
                 SizedBox(
-                  width: 200,
+                  width: 260,
                   child: DropdownButtonFormField<ShoppingCategory?>(
                     key: const ValueKey<String>('shopping-category-filter'),
                     initialValue: view.category,
@@ -801,7 +801,7 @@ class _ShoppingControls extends ConsumerWidget {
                 if (recipes.isNotEmpty) ...[
                   const SizedBox(width: AppSpacing.sm),
                   SizedBox(
-                    width: 220,
+                    width: 280,
                     child: DropdownButtonFormField<String?>(
                       key: const ValueKey<String>('shopping-recipe-filter'),
                       initialValue: view.recipeId,
@@ -829,7 +829,7 @@ class _ShoppingControls extends ConsumerWidget {
                 ],
                 const SizedBox(width: AppSpacing.sm),
                 SizedBox(
-                  width: 180,
+                  width: 220,
                   child: DropdownButtonFormField<ShoppingSortOption>(
                     key: const ValueKey<String>('shopping-sort-filter'),
                     initialValue: view.sort,
