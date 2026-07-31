@@ -12,7 +12,6 @@ import '../../../../shared/widgets/app_card.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../pantry/application/inventory_transaction_coordinator.dart';
 import '../../../pantry/application/inventory_transaction_providers.dart';
-import '../../../pantry/presentation/widgets/pantry_intelligence_section.dart';
 import '../../../recipe/domain/entities/recipe.dart';
 import '../../../recipe/presentation/providers/recipe_provider.dart';
 import '../../application/shopping_providers.dart';
@@ -147,17 +146,6 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
                         setState(() => _selectedListId = value),
                     onPlanRecipe: _openRecipes,
                   ),
-                ),
-              ),
-              SliverPadding(
-                padding: EdgeInsets.fromLTRB(
-                  horizontal,
-                  AppSpacing.md,
-                  horizontal,
-                  0,
-                ),
-                sliver: const SliverToBoxAdapter(
-                  child: PantryIntelligenceSection(),
                 ),
               ),
               SliverPadding(
@@ -788,7 +776,7 @@ class _ShoppingControls extends ConsumerWidget {
             child: Row(
               children: [
                 SizedBox(
-                  width: 150,
+                  width: 200,
                   child: DropdownButtonFormField<ShoppingCategory?>(
                     key: const ValueKey<String>('shopping-category-filter'),
                     initialValue: view.category,
@@ -813,7 +801,7 @@ class _ShoppingControls extends ConsumerWidget {
                 if (recipes.isNotEmpty) ...[
                   const SizedBox(width: AppSpacing.sm),
                   SizedBox(
-                    width: 160,
+                    width: 220,
                     child: DropdownButtonFormField<String?>(
                       key: const ValueKey<String>('shopping-recipe-filter'),
                       initialValue: view.recipeId,
@@ -841,7 +829,7 @@ class _ShoppingControls extends ConsumerWidget {
                 ],
                 const SizedBox(width: AppSpacing.sm),
                 SizedBox(
-                  width: 140,
+                  width: 180,
                   child: DropdownButtonFormField<ShoppingSortOption>(
                     key: const ValueKey<String>('shopping-sort-filter'),
                     initialValue: view.sort,
