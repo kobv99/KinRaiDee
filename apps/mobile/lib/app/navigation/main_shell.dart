@@ -15,11 +15,13 @@ class MainShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.listen<int>(appNavigationProvider, (previousIndex, nextIndex) {
-      if (nextIndex != AppNavigationNotifier.pantryTab ||
-          previousIndex == nextIndex) {
+      if (previousIndex == nextIndex) {
         return;
       }
 
+      // A tab switch requested from a pushed route (e.g. "ไปที่ Shopping"
+      // from the cooking wizard) must land on that tab's root, not leave
+      // the previous tab's stack of pushed pages behind underneath it.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!context.mounted) {
           return;
