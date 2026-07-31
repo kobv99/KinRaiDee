@@ -33,12 +33,19 @@ class PantryReadinessCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('ความพร้อมจาก Pantry', style: AppTypography.label),
+              Expanded(
+                child: Text(
+                  'ความพร้อมจาก Pantry',
+                  style: AppTypography.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
               Text(
                 '$readyPercent%',
-                style: AppTypography.headline.copyWith(color: AppColors.success),
+                style: AppTypography.title.copyWith(color: AppColors.success),
               ),
             ],
           ),
@@ -60,6 +67,7 @@ class PantryReadinessCard extends StatelessWidget {
                   ),
                 ),
                 AppButton(
+                  key: const ValueKey<String>('add-missing-to-shopping'),
                   label: 'เพิ่มวัตถุดิบ',
                   variant: AppButtonVariant.secondary,
                   expand: false,

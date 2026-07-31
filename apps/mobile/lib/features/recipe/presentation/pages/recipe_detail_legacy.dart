@@ -243,8 +243,6 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         children: [
-          _RecipeHeader(recipe: widget.recipe),
-          const SizedBox(height: 18),
           const _SectionTitle(
             icon: Icons.groups_2_outlined,
             title: 'เลือกจำนวนคน',
@@ -390,7 +388,7 @@ class DeductionSelection {
 }
 
 class DeductionConfirmationSheet extends StatefulWidget {
-  const DeductionConfirmationSheet({required this.plan});
+  const DeductionConfirmationSheet({super.key, required this.plan});
 
   final PantryDeductionPlan plan;
 
@@ -673,112 +671,6 @@ class _InfoBox extends StatelessWidget {
           Expanded(
             child: Text(text, style: TextStyle(color: colors.onSurfaceVariant)),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RecipeHeader extends StatelessWidget {
-  const _RecipeHeader({required this.recipe});
-
-  final Recipe recipe;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: colors.primaryContainer,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 66,
-            height: 66,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: colors.surface.withValues(alpha: 0.78),
-              shape: BoxShape.circle,
-            ),
-            child: Text(recipe.emoji, style: const TextStyle(fontSize: 34)),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  recipe.name,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: colors.onPrimaryContainer,
-                  ),
-                ),
-                if (recipe.description.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    recipe.description,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: colors.onPrimaryContainer,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    if (recipe.cookTimeMinutes > 0)
-                      _HeaderChip(
-                        icon: Icons.schedule,
-                        label: '${recipe.cookTimeMinutes} นาที',
-                      ),
-                    _HeaderChip(
-                      icon: Icons.restaurant_menu,
-                      label: _difficultyLabel(recipe.difficulty),
-                    ),
-                    _HeaderChip(
-                      icon: Icons.groups_2_outlined,
-                      label: 'สูตรตั้งต้น ${recipe.servings} คน',
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeaderChip extends StatelessWidget {
-  const _HeaderChip({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: colors.surface.withValues(alpha: 0.72),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 15),
-          const SizedBox(width: 5),
-          Text(label, style: Theme.of(context).textTheme.bodySmall),
         ],
       ),
     );
@@ -1174,13 +1066,4 @@ String _formatNumber(double value) {
     return value.toStringAsFixed(1);
   }
   return value.toStringAsFixed(2);
-}
-
-String _difficultyLabel(String difficulty) {
-  return switch (difficulty.toLowerCase()) {
-    'easy' => 'ง่าย',
-    'medium' => 'ปานกลาง',
-    'hard' => 'ยาก',
-    _ => difficulty,
-  };
 }

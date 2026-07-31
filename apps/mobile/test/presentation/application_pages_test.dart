@@ -405,7 +405,7 @@ void main() {
         HomePage(onOpenPantry: () => openedPantry = true),
       );
       expect(find.byType(RefreshIndicator), findsOneWidget);
-      await tester.tap(find.byType(FilledButton).first);
+      await tester.tap(find.byKey(const ValueKey<String>('open-pantry-metric')));
       expect(openedPantry, isTrue);
 
       await _pumpPage(tester, harness.container, const RecipePage());
@@ -413,7 +413,7 @@ void main() {
       expect(find.byType(ExpansionTile), findsOneWidget);
       await tester.tap(find.byType(ExpansionTile));
       await tester.pumpAndSettle();
-      await tester.tap(find.byIcon(Icons.casino_outlined));
+      await tester.tap(find.byIcon(Icons.refresh));
       await tester.pumpAndSettle();
       await tester.tap(find.byType(TextButton).first);
       await tester.pumpAndSettle();

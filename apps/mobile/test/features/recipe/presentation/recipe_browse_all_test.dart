@@ -50,13 +50,17 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Fried Rice'), findsOneWidget);
-      expect(find.text('ความพร้อม 0%'), findsOneWidget);
-      expect(find.text('เริ่มทำอาหารสำหรับ 2 คน'), findsOneWidget);
+      expect(find.textContaining('ความพร้อมจาก Pantry'), findsOneWidget);
+      expect(find.text('0%'), findsOneWidget);
+      expect(find.byKey(const ValueKey<String>('start-cooking-cta')), findsOneWidget);
 
-      await tester.tap(find.text('เริ่มทำอาหารสำหรับ 2 คน'));
+      await tester.tap(find.byKey(const ValueKey<String>('start-cooking-cta')));
       await tester.pumpAndSettle();
 
-      expect(find.text('โหมดทำอาหาร'), findsOneWidget);
+      // Sprint 5.5: starting to cook now opens the step-by-step wizard
+      // (serving -> review -> confirm -> cooking mode) instead of jumping
+      // straight into cooking mode from Recipe Detail.
+      expect(find.text('เลือกจำนวนคน'), findsOneWidget);
     },
   );
 }

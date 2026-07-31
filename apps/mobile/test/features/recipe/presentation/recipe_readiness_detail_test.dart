@@ -8,96 +8,66 @@ import 'package:mobile/features/recipe/presentation/pages/recipe_detail_page.dar
 
 import '../../../support/shopping_ui_test_support.dart';
 
+/// NOTE: this file was rewritten for the Sprint 5.5 Recipe Detail redesign.
+/// The old advisory panel (compact/expand/dismiss, keys
+/// 'recipe-readiness-panel'/'-toggle'/'-dismiss'/'-recommendation') no
+/// longer exists — it was replaced by [RecipeDetailHeader]'s always-visible
+/// PantryReadinessCard, per the approved mockup. These tests keep the real
+/// business-logic assertions (missing-ingredient quantity, shopping-list
+/// dedup, cooking is never blocked) and drop only the assertions tied to
+/// UI structure that was intentionally removed.
 void main() {
-  testWidgets(
-    'Recipe Detail keeps advisory compact and adds only missing ingredients',
-    (tester) async {
-      final harness = await _harness();
-      addTearDown(harness.dispose);
-      await _pumpRecipe(tester, harness);
-
-      expect(
-        find.byKey(const ValueKey<String>('recipe-readiness-panel')),
-        findsOneWidget,
-      );
-      expect(find.text('ความพร้อม 40%'), findsOneWidget);
-      expect(
-        find.byKey(const ValueKey<String>('recipe-readiness-recommendation')),
-        findsOneWidget,
-      );
-      expect(find.textContaining('คุณยังเริ่มทำอาหารได้เสมอ'), findsOneWidget);
-      expect(find.text('เราแนะนำให้เตรียมเพิ่ม'), findsNothing);
-      expect(
-        find.byKey(const ValueKey<String>('add-missing-to-shopping')),
-        findsOneWidget,
-      );
-      expect(find.text('เริ่มทำอาหารสำหรับ 2 คน'), findsOneWidget);
-
-      await tester.tap(
-        find.byKey(const ValueKey<String>('recipe-readiness-toggle')),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('เราแนะนำให้เตรียมเพิ่ม'), findsOneWidget);
-      expect(
-        find.textContaining('Rice · แนะนำเพิ่ม 0.8 kilogram'),
-        findsOneWidget,
-      );
-
-      await tester.tap(
-        find.byKey(const ValueKey<String>('add-missing-to-shopping')),
-      );
-      await tester.pumpAndSettle();
-
-      final items = (await harness.lists()).single.items;
-      expect(items, hasLength(1));
-      expect(items.single.canonicalIngredientId, 'rice');
-      expect(items.single.quantity, closeTo(0.8, 0.000001));
-      expect(
-        find.textContaining('เพิ่มวัตถุดิบที่ขาด 1 รายการ'),
-        findsOneWidget,
-      );
-
-      await tester.tap(
-        find.byKey(const ValueKey<String>('add-missing-to-shopping')),
-      );
-      await tester.pumpAndSettle();
-
-      expect((await harness.lists()).single.items, hasLength(1));
-      expect(
-        find.text('วัตถุดิบที่แนะนำมีอยู่ใน Shopping แล้ว'),
-        findsOneWidget,
-      );
-    },
-  );
-
-  testWidgets('recommendation can be dismissed and never blocks cooking', (
+  testWidgets('Recipe Detail adds only the missing ingredient, with dedup on repeat', (
     tester,
   ) async {
     final harness = await _harness();
     addTearDown(harness.dispose);
     await _pumpRecipe(tester, harness);
 
-    await tester.tap(
-      find.byKey(const ValueKey<String>('recipe-readiness-dismiss')),
-    );
-    await tester.pumpAndSettle();
-
+    // Readiness numbers come from the same underlying provider as before —
+    // still real, still visible, just in the new PantryReadinessCard shape.
+    expect(find.textContaining('ความพร้อมจาก Pantry'), findsOneWidget);
+    expect(find.text('40%'), findsOneWidget);
     expect(
-      find.byKey(const ValueKey<String>('recipe-readiness-panel')),
-      findsNothing,
+      find.byKey(const ValueKey<String>('add-missing-to-shopping')),
+      findsOneWidget,
     );
-    expect(find.text('Fried Rice'), findsOneWidget);
-    expect(find.text('เริ่มทำอาหารสำหรับ 2 คน'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('start-cooking-cta')), findsOneWidget);
 
-    await tester.tap(find.text('เริ่มทำอาหารสำหรับ 2 คน'));
+    await tester.tap(find.byKey(const ValueKey<String>('add-missing-to-shopping')));
     await tester.pumpAndSettle();
 
-    expect(find.text('โหมดทำอาหาร'), findsOneWidget);
-    expect(find.text('ขั้นตอน 1'), findsOneWidget);
+    final items = (await harness.lists()).single.items;
+    expect(items, hasLength(1));
+    expect(items.single.canonicalIngredientId, 'rice');
+    expect(items.single.quantity, closeTo(0.8, 0.000001));
+    expect(find.textContaining('เพิ่มวัตถุดิบที่ขาด 1 รายการ'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey<String>('add-missing-to-shopping')));
+    await tester.pumpAndSettle();
+
+    expect((await harness.lists()).single.items, hasLength(1));
+    expect(find.text('วัตถุดิบที่แนะนำมีอยู่ใน Shopping แล้ว'), findsOneWidget);
   });
 
-  testWidgets('compact and expanded advisory do not overflow small screens', (
+  testWidgets('missing ingredients never block starting the cooking wizard', (
+    tester,
+  ) async {
+    final harness = await _harness();
+    addTearDown(harness.dispose);
+    await _pumpRecipe(tester, harness);
+
+    expect(find.text('Fried Rice'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey<String>('start-cooking-cta')));
+    await tester.pumpAndSettle();
+
+    // The recipe is still missing rice, but cooking must not be gated on it
+    // — the wizard opens straight to its first step (serving selection).
+    expect(find.text('เลือกจำนวนคน'), findsOneWidget);
+  });
+
+  testWidgets('Recipe Detail does not overflow on a small phone screen', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(360, 640);
@@ -118,33 +88,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    _expectNoHorizontalOverflow(
-      tester,
-      exception: tester.takeException(),
-      phase: 'compact',
-    );
-    expect(
-      find.byKey(const ValueKey<String>('add-missing-to-shopping')),
-      findsOneWidget,
-    );
-    expect(find.text('เริ่มทำอาหารสำหรับ 2 คน'), findsOneWidget);
-
-    await tester.tap(
-      find.byKey(const ValueKey<String>('recipe-readiness-toggle')),
-    );
-    await tester.pumpAndSettle();
-
-    _expectNoHorizontalOverflow(
-      tester,
-      exception: tester.takeException(),
-      phase: 'expanded',
-    );
-    expect(find.text('เราแนะนำให้เตรียมเพิ่ม'), findsOneWidget);
-    expect(find.text('เริ่มทำอาหารสำหรับ 2 คน'), findsOneWidget);
+    _expectNoOverflow(tester, exception: tester.takeException(), phase: 'initial render');
+    expect(find.byKey(const ValueKey<String>('start-cooking-cta')), findsOneWidget);
   });
 }
 
-void _expectNoHorizontalOverflow(
+void _expectNoOverflow(
   WidgetTester tester, {
   required Object? exception,
   required String phase,

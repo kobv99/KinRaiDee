@@ -107,7 +107,11 @@ class RecipeDetailHeader extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: AppButton(label: 'เริ่มทำอาหาร', onPressed: onStartCooking),
+                    child: AppButton(
+                      key: const ValueKey<String>('start-cooking-cta'),
+                      label: 'เริ่มทำอาหาร',
+                      onPressed: onStartCooking,
+                    ),
                   ),
                 ],
               ),

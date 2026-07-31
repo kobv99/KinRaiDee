@@ -92,6 +92,9 @@ class DailySummaryCard extends StatelessWidget {
             .map(
               (m) => Expanded(
                 child: _MetricTile(
+                  key: m.filter == null
+                      ? const ValueKey<String>('open-pantry-metric')
+                      : ValueKey<String>('metric-${m.filter!.name}'),
                   spec: m,
                   selected: m.filter != null && m.filter == selectedFilter,
                   onTap: m.filter != null
@@ -107,7 +110,7 @@ class DailySummaryCard extends StatelessWidget {
 }
 
 class _MetricTile extends StatelessWidget {
-  const _MetricTile({required this.spec, required this.selected, required this.onTap});
+  const _MetricTile({super.key, required this.spec, required this.selected, required this.onTap});
   final _MetricSpec spec;
   final bool selected;
   final VoidCallback onTap;

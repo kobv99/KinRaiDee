@@ -55,17 +55,24 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
         child: ResponsiveContent(
           child: Column(
             children: [
-              RecipeDetailHeader(
-                recipe: widget.recipe,
-                readiness: readiness,
-                onBack: () => Navigator.of(context).maybePop(),
-                onAddMissing:
-                    readiness == null || readiness.missingIngredients.isEmpty
-                    ? null
-                    : _addMissingIngredients,
-                onStartCooking: () => Navigator.of(context).push<void>(
-                  MaterialPageRoute(
-                    builder: (_) => CookingWizardPage(recipe: widget.recipe),
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.sizeOf(context).height * 0.55,
+                ),
+                child: SingleChildScrollView(
+                  child: RecipeDetailHeader(
+                    recipe: widget.recipe,
+                    readiness: readiness,
+                    onBack: () => Navigator.of(context).maybePop(),
+                    onAddMissing:
+                        readiness == null || readiness.missingIngredients.isEmpty
+                        ? null
+                        : _addMissingIngredients,
+                    onStartCooking: () => Navigator.of(context).push<void>(
+                      MaterialPageRoute(
+                        builder: (_) => CookingWizardPage(recipe: widget.recipe),
+                      ),
+                    ),
                   ),
                 ),
               ),
