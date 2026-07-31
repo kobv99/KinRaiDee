@@ -36,10 +36,32 @@ class AppColors {
   static const Color warningSoft = Color(0xFFFCF1DF);
   static const Color error = Color(0xFFD3453B); // Reserved for real errors
   static const Color errorSoft = Color(0xFFFAE7E5);
+  static const Color info = Color(0xFF3D7DD8);
 
   // Cooking Mode (dark) ---------------------------------------------------
   static const Color cookingBackground = Color(0xFF1B2320); // Charcoal-green
   static const Color cookingSurface = Color(0xFF232C28);
   static const Color cookingTextPrimary = Color(0xFFFAF8F6);
   static const Color cookingTextSecondary = Color(0xFFB7C0BB);
+
+  // Feature accent colors (Pantry / Recipe / Shopping / Nutrition tabs) ---
+  static const Color pantry = Color(0xFF5F9C68);
+  static const Color recipe = Color(0xFFFF8A50);
+  static const Color shopping = Color(0xFF4B86C6);
+  static const Color nutrition = Color(0xFF9B6BC3);
+
+  // ---------------------------------------------------------------------
+  // Legacy aliases (lib/app/theme/app_colors.dart re-exports this file).
+  // Kept so pre-Sprint-5.5 screens compile unchanged against the same
+  // underlying palette. New code should prefer the semantic names above.
+  // ---------------------------------------------------------------------
+  static const Color primaryDark = primaryPressed;
+  static const Color primaryLight = primarySoft;
+  static const Color secondary = success;
+  static const Color secondaryDark = Color(0xFF2E8B4E);
+  static const Color secondaryLight = successSoft;
+  static const Color surfaceVariant = surfaceMuted;
+  static const Color textMuted = Color(0xFF9A918C);
+  static const Color divider = border;
+
 }

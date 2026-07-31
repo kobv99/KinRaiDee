@@ -15,4 +15,14 @@ class AppRadius {
   static const BorderRadius largeRadius = BorderRadius.all(Radius.circular(large));
   static const BorderRadius extraLargeRadius = BorderRadius.all(Radius.circular(extraLarge));
   static const BorderRadius pillRadius = BorderRadius.all(Radius.circular(pill));
+
+  // Legacy aliases (lib/app/theme/app_radius.dart re-exports this file).
+  static const double xs = small;
+  static const double sm = medium;
+  static const double md = large;
+  static const double lg = extraLarge;
+  static const BorderRadius card = largeRadius; // was BorderRadius.circular(md=16)
+  static const BorderRadius largeCard = extraLargeRadius;
+  static const BorderRadius button = mediumRadius; // was BorderRadius.circular(sm=12)
+
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/design_system/theme/app_theme_extensions.dart';
 import 'app_colors.dart';
 import 'app_radius.dart';
 
@@ -23,6 +24,7 @@ abstract final class AppTheme {
       colorScheme: colorScheme,
       scaffoldBackgroundColor: AppColors.background,
       fontFamily: GoogleFonts.notoSansThai().fontFamily,
+      extensions: const [AppSemanticColors.light],
       textTheme: baseTextTheme.copyWith(
         displayLarge: baseTextTheme.displayLarge?.copyWith(
           color: AppColors.textPrimary,

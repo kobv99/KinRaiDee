@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mobile/core/design_system/theme/app_theme.dart';
+import 'package:mobile/app/theme/app_theme.dart';
 import 'package:mobile/core/design_system/theme/app_theme_extensions.dart';
 import 'package:mobile/core/design_system/components/app_button.dart';
 import 'package:mobile/core/design_system/components/app_card.dart';
@@ -13,7 +13,7 @@ import 'package:mobile/core/design_system/feature_components/serving_selector.da
 
 Widget _wrap(Widget child) {
   return MaterialApp(
-    theme: AppTheme.light(),
+    theme: AppTheme.light,
     home: Scaffold(body: Center(child: child)),
   );
 }
