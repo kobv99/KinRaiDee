@@ -17,6 +17,7 @@ import '../../application/recipe_missing_shopping_controller.dart';
 import '../../domain/entities/recipe.dart';
 import '../../domain/services/pantry_deduction_planner.dart';
 import '../../domain/services/recipe_serving_calculator.dart';
+import '../providers/recipe_shopping_provider.dart';
 import 'recipe_detail_legacy.dart' show DeductionConfirmationSheet, DeductionSelection;
 
 enum _WizardPhase { serving, review, confirm, cooking }
