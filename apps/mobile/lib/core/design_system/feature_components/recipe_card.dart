@@ -19,6 +19,7 @@ class RecipeCard extends StatelessWidget {
     required this.cookingTimeMinutes,
     required this.onTap,
     this.imageProvider,
+    this.placeholderEmoji,
     this.width = 160,
   });
 
@@ -28,6 +29,7 @@ class RecipeCard extends StatelessWidget {
   final int cookingTimeMinutes;
   final VoidCallback onTap;
   final ImageProvider? imageProvider;
+  final String? placeholderEmoji;
   final double width;
 
   String get _readinessLabel => switch (readiness) {
@@ -59,7 +61,10 @@ class RecipeCard extends StatelessWidget {
                           ? Image(image: imageProvider!, fit: BoxFit.cover)
                           : Container(
                               color: AppColors.primarySoft,
-                              child: const Icon(Icons.restaurant, color: AppColors.primary, size: 32),
+                              alignment: Alignment.center,
+                              child: placeholderEmoji != null && placeholderEmoji!.isNotEmpty
+                                  ? Text(placeholderEmoji!, style: const TextStyle(fontSize: 40))
+                                  : const Icon(Icons.restaurant, color: AppColors.primary, size: 32),
                             ),
                     ),
                   ),

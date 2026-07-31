@@ -46,7 +46,7 @@ class TopPicksSection extends ConsumerWidget {
             ),
             const SizedBox(height: AppSpacing.md),
             SizedBox(
-              height: 190,
+              height: 236,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: rec.primaryMatches.length,
@@ -58,6 +58,7 @@ class TopPicksSection extends ConsumerWidget {
                     pantryMatchPercent: match.scorePercent,
                     readiness: _readinessFor(match),
                     cookingTimeMinutes: match.recipe.cookTimeMinutes,
+                    placeholderEmoji: match.recipe.emoji,
                     onTap: () => Navigator.of(context).push<void>(
                       MaterialPageRoute(
                         builder: (_) => RecipeDetailPage(recipe: match.recipe),
@@ -81,7 +82,7 @@ class TopPicksSection extends ConsumerWidget {
 
   Widget _loadingRow() {
     return SizedBox(
-      height: 190,
+      height: 236,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: 3,
