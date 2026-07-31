@@ -349,9 +349,15 @@ class _CookingWizardPageState extends ConsumerState<CookingWizardPage> {
           .applyQuantityTransaction(transaction);
       if (!mounted) return;
 
+      // Capture stable references BEFORE popping this route. Once popped,
+      // this widget disposes and `ref`/`context` become unsafe to use --
+      // the undo action below runs later, from the SnackBar, after that
+      // has already happened.
+      final pantryNotifier = ref.read(pantryProvider.notifier);
+      final messenger = ScaffoldMessenger.of(context);
+
       Navigator.of(context).pop();
 
-      final messenger = ScaffoldMessenger.of(context);
       messenger.clearSnackBars();
       messenger.showSnackBar(
         SnackBar(
@@ -362,11 +368,10 @@ class _CookingWizardPageState extends ConsumerState<CookingWizardPage> {
           action: SnackBarAction(
             label: 'ย้อนกลับ',
             onPressed: () async {
-              final restored = await ref
-                  .read(pantryProvider.notifier)
-                  .undoQuantityTransaction(committedTransaction);
-              if (!mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
+              final restored = await pantryNotifier.undoQuantityTransaction(
+                committedTransaction,
+              );
+              messenger.showSnackBar(
                 SnackBar(
                   content: Text(
                     restored > 0
