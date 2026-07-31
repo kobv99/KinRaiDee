@@ -438,10 +438,34 @@ void main() {
             .maximumCookTimeMinutes,
         isNull,
       );
-      expect(find.byType(ExpansionTile), findsOneWidget);
-      await tester.tap(find.byType(ExpansionTile));
+      expect(find.text('เมนูเพิ่มเติมจากวัตถุดิบที่มี'), findsNothing);
+      expect(
+        find.byKey(const ValueKey<String>('recommendation-refresh-button')),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .getTopLeft(
+              find.byKey(
+                const ValueKey<String>('recommendation-refresh-button'),
+              ),
+            )
+            .dy,
+        lessThan(tester.getTopLeft(find.text('Omelette')).dy),
+      );
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey<String>('browse-all-recipes-button')),
+        200,
+      );
       await tester.pumpAndSettle();
-      await tester.tap(find.byIcon(Icons.casino_outlined));
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey<String>('recommendation-refresh-button')),
+        -200,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('recommendation-refresh-button')),
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.byType(TextButton).first);
       await tester.pumpAndSettle();

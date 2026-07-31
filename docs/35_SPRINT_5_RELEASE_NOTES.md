@@ -29,6 +29,10 @@
   scores remain in Recommendation QA.
 - The Pantry recommendation banner is compact by default and reveals guidance
   and Shopping actions only when requested.
+- The Recipe page presents a single recommendation hierarchy: header,
+  Recommendation Dashboard, one Top Recommendation List, then Search.
+- Recommendation refresh belongs to the recommendation list header and uses a
+  lightweight text button instead of a large action at the bottom of the page.
 
 ## Fixed
 
@@ -40,6 +44,8 @@
 - Static Recommendation Dashboard summaries now work as primary filter actions.
 - Internal Recommendation Score values no longer leak into normal Recipe cards
   or explanation panels.
+- The duplicated “More Recipes from Main Ingredient” section and the duplicated
+  match-threshold chips no longer compete with the primary recommendation list.
 
 ## Known Limitations
 

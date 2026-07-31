@@ -10,7 +10,7 @@ Product Owner environment: `flutter run -d web-server`.
 2. Open Recipe recommendations.
 3. Change sorting between Highest Score, Best Match, Fastest, and Least
    Missing.
-4. Apply the 75% and 100% match filters.
+4. Apply the Dashboard summaries, including พร้อมครบ and เมนูด่วน.
 5. Open a recommended Recipe and expand “ทำไมถึงแนะนำเมนูนี้?”.
 
 ### Expected Result
@@ -29,6 +29,30 @@ Product Owner environment: `flutter run -d web-server`.
 - Pantry canonical matching
 - Substitution panel
 - Recipe Detail responsive layout
+
+## Feature: Single recommendation list
+
+### Test Steps
+
+1. Add Rice, Egg, and Soy Sauce to Pantry.
+2. Open Recipe recommendations and scroll through the whole page.
+3. Use the refresh action in the recommendation list header.
+4. Scroll to the bottom of the page and open `ค้นหาสูตร`.
+
+### Expected Result
+
+- The page order is header, Recommendation Dashboard, one recommendation list,
+  then Search.
+- No second recommendation section such as “More Recipes from Main Ingredient”
+  is displayed.
+- Refresh sits in the recommendation list header as a lightweight text button
+  and replaces the list without leaving the page.
+- Search remains reachable at the end of the page.
+
+### Possible Regression Areas
+
+- Recommendation paging
+- Recipe catalog navigation
 
 ## Feature: Expiring ingredients
 

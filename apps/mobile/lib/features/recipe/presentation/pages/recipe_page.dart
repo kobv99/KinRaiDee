@@ -5,6 +5,7 @@ import '../../domain/entities/recipe_match.dart';
 import '../../domain/entities/recipe_recommendation.dart';
 import '../../domain/entities/smart_recommendation.dart';
 import '../providers/recipe_provider.dart';
+import 'all_recipes_page.dart';
 import 'recipe_detail_page.dart';
 import 'recommendation_qa_page.dart';
 
@@ -90,6 +91,8 @@ class RecipePage extends ConsumerWidget {
             );
           }
 
+          final heroName = result.hero!.name;
+
           return RefreshIndicator(
             onRefresh: () => _reload(ref),
             child: ListView(
@@ -130,47 +133,28 @@ class RecipePage extends ConsumerWidget {
                     ref.read(recommendationSessionProvider.notifier).reset();
                   },
                 ),
-                const SizedBox(height: 12),
-                _RecommendationControls(
-                  query: query,
+                const SizedBox(height: 16),
+                _RecommendationListHeader(
+                  title:
+                      '${result.primaryMatches.length} เมนูที่น่าลองจาก$heroName',
+                  canRefresh: result.canRefresh,
+                  isLastPage: result.pageIndex + 1 >= result.pageCount,
+                  onRefresh: () => ref
+                      .read(recommendationSessionProvider.notifier)
+                      .showNext(result.totalHeroRecipes),
+                ),
+                const SizedBox(height: 4),
+                _RecommendationListSubheader(
+                  sort: query.sort,
                   onSort: (sort) {
                     ref
                         .read(recipeRecommendationQueryProvider.notifier)
                         .update(sort: sort);
                     ref.read(recommendationSessionProvider.notifier).reset();
                   },
-                  onFilter: (filter) {
-                    ref
-                        .read(recipeRecommendationQueryProvider.notifier)
-                        .update(filter: filter);
-                    ref.read(recommendationSessionProvider.notifier).reset();
-                  },
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '${result.primaryMatches.length} เมนูที่น่าลองจาก${result.hero!.name}',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      '${result.totalHeroRecipes} เมนู',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'แตะเมนูเพื่อเลือกจำนวนคน ดูปริมาณวัตถุดิบ และเปิดสูตรอาหาร',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                  summary: result.canRefresh
+                      ? 'ชุด ${result.pageIndex + 1} จาก ${result.pageCount} · ทั้งหมด ${result.totalHeroRecipes} เมนู'
+                      : 'ทั้งหมด ${result.totalHeroRecipes} เมนู',
                 ),
                 const SizedBox(height: 12),
                 ...result.primaryMatches.map(
@@ -184,46 +168,8 @@ class RecipePage extends ConsumerWidget {
                     ),
                   ),
                 ),
-                if (result.canRefresh) ...[
-                  const SizedBox(height: 4),
-                  FilledButton.tonalIcon(
-                    onPressed: () {
-                      ref
-                          .read(recommendationSessionProvider.notifier)
-                          .showNext(result.totalHeroRecipes);
-                    },
-                    icon: const Icon(Icons.casino_outlined),
-                    label: Text(
-                      result.pageIndex + 1 >= result.pageCount
-                          ? 'แนะนำใหม่อีกชุด'
-                          : 'แนะนำใหม่ ไม่ซ้ำชุดเดิม',
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Center(
-                    child: Text(
-                      'ชุด ${result.pageIndex + 1} จาก ${result.pageCount}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                ],
-                if (result.moreMatches.isNotEmpty) ...[
-                  const SizedBox(height: 24),
-                  _MoreRecipesSection(
-                    matches: result.moreMatches,
-                    detailsByRecipeId: detailsByRecipeId,
-                    rankedAbove: recommendationDetails.firstOrNull,
-                    onOpen: (match) => _openRecipeDetail(context, match),
-                  ),
-                ],
                 const SizedBox(height: 24),
-                OutlinedButton.icon(
-                  onPressed: null,
-                  icon: const Icon(Icons.auto_awesome_outlined),
-                  label: const Text('ค้นหาสูตรใหม่ด้วย AI — เร็ว ๆ นี้'),
-                ),
+                const _RecipeSearchSection(),
               ],
             ),
           );
@@ -483,57 +429,120 @@ class _HeroIngredientCard extends StatelessWidget {
   }
 }
 
-class _RecommendationControls extends StatelessWidget {
-  const _RecommendationControls({
-    required this.query,
-    required this.onSort,
-    required this.onFilter,
+class _RecommendationListHeader extends StatelessWidget {
+  const _RecommendationListHeader({
+    required this.title,
+    required this.canRefresh,
+    required this.isLastPage,
+    required this.onRefresh,
   });
 
-  final RecipeRecommendationQuery query;
-  final ValueChanged<RecommendationSort> onSort;
-  final ValueChanged<RecommendationFilter> onFilter;
+  final String title;
+  final bool canRefresh;
+  final bool isLastPage;
+  final VoidCallback onRefresh;
 
   @override
   Widget build(BuildContext context) {
-    final minimumMatch = query.filter.minimumMatchPercent;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Text(
+            title,
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          ),
+        ),
+        if (canRefresh)
+          TextButton.icon(
+            key: const ValueKey<String>('recommendation-refresh-button'),
+            onPressed: onRefresh,
+            style: TextButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+            ),
+            icon: const Icon(Icons.refresh, size: 18),
+            label: Text(isLastPage ? 'แนะนำใหม่' : 'ชุดถัดไป'),
+          ),
+      ],
+    );
+  }
+}
+
+class _RecommendationListSubheader extends StatelessWidget {
+  const _RecommendationListSubheader({
+    required this.sort,
+    required this.onSort,
+    required this.summary,
+  });
+
+  final RecommendationSort sort;
+  final ValueChanged<RecommendationSort> onSort;
+  final String summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     return Wrap(
       spacing: 8,
-      runSpacing: 8,
+      runSpacing: 4,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        ChoiceChip(
-          label: const Text('ทั้งหมด'),
-          selected: minimumMatch == null,
-          onSelected: (_) => onFilter(const RecommendationFilter()),
-        ),
-        ChoiceChip(
-          label: const Text('ตรง ≥ 75%'),
-          selected: minimumMatch == 75,
-          onSelected: (_) =>
-              onFilter(const RecommendationFilter(minimumMatchPercent: 75)),
-        ),
-        ChoiceChip(
-          label: const Text('พร้อมครบ 100%'),
-          selected: minimumMatch == 100,
-          onSelected: (_) =>
-              onFilter(const RecommendationFilter(minimumMatchPercent: 100)),
-        ),
         PopupMenuButton<RecommendationSort>(
-          initialValue: query.sort,
+          initialValue: sort,
           onSelected: onSort,
           itemBuilder: (context) => RecommendationSort.values
               .map(
-                (sort) => PopupMenuItem<RecommendationSort>(
-                  value: sort,
-                  child: Text(_sortLabel(sort)),
+                (value) => PopupMenuItem<RecommendationSort>(
+                  value: value,
+                  child: Text(_sortLabel(value)),
                 ),
               )
               .toList(growable: false),
           child: Chip(
             avatar: const Icon(Icons.sort, size: 18),
-            label: Text(_sortLabel(query.sort)),
+            label: Text(_sortLabel(sort)),
+            visualDensity: VisualDensity.compact,
           ),
+        ),
+        Text(
+          summary,
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+        ),
+      ],
+    );
+  }
+}
+
+class _RecipeSearchSection extends StatelessWidget {
+  const _RecipeSearchSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'คำแนะนำเป็นทางเลือก คุณยังค้นหาสูตรอื่นได้',
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          key: const ValueKey<String>('browse-all-recipes-button'),
+          onPressed: () => Navigator.of(context).push<void>(
+            MaterialPageRoute<void>(builder: (_) => const AllRecipesPage()),
+          ),
+          icon: const Icon(Icons.search),
+          label: const Text('ค้นหาสูตร'),
         ),
       ],
     );
@@ -662,64 +671,18 @@ class _SummaryChip extends StatelessWidget {
   }
 }
 
-class _MoreRecipesSection extends StatelessWidget {
-  const _MoreRecipesSection({
-    required this.matches,
-    required this.detailsByRecipeId,
-    required this.rankedAbove,
-    required this.onOpen,
-  });
-
-  final List<RecipeMatch> matches;
-  final Map<String, RecipeRecommendation> detailsByRecipeId;
-  final RecipeRecommendation? rankedAbove;
-  final ValueChanged<RecipeMatch> onOpen;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: ExpansionTile(
-        leading: const Icon(Icons.add_circle_outline),
-        title: const Text(
-          'เมนูเพิ่มเติมจากวัตถุดิบที่มี',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Text('${matches.length} เมนู — เรียงตามเปอร์เซ็นต์'),
-        childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-        children: matches
-            .map(
-              (match) => Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: _RecipeMatchCard(
-                  match: match,
-                  recommendation: detailsByRecipeId[match.recipe.id],
-                  rankedAbove: rankedAbove,
-                  compact: true,
-                  onOpen: () => onOpen(match),
-                ),
-              ),
-            )
-            .toList(growable: false),
-      ),
-    );
-  }
-}
-
 class _RecipeMatchCard extends StatelessWidget {
   const _RecipeMatchCard({
     required this.match,
     required this.onOpen,
     this.recommendation,
     this.rankedAbove,
-    this.compact = false,
   });
 
   final RecipeMatch match;
   final RecipeRecommendation? recommendation;
   final RecipeRecommendation? rankedAbove;
   final VoidCallback onOpen;
-  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -777,11 +740,10 @@ class _RecipeMatchCard extends StatelessWidget {
                           icon: Icons.signal_cellular_alt,
                           label: _difficultyLabel(match.recipe.difficulty),
                         ),
-                        if (!compact)
-                          _InfoChip(
-                            icon: Icons.groups_2_outlined,
-                            label: 'เลือกจำนวนคน',
-                          ),
+                        const _InfoChip(
+                          icon: Icons.groups_2_outlined,
+                          label: 'เลือกจำนวนคน',
+                        ),
                         ...?recommendation?.badges
                             .take(2)
                             .map(
@@ -934,6 +896,8 @@ class _NoHeroView extends StatelessWidget {
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
+        const SizedBox(height: 24),
+        const Center(child: _RecipeSearchSection()),
       ],
     );
   }
