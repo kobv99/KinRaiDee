@@ -1,23 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/design_system/design_tokens/app_spacing.dart';
+import '../../../../core/design_system/design_tokens/app_typography.dart';
 import '../../../../core/models/ingredient.dart';
 import '../../../../core/providers/pantry_provider.dart';
+import '../../../recipe/presentation/providers/recipe_provider.dart';
 import '../widgets/dashboard_summary.dart';
+import '../widgets/daily_summary_metrics.dart';
 import '../widgets/empty_dashboard.dart';
 import '../widgets/expiry_overview.dart';
 import '../widgets/no_priority_ingredients.dart';
 import '../widgets/priority_ingredient_card.dart';
+import '../widgets/top_picks_section.dart';
 
 class HomePage extends ConsumerWidget {
-  const HomePage({super.key, required this.onOpenPantry});
+  const HomePage({super.key, required this.onOpenPantry, this.onOpenRecipes});
 
   final VoidCallback onOpenPantry;
+
+  /// Optional: falls back to [onOpenPantry]'s sibling tab if not provided,
+  /// so this widget stays usable in isolation/tests without a full nav
+  /// shell wired up.
+  final VoidCallback? onOpenRecipes;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ingredients = ref.watch(pantryProvider);
 
+    // --- Existing pantry-expiry logic, unchanged ---------------------------
     final expiredIngredients = ingredients
         .where((ingredient) => ingredient.isExpired)
         .toList(growable: false);
@@ -62,6 +73,22 @@ class HomePage extends ConsumerWidget {
         .take(3)
         .toList(growable: false);
 
+    // --- New: recipe summary numbers, derived from the EXISTING matcher ----
+    final recipeMatches = ref.watch(recipeMatchesProvider);
+    final totalRecipes = recipeMatches.maybeWhen(
+      data: (matches) => matches.length,
+      orElse: () => 0,
+    );
+    final readyToCookCount = recipeMatches.maybeWhen(
+      data: (matches) => matches.where((m) => m.canCook).length,
+      orElse: () => 0,
+    );
+    final quickRecipeCount = recipeMatches.maybeWhen(
+      data: (matches) =>
+          matches.where((m) => m.recipe.cookTimeMinutes > 0 && m.recipe.cookTimeMinutes <= 30).length,
+      orElse: () => 0,
+    );
+
     return Scaffold(
       appBar: AppBar(title: const Text('KinRaiDee 🍳')),
       body: SafeArea(
@@ -75,22 +102,32 @@ class HomePage extends ConsumerWidget {
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
                   children: [
-                    Text(
-                      'สวัสดี 👋',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.bold),
-                    ),
+                    Text(_greeting(), style: AppTypography.body),
                     const SizedBox(height: 2),
+                    Text(
+                      'วันนี้อยากกินอะไรดี?',
+                      style: AppTypography.headline,
+                    ),
+                    const SizedBox(height: 4),
                     Text(
                       _buildDashboardMessage(
                         expiredCount: expiredIngredients.length,
                         expiringSoonCount: expiringSoonIngredients.length,
                       ),
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                      style: AppTypography.bodySmall,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpacing.lg),
+                    DailySummaryMetrics(
+                      totalRecipes: totalRecipes,
+                      readyToCookCount: readyToCookCount,
+                      quickRecipeCount: quickRecipeCount,
+                      expiringSoonCount: expiringSoonIngredients.length,
+                      onOpenRecipes: onOpenRecipes ?? onOpenPantry,
+                      onOpenPantry: onOpenPantry,
+                    ),
+                    const SizedBox(height: AppSpacing.xxl),
+                    const TopPicksSection(),
+                    const SizedBox(height: AppSpacing.xxl),
                     DashboardSummary(
                       totalIngredients: ingredients.length,
                       expiringSoonIngredients: expiringSoonIngredients.length,
@@ -110,8 +147,7 @@ class HomePage extends ConsumerWidget {
                         Expanded(
                           child: Text(
                             'ควรใช้ก่อน 🔥',
-                            style: Theme.of(context).textTheme.titleLarge
-                                ?.copyWith(fontWeight: FontWeight.bold),
+                            style: AppTypography.title,
                           ),
                         ),
                         TextButton(
@@ -150,6 +186,13 @@ class HomePage extends ConsumerWidget {
   }
 }
 
+String _greeting() {
+  final hour = DateTime.now().hour;
+  if (hour < 11) return 'สวัสดีตอนเช้า 🌤️';
+  if (hour < 17) return 'สวัสดีตอนบ่าย ☀️';
+  return 'สวัสดีตอนเย็น 🌇';
+}
+
 String _buildDashboardMessage({
   required int expiredCount,
   required int expiringSoonCount,
@@ -162,7 +205,7 @@ String _buildDashboardMessage({
     return 'วันนี้มีวัตถุดิบใกล้หมดอายุ $expiringSoonCount รายการ';
   }
 
-  return 'วัตถุดิบของคุณยังอยู่ในสถานะที่ดี';
+  return 'เราคัดสรรเมนูที่เหมาะกับวัตถุดิบในตู้เย็นให้คุณ';
 }
 
 int _compareExpiryDate(Ingredient first, Ingredient second) {

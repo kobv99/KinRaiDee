@@ -65,7 +65,10 @@ class MainShell extends ConsumerWidget {
     final currentIndex = ref.watch(appNavigationProvider);
     final navigation = ref.read(appNavigationProvider.notifier);
     final pages = <Widget>[
-      HomePage(onOpenPantry: navigation.openPantry),
+      HomePage(
+        onOpenPantry: navigation.openPantry,
+        onOpenRecipes: navigation.openRecipes,
+      ),
       const PantryPage(),
       const RecipePage(),
       const ShoppingPage(),
