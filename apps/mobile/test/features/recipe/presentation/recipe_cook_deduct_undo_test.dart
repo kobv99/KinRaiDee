@@ -58,11 +58,13 @@ void main() {
 
       await tester.tap(find.byType(CheckboxListTile));
       await tester.pump();
-      // Completing the last step shows a 4-second SnackBar ("ทำครบทุก
-      // ขั้นตอนแล้ว 🎉 ...") that can otherwise still cover the bottom
-      // button when pumpAndSettle() returns; advance real time past its
-      // full duration first so it has definitely dismissed itself.
-      await tester.pump(const Duration(seconds: 5));
+      // Completing the last step shows a SnackBar ("ทำครบทุกขั้นตอนแล้ว
+      // 🎉 ...") that can still overlap the bottom button when the next tap
+      // fires. Waiting out its duration isn't reliable here, so clear it
+      // outright instead of guessing at timing.
+      ScaffoldMessenger.of(
+        tester.element(find.byType(Scaffold).first),
+      ).clearSnackBars();
       await tester.pumpAndSettle();
 
       expect(find.text('ทำเสร็จแล้ว · ตรวจและหัก Pantry'), findsOneWidget);

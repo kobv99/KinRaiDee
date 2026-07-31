@@ -720,7 +720,11 @@ class _RecipeHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      // AppSpacing.md (16), not .lg (24): the original literal was 20, and
+      // rounding up to .lg cost just enough width on narrow screens to
+      // overflow the "สูตรตั้งต้น N คน" chip by a fraction of a pixel.
+      // .md leaves more room than the original 20 ever did.
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: const BoxDecoration(
         color: AppColors.primaryLight,
         borderRadius: AppRadius.largeCard,
