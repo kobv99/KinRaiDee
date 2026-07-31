@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../app/providers/canonical_ingredient_providers.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../core/domain/ingredients/canonical_ingredient.dart';
 import '../../../../core/domain/units/unit_contract.dart';
 import '../../../../core/models/ingredient.dart';
+import '../../../../shared/widgets/app_card.dart';
 import '../../domain/models/food_category.dart';
 import '../widgets/emoji_selector.dart';
 
@@ -319,7 +321,8 @@ class _AddIngredientDialogState extends ConsumerState<AddIngredientDialog> {
                 ),
                 const SizedBox(height: 20),
                 if (name.isNotEmpty)
-                  Card(
+                  AppCard(
+                    padding: EdgeInsets.zero,
                     child: ListTile(
                       leading: Text(
                         emoji,
@@ -332,12 +335,9 @@ class _AddIngredientDialogState extends ConsumerState<AddIngredientDialog> {
                   ),
                 if (_showIngredientError) ...[
                   const SizedBox(height: 8),
-                  Text(
+                  const Text(
                     'กรุณาเลือกวัตถุดิบ',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: AppColors.error, fontSize: 12),
                   ),
                 ],
                 const SizedBox(height: 10),

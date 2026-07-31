@@ -24,6 +24,48 @@ final recipesProvider = FutureProvider<List<Recipe>>((ref) {
   return ref.read(recipeRepositoryProvider).getRecipes();
 });
 
+class FavoriteRecipeIdsNotifier extends Notifier<Set<String>> {
+  RecipeRepository get _repository {
+    return ref.read(recipeRepositoryProvider);
+  }
+
+  @override
+  Set<String> build() {
+    try {
+      return Set<String>.unmodifiable(_repository.getFavoriteRecipeIds());
+    } on StateError {
+      // Storage is unavailable only in isolated tests.
+      return const <String>{};
+    }
+  }
+
+  Future<void> toggle(String recipeId) async {
+    final trimmedId = recipeId.trim();
+    if (trimmedId.isEmpty) {
+      return;
+    }
+
+    final updatedIds = <String>{...state};
+    if (!updatedIds.remove(trimmedId)) {
+      updatedIds.add(trimmedId);
+    }
+
+    state = Set<String>.unmodifiable(updatedIds);
+    try {
+      await _repository.saveFavoriteRecipeIds(updatedIds);
+    } on StateError {
+      // Storage is unavailable only in isolated tests.
+    }
+  }
+
+  bool isFavorite(String recipeId) => state.contains(recipeId.trim());
+}
+
+final favoriteRecipeIdsProvider =
+    NotifierProvider<FavoriteRecipeIdsNotifier, Set<String>>(
+      FavoriteRecipeIdsNotifier.new,
+    );
+
 final recipeReadinessServiceProvider = Provider<RecipeReadinessService?>((ref) {
   final registry = ref.watch(canonicalIngredientRegistryProvider);
   return registry == null

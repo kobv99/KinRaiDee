@@ -10,6 +10,7 @@ class StorageService {
   static const String pantryBoxName = 'pantry_box';
   static const String ingredientsKey = 'ingredients';
   static const String favoriteIngredientNamesKey = 'favorite_ingredient_names';
+  static const String favoriteRecipeIdsKey = 'favorite_recipe_ids';
   static const String pinnedHeroIngredientKey = 'pinned_hero_ingredient_key';
   static const String cookingHistoryKey = 'cooking_history';
   static const String inventoryEnvelopeKey = 'inventory_state_envelope_v1';
@@ -79,6 +80,31 @@ class StorageService {
           ..sort();
 
     await _pantryBox.put(favoriteIngredientNamesKey, normalizedNames);
+  }
+
+  static Set<String> loadFavoriteRecipeIds() {
+    final rawData = _pantryBox.get(
+      favoriteRecipeIdsKey,
+      defaultValue: <dynamic>[],
+    );
+
+    if (rawData is! List) {
+      return <String>{};
+    }
+
+    return rawData
+        .map((item) => item.toString().trim())
+        .where((id) => id.isNotEmpty)
+        .toSet();
+  }
+
+  static Future<void> saveFavoriteRecipeIds(Set<String> ids) async {
+    final normalizedIds =
+        ids.map((id) => id.trim()).where((id) => id.isNotEmpty).toList(
+          growable: false,
+        )..sort();
+
+    await _pantryBox.put(favoriteRecipeIdsKey, normalizedIds);
   }
 
   static String? loadPinnedHeroIngredientKey() {

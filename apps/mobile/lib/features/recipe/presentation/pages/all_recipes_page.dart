@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_spacing.dart';
+import '../../../../app/theme/app_text_styles.dart';
+import '../../../../shared/widgets/app_card.dart';
+import '../../../../shared/widgets/empty_state.dart';
 import '../../domain/entities/recipe.dart';
 import '../providers/recipe_provider.dart';
+import '../widgets/recipe_image.dart';
 import 'recipe_detail_page.dart';
 
 class AllRecipesPage extends ConsumerWidget {
@@ -23,31 +29,28 @@ class AllRecipesPage extends ConsumerWidget {
           if (sorted.isEmpty) {
             return const _EmptyRecipes();
           }
+          final favoriteIds = ref.watch(favoriteRecipeIdsProvider);
           return ListView(
             key: const ValueKey<String>('all-recipes-list'),
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              AppSpacing.sm,
+              AppSpacing.md,
+              AppSpacing.xl,
+            ),
             children: [
               const _FreedomNotice(),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.sm),
               ...sorted.map(
                 (recipe) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Card(
-                    margin: EdgeInsets.zero,
-                    clipBehavior: Clip.antiAlias,
-                    child: ListTile(
-                      key: ValueKey<String>('all-recipe-${recipe.id}'),
-                      onTap: () => _openRecipe(context, recipe),
-                      leading: CircleAvatar(child: Text(recipe.emoji)),
-                      title: Text(
-                        recipe.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      subtitle: Text(_subtitle(recipe)),
-                      trailing: const Icon(Icons.chevron_right_rounded),
-                    ),
+                  padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                  child: _RecipeListTile(
+                    recipe: recipe,
+                    isFavorite: favoriteIds.contains(recipe.id),
+                    onTap: () => _openRecipe(context, recipe),
+                    onToggleFavorite: () => ref
+                        .read(favoriteRecipeIdsProvider.notifier)
+                        .toggle(recipe.id),
                   ),
                 ),
               ),
@@ -61,6 +64,60 @@ class AllRecipesPage extends ConsumerWidget {
   void _openRecipe(BuildContext context, Recipe recipe) {
     Navigator.of(context).push<void>(
       MaterialPageRoute<void>(builder: (_) => RecipeDetailPage(recipe: recipe)),
+    );
+  }
+}
+
+class _RecipeListTile extends StatelessWidget {
+  const _RecipeListTile({
+    required this.recipe,
+    required this.isFavorite,
+    required this.onTap,
+    required this.onToggleFavorite,
+  });
+
+  final Recipe recipe;
+  final bool isFavorite;
+  final VoidCallback onTap;
+  final VoidCallback onToggleFavorite;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      key: ValueKey<String>('all-recipe-${recipe.id}'),
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      onTap: onTap,
+      child: Row(
+        children: [
+          RecipeImage(recipe: recipe, size: 52),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  recipe.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.titleMedium,
+                ),
+                const SizedBox(height: AppSpacing.xxs),
+                Text(_subtitle(recipe), style: AppTextStyles.bodyMedium),
+              ],
+            ),
+          ),
+          IconButton(
+            key: ValueKey<String>('all-recipe-favorite-${recipe.id}'),
+            tooltip: isFavorite ? 'เอาออกจากรายการโปรด' : 'เพิ่มในรายการโปรด',
+            onPressed: onToggleFavorite,
+            icon: Icon(
+              isFavorite ? Icons.favorite : Icons.favorite_border,
+              color: isFavorite ? AppColors.primary : AppColors.textMuted,
+            ),
+          ),
+          const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
+        ],
+      ),
     );
   }
 
@@ -83,23 +140,19 @@ class _FreedomNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Container(
+    return AppCard(
       key: const ValueKey<String>('all-recipes-freedom-notice'),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: colors.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.outlineVariant),
-      ),
+      backgroundColor: AppColors.primaryLight,
+      showBorder: false,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.menu_book_outlined, color: colors.primary),
-          const SizedBox(width: 10),
-          const Expanded(
+          const Icon(Icons.menu_book_outlined, color: AppColors.primaryDark),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
             child: Text(
               'รายการนี้ไม่จำกัดตามคำแนะนำจาก Pantry คุณเลือกเปิดสูตรใดก็ได้ และเริ่มทำอาหารได้ตามต้องการ',
+              style: AppTextStyles.bodyMedium,
             ),
           ),
         ],
@@ -113,11 +166,10 @@ class _EmptyRecipes extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Padding(
-        padding: EdgeInsets.all(24),
-        child: Text('ยังไม่มีข้อมูลสูตรอาหารในอุปกรณ์นี้'),
-      ),
+    return const EmptyState(
+      icon: Icons.menu_book_outlined,
+      title: 'ยังไม่มีข้อมูลสูตรอาหาร',
+      description: 'ยังไม่มีข้อมูลสูตรอาหารในอุปกรณ์นี้',
     );
   }
 }
@@ -129,32 +181,12 @@ class _LoadError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.cloud_off_outlined, size: 52),
-            const SizedBox(height: 12),
-            const Text(
-              'โหลดสูตรทั้งหมดไม่สำเร็จ',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'ข้อมูลเดิมยังคงปลอดภัย กรุณาลองอีกครั้ง',
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 14),
-            FilledButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('ลองอีกครั้ง'),
-            ),
-          ],
-        ),
-      ),
+    return EmptyState(
+      icon: Icons.cloud_off_outlined,
+      title: 'โหลดสูตรทั้งหมดไม่สำเร็จ',
+      description: 'ข้อมูลเดิมยังคงปลอดภัย กรุณาลองอีกครั้ง',
+      actionLabel: 'ลองอีกครั้ง',
+      onActionPressed: onRetry,
     );
   }
 }

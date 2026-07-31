@@ -154,7 +154,7 @@ class _ShoppingGenerationSheetState
                               dimension: 18,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.white,
+                                color: AppColors.textOnPrimary,
                               ),
                             )
                           : const Icon(Icons.check),

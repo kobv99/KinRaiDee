@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/theme/app_spacing.dart';
 import '../../../../core/providers/pantry_provider.dart';
 import '../../../../core/presentation/unit_presentation.dart';
+import '../../../../shared/widgets/app_card.dart';
 import '../../domain/models/cooking_history_entry.dart';
 import '../../domain/models/pantry_quantity_transaction.dart';
 import '../../domain/services/cooking_history_adjustment_planner.dart';
@@ -307,11 +309,8 @@ class _HistoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
 
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+    return AppCard(
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
@@ -422,7 +421,6 @@ class _HistoryCard extends StatelessWidget {
             ],
           ],
         ),
-      ),
     );
   }
 }

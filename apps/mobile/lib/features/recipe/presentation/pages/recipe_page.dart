@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/theme/app_spacing.dart';
+import '../../../../shared/widgets/app_card.dart';
 import '../../domain/entities/recipe_match.dart';
 import '../../domain/entities/smart_recommendation.dart';
 import '../providers/recipe_provider.dart';
+import '../widgets/recipe_image.dart';
 import 'recipe_detail_page.dart';
 
 class RecipePage extends ConsumerWidget {
@@ -401,8 +404,8 @@ class _MoreRecipesSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
+    return AppCard(
+      padding: EdgeInsets.zero,
       child: ExpansionTile(
         leading: const Icon(Icons.add_circle_outline),
         title: const Text(
@@ -410,11 +413,16 @@ class _MoreRecipesSection extends StatelessWidget {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Text('${matches.length} เมนู — เรียงตามเปอร์เซ็นต์'),
-        childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        childrenPadding: const EdgeInsets.fromLTRB(
+          AppSpacing.sm,
+          0,
+          AppSpacing.sm,
+          AppSpacing.sm,
+        ),
         children: matches
             .map(
               (match) => Padding(
-                padding: const EdgeInsets.only(top: 8),
+                padding: const EdgeInsets.only(top: AppSpacing.xs),
                 child: _RecipeMatchCard(
                   match: match,
                   compact: true,
@@ -441,62 +449,59 @@ class _RecipeMatchCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.zero,
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onOpen,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          child: Row(
-            children: [
-              CircleAvatar(child: Text(match.recipe.emoji)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      match.recipe.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 7),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
+    return AppCard(
+      padding: EdgeInsets.zero,
+      onTap: onOpen,
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.sm),
+        child: Row(
+          children: [
+            RecipeImage(recipe: match.recipe, size: 48),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    match.recipe.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 7),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      _InfoChip(
+                        icon: match.canCook
+                            ? Icons.check_circle_outline
+                            : Icons.shopping_basket_outlined,
+                        label: match.canCook
+                            ? 'พร้อมทำ'
+                            : 'ขาด ${match.missingRequiredCount} อย่าง',
+                        emphasized: true,
+                      ),
+                      if (match.recipe.cookTimeMinutes > 0)
                         _InfoChip(
-                          icon: match.canCook
-                              ? Icons.check_circle_outline
-                              : Icons.shopping_basket_outlined,
-                          label: match.canCook
-                              ? 'พร้อมทำ'
-                              : 'ขาด ${match.missingRequiredCount} อย่าง',
-                          emphasized: true,
+                          icon: Icons.schedule,
+                          label: '${match.recipe.cookTimeMinutes} นาที',
                         ),
-                        if (match.recipe.cookTimeMinutes > 0)
-                          _InfoChip(
-                            icon: Icons.schedule,
-                            label: '${match.recipe.cookTimeMinutes} นาที',
-                          ),
-                        if (!compact)
-                          _InfoChip(
-                            icon: Icons.groups_2_outlined,
-                            label: 'เลือกจำนวนคน',
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
+                      if (!compact)
+                        _InfoChip(
+                          icon: Icons.groups_2_outlined,
+                          label: 'เลือกจำนวนคน',
+                        ),
+                    ],
+                  ),
+                ],
               ),
-              const SizedBox(width: 10),
-              _ScoreBadge(score: match.scorePercent),
-              const SizedBox(width: 2),
-              const Icon(Icons.chevron_right),
-            ],
-          ),
+            ),
+            const SizedBox(width: 10),
+            _ScoreBadge(score: match.scorePercent),
+            const SizedBox(width: 2),
+            const Icon(Icons.chevron_right),
+          ],
         ),
       ),
     );

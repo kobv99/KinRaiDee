@@ -20,6 +20,7 @@ class Recipe {
     this.popularity = 0,
     this.sourceUrl,
     this.discoveredByAi = false,
+    this.imageUrl,
   });
 
   final int version;
@@ -40,6 +41,10 @@ class Recipe {
   final List<String> steps;
   final String? sourceUrl;
   final bool discoveredByAi;
+
+  /// Optional remote image for this recipe. Absent or failing to load must
+  /// always fall back to [emoji] — never fabricate imagery or rating data.
+  final String? imageUrl;
 
   RecipeIngredient? get heroIngredient {
     final explicitId = heroIngredientId?.trim();
@@ -107,8 +112,17 @@ class Recipe {
       steps: _stringList(json['steps']),
       sourceUrl: json['sourceUrl'] as String?,
       discoveredByAi: json['discoveredByAi'] as bool? ?? false,
+      imageUrl: _nonEmptyString(json['imageUrl']),
     );
   }
+}
+
+String? _nonEmptyString(Object? value) {
+  if (value is! String) {
+    return null;
+  }
+  final trimmed = value.trim();
+  return trimmed.isEmpty ? null : trimmed;
 }
 
 List<String> _stringList(Object? value) {

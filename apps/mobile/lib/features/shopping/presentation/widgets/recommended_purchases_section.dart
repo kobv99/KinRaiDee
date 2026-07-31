@@ -2,27 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/theme/app_spacing.dart';
+import '../../../../app/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_card.dart';
 import '../../application/shopping_recommendation_controller.dart';
 import '../../domain/entities/shopping_recommendation.dart';
+import '../providers/recommendation_ui_provider.dart';
 import '../providers/shopping_recommendation_provider.dart';
 
-class RecommendedPurchasesSection extends ConsumerStatefulWidget {
+/// Reusable "Recommended Purchases" surface backed by [recommendationUiProvider]
+/// so it can be embedded on both Pantry and Shopping without any screen
+/// owning its own copy of dismiss/busy state.
+class RecommendedPurchasesSection extends ConsumerWidget {
   const RecommendedPurchasesSection({super.key});
 
   @override
-  ConsumerState<RecommendedPurchasesSection> createState() =>
-      _RecommendedPurchasesSectionState();
-}
-
-class _RecommendedPurchasesSectionState
-    extends ConsumerState<RecommendedPurchasesSection> {
-  bool _dismissed = false;
-  String? _busyIngredientId;
-
-  @override
-  Widget build(BuildContext context) {
-    if (_dismissed) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final uiState = ref.watch(recommendationUiProvider);
+    if (uiState.dismissed) {
       return const SizedBox.shrink();
     }
     final recommendations = ref.watch(shoppingRecommendationsProvider);
@@ -31,141 +27,136 @@ class _RecommendedPurchasesSectionState
         if (items.isEmpty) {
           return const SizedBox.shrink();
         }
-        return Padding(
-          padding: const EdgeInsets.only(top: AppSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'วัตถุดิบที่ซื้อแล้วคุ้ม',
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: AppSpacing.xxs),
-                        Text(
-                          'เรียงจากผลต่อจำนวนเมนูและความพร้อมของสูตร',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    key: const ValueKey<String>(
-                      'recommended-purchases-dismiss',
-                    ),
-                    tooltip: 'ซ่อนคำแนะนำครั้งนี้',
-                    onPressed: () => setState(() => _dismissed = true),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              ...items
-                  .take(3)
-                  .map(
-                    (recommendation) => Padding(
-                      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                      child: _RecommendationCard(
-                        recommendation: recommendation,
-                        isBusy:
-                            _busyIngredientId ==
-                            recommendation.canonicalIngredientId,
-                        onShowDetails: () => _showDetails(recommendation),
-                        onAdd: () => _addRecommendation(recommendation),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'วัตถุดิบที่ซื้อแล้วคุ้ม',
+                        style: AppTextStyles.titleLarge,
                       ),
-                    ),
+                      const SizedBox(height: AppSpacing.xxs),
+                      Text(
+                        'เรียงจากผลต่อจำนวนเมนูและความพร้อมของสูตร',
+                        style: AppTextStyles.bodyMedium,
+                      ),
+                    ],
                   ),
-            ],
-          ),
+                ),
+                IconButton(
+                  key: const ValueKey<String>(
+                    'recommended-purchases-dismiss',
+                  ),
+                  tooltip: 'ซ่อนคำแนะนำครั้งนี้',
+                  onPressed: () =>
+                      ref.read(recommendationUiProvider.notifier).dismiss(),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            ...items.take(3).map(
+              (recommendation) => Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: _RecommendationCard(
+                  recommendation: recommendation,
+                  isBusy:
+                      uiState.busyIngredientId ==
+                      recommendation.canonicalIngredientId,
+                  onShowDetails: () =>
+                      _showDetails(context, ref, recommendation),
+                  onAdd: () => _addRecommendation(context, ref, recommendation),
+                ),
+              ),
+            ),
+          ],
         );
       },
-      loading: () => const Padding(
-        padding: EdgeInsets.only(top: AppSpacing.lg),
-        child: LinearProgressIndicator(
-          key: ValueKey<String>('recommended-purchases-loading'),
-          minHeight: 2,
-        ),
+      loading: () => const LinearProgressIndicator(
+        key: ValueKey<String>('recommended-purchases-loading'),
+        minHeight: 2,
       ),
-      error: (error, stackTrace) => Padding(
-        padding: const EdgeInsets.only(top: AppSpacing.lg),
-        child: AppCard(
-          child: Row(
-            children: [
-              const Icon(Icons.info_outline),
-              const SizedBox(width: AppSpacing.sm),
-              const Expanded(
-                child: Text('ยังโหลดคำแนะนำการซื้อไม่ได้ในขณะนี้'),
-              ),
-              TextButton(
-                onPressed: () =>
-                    ref.invalidate(shoppingRecommendationsProvider),
-                child: const Text('ลองใหม่'),
-              ),
-            ],
-          ),
+      error: (error, stackTrace) => AppCard(
+        child: Row(
+          children: [
+            const Icon(Icons.info_outline),
+            const SizedBox(width: AppSpacing.sm),
+            const Expanded(
+              child: Text('ยังโหลดคำแนะนำการซื้อไม่ได้ในขณะนี้'),
+            ),
+            TextButton(
+              onPressed: () => ref.invalidate(shoppingRecommendationsProvider),
+              child: const Text('ลองใหม่'),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Future<void> _addRecommendation(ShoppingRecommendation recommendation) async {
-    if (_busyIngredientId != null) {
+  Future<void> _addRecommendation(
+    BuildContext context,
+    WidgetRef ref,
+    ShoppingRecommendation recommendation,
+  ) async {
+    final uiNotifier = ref.read(recommendationUiProvider.notifier);
+    if (ref.read(recommendationUiProvider).busyIngredientId != null) {
       return;
     }
     final controller = ref.read(shoppingRecommendationControllerProvider);
     if (controller == null) {
-      _showMessage('ระบบคำแนะนำยังไม่พร้อม กรุณาลองใหม่อีกครั้ง');
+      _showMessage(context, 'ระบบคำแนะนำยังไม่พร้อม กรุณาลองใหม่อีกครั้ง');
       return;
     }
-    setState(() => _busyIngredientId = recommendation.canonicalIngredientId);
+    uiNotifier.setBusyIngredient(recommendation.canonicalIngredientId);
     try {
       final result = await controller.addToShopping(recommendation);
-      if (!mounted) {
+      if (!context.mounted) {
         return;
       }
       switch (result.outcome) {
         case ShoppingRecommendationAddOutcome.added:
         case ShoppingRecommendationAddOutcome.updated:
-          _showMessage('เพิ่ม ${recommendation.displayName} ใน Shopping แล้ว');
+          _showMessage(
+            context,
+            'เพิ่ม ${recommendation.displayName} ใน Shopping แล้ว',
+          );
           ref.invalidate(shoppingRecommendationsProvider);
           break;
         case ShoppingRecommendationAddOutcome.unchanged:
           _showMessage(
+            context,
             '${recommendation.displayName} อยู่ใน Shopping เพียงพอแล้ว',
           );
           break;
         case ShoppingRecommendationAddOutcome.failed:
-          _showMessage('เพิ่มรายการไม่สำเร็จ ข้อมูลเดิมยังคงปลอดภัย');
+          _showMessage(context, 'เพิ่มรายการไม่สำเร็จ ข้อมูลเดิมยังคงปลอดภัย');
           break;
       }
     } on Object {
-      if (mounted) {
-        _showMessage('เพิ่มรายการไม่สำเร็จ ข้อมูลเดิมยังคงปลอดภัย');
+      if (context.mounted) {
+        _showMessage(context, 'เพิ่มรายการไม่สำเร็จ ข้อมูลเดิมยังคงปลอดภัย');
       }
     } finally {
-      if (mounted) {
-        setState(() => _busyIngredientId = null);
-      }
+      uiNotifier.setBusyIngredient(null);
     }
   }
 
-  Future<void> _showDetails(ShoppingRecommendation recommendation) async {
+  Future<void> _showDetails(
+    BuildContext context,
+    WidgetRef ref,
+    ShoppingRecommendation recommendation,
+  ) async {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (context) {
+      builder: (sheetContext) {
         final evidence = recommendation.evidence;
         return SafeArea(
           child: SingleChildScrollView(
@@ -173,26 +164,26 @@ class _RecommendedPurchasesSectionState
               AppSpacing.md,
               0,
               AppSpacing.md,
-              MediaQuery.viewInsetsOf(context).bottom + AppSpacing.lg,
+              MediaQuery.viewInsetsOf(sheetContext).bottom + AppSpacing.lg,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   '${recommendation.emoji.isEmpty ? '🛒' : recommendation.emoji} ${recommendation.displayName}',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: AppTextStyles.headlineMedium,
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   'แนะนำให้เพิ่ม ${_quantity(recommendation.recommendedQuantity)} '
                   '${recommendation.recommendedUnitId}',
+                  style: AppTextStyles.bodyMedium,
                 ),
                 const SizedBox(height: AppSpacing.md),
                 Text(
                   recommendation.reason,
                   key: const ValueKey<String>('recommendation-reason'),
+                  style: AppTextStyles.bodyMedium,
                 ),
                 const SizedBox(height: AppSpacing.md),
                 _MetricRow(
@@ -216,9 +207,7 @@ class _RecommendedPurchasesSectionState
                 const SizedBox(height: AppSpacing.lg),
                 Text(
                   'เมนูที่ได้ประโยชน์มากที่สุด',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: AppTextStyles.titleMedium,
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 ...recommendation.topRecipes.map(
@@ -238,10 +227,12 @@ class _RecommendedPurchasesSectionState
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
-                    onPressed: _busyIngredientId == null
+                    onPressed:
+                        ref.read(recommendationUiProvider).busyIngredientId ==
+                            null
                         ? () {
-                            Navigator.of(context).pop();
-                            _addRecommendation(recommendation);
+                            Navigator.of(sheetContext).pop();
+                            _addRecommendation(context, ref, recommendation);
                           }
                         : null,
                     icon: const Icon(Icons.add_shopping_cart_outlined),
@@ -256,15 +247,11 @@ class _RecommendedPurchasesSectionState
     );
   }
 
-  void _showMessage(String message) {
+  void _showMessage(BuildContext context, String message) {
     final messenger = ScaffoldMessenger.of(context);
     messenger.clearSnackBars();
     messenger.showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 4),
-        persist: false,
-      ),
+      SnackBar(content: Text(message), duration: const Duration(seconds: 4)),
     );
   }
 }
@@ -296,7 +283,7 @@ class _RecommendationCard extends StatelessWidget {
             children: [
               Text(
                 recommendation.emoji.isEmpty ? '🛒' : recommendation.emoji,
-                style: Theme.of(context).textTheme.headlineMedium,
+                style: AppTextStyles.headlineMedium,
               ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
@@ -305,14 +292,12 @@ class _RecommendationCard extends StatelessWidget {
                   children: [
                     Text(
                       recommendation.displayName,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: AppTextStyles.titleMedium,
                     ),
                     Text(
                       'เพิ่ม ${_quantity(recommendation.recommendedQuantity)} '
                       '${recommendation.recommendedUnitId}',
-                      style: Theme.of(context).textTheme.bodySmall,
+                      style: AppTextStyles.bodySmall,
                     ),
                   ],
                 ),
@@ -329,6 +314,7 @@ class _RecommendationCard extends StatelessWidget {
             'ทำให้พร้อมเพิ่ม ${evidence.recipesUnlocked} เมนู · '
             'ความพร้อมเฉลี่ย ${evidence.averageReadinessBeforePercent}% → '
             '${evidence.averageReadinessAfterPercent}%',
+            style: AppTextStyles.bodyMedium,
           ),
           const SizedBox(height: AppSpacing.sm),
           SizedBox(
@@ -365,8 +351,8 @@ class _MetricRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: AppSpacing.xs),
       child: Row(
         children: [
-          Expanded(child: Text(label)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Expanded(child: Text(label, style: AppTextStyles.bodyMedium)),
+          Text(value, style: AppTextStyles.labelLarge),
         ],
       ),
     );

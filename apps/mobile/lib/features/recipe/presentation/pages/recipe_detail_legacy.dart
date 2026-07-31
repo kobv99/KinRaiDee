@@ -2,12 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/providers/canonical_ingredient_providers.dart';
+import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_radius.dart';
+import '../../../../app/theme/app_spacing.dart';
+import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/providers/pantry_provider.dart';
 import '../../../../core/presentation/unit_presentation.dart';
+import '../../../../shared/widgets/app_card.dart';
 import '../../../pantry/domain/models/pantry_quantity_transaction.dart';
 import '../../domain/entities/recipe.dart';
 import '../../domain/services/pantry_deduction_planner.dart';
 import '../../domain/services/recipe_serving_calculator.dart';
+import '../providers/recipe_provider.dart';
+import '../widgets/recipe_image.dart';
 
 class RecipeDetailPage extends ConsumerStatefulWidget {
   const RecipeDetailPage({super.key, required this.recipe});
@@ -210,7 +217,12 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('สูตรอาหาร')),
       bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        minimum: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          AppSpacing.xs,
+          AppSpacing.md,
+          AppSpacing.md,
+        ),
         child: FilledButton.icon(
           onPressed: _bottomButtonEnabled
               ? () {
@@ -241,21 +253,26 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
         ),
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          AppSpacing.sm,
+          AppSpacing.md,
+          AppSpacing.xl,
+        ),
         children: [
           _RecipeHeader(recipe: widget.recipe),
-          const SizedBox(height: 18),
+          const SizedBox(height: AppSpacing.md),
           const _SectionTitle(
             icon: Icons.groups_2_outlined,
             title: 'เลือกจำนวนคน',
             subtitle: 'ระบบจะคำนวณปริมาณวัตถุดิบให้ใหม่ทันที',
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.sm),
           _ServingSelector(
             servings: _selectedServings,
             onChanged: _setServings,
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: AppSpacing.lg),
           _SectionTitle(
             icon: Icons.inventory_2_outlined,
             title: 'วัตถุดิบสำหรับ $_selectedServings คน',
@@ -263,11 +280,11 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                 ? 'วัตถุดิบหลักใน Pantry เพียงพอสำหรับสูตรนี้'
                 : 'ยังขาดวัตถุดิบหลัก ${servingPlan.missingRequiredCount} รายการ',
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.sm),
           Container(
             decoration: BoxDecoration(
               color: colors.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: AppRadius.largeCard,
               border: Border.all(color: colors.outlineVariant),
             ),
             child: Column(
@@ -285,18 +302,18 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
             ),
           ),
           if (!servingPlan.hasEnoughRequiredIngredients) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
             Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(AppSpacing.sm),
               decoration: BoxDecoration(
                 color: colors.errorContainer,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: AppRadius.card,
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(Icons.info_outline, color: colors.onErrorContainer),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
                       'คุณยังเปิดดูสูตรและเริ่มทำได้ แต่ควรตรวจวัตถุดิบที่ขาดก่อนลงมือ',
@@ -307,7 +324,7 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
               ),
             ),
           ],
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.lg),
           Container(
             key: _stepsKey,
             child: _SectionTitle(
@@ -570,10 +587,10 @@ class _DeductionConfirmationSheetState
 
   Widget _buildLine(PantryDeductionLine line) {
     final selected = _selectedKeys.contains(line.key);
-    final colors = Theme.of(context).colorScheme;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+    return AppCard(
+      margin: const EdgeInsets.only(bottom: AppSpacing.xs),
+      padding: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(4, 4, 12, 12),
         child: Column(
@@ -591,10 +608,7 @@ class _DeductionConfirmationSheetState
                 });
               },
               controlAffinity: ListTileControlAffinity.leading,
-              title: Text(
-                line.ingredient.name,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
+              title: Text(line.ingredient.name, style: AppTextStyles.labelLarge),
               subtitle: Text(
                 line.isPartial
                     ? 'ต้องใช้ ${_formatQuantity(line.targetQuantity, line.unit)} · ใน Pantry หักได้ ${_formatQuantity(line.deductibleQuantity, line.unit)}'
@@ -637,7 +651,7 @@ class _DeductionConfirmationSheetState
                       : null,
                   child: Text(
                     line.ingredient.required ? 'ตามสูตร' : 'ใช้ของเสริม',
-                    style: TextStyle(color: colors.primary),
+                    style: const TextStyle(color: AppColors.primary),
                   ),
                 ),
               ],
@@ -660,7 +674,7 @@ class _InfoBox extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(
         color: colors.surfaceContainerLow,
         borderRadius: BorderRadius.circular(14),
@@ -679,59 +693,41 @@ class _InfoBox extends StatelessWidget {
   }
 }
 
-class _RecipeHeader extends StatelessWidget {
+class _RecipeHeader extends ConsumerWidget {
   const _RecipeHeader({required this.recipe});
 
   final Recipe recipe;
 
   @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isFavorite = ref.watch(
+      favoriteRecipeIdsProvider.select((ids) => ids.contains(recipe.id)),
+    );
 
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: colors.primaryContainer,
-        borderRadius: BorderRadius.circular(24),
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: const BoxDecoration(
+        color: AppColors.primaryLight,
+        borderRadius: AppRadius.largeCard,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 66,
-            height: 66,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: colors.surface.withValues(alpha: 0.78),
-              shape: BoxShape.circle,
-            ),
-            child: Text(recipe.emoji, style: const TextStyle(fontSize: 34)),
-          ),
-          const SizedBox(width: 16),
+          RecipeImage(recipe: recipe, size: 66, borderRadius: AppRadius.card),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  recipe.name,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: colors.onPrimaryContainer,
-                  ),
-                ),
+                Text(recipe.name, style: AppTextStyles.headlineMedium),
                 if (recipe.description.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    recipe.description,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: colors.onPrimaryContainer,
-                    ),
-                  ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  Text(recipe.description, style: AppTextStyles.bodyMedium),
                 ],
-                const SizedBox(height: 10),
+                const SizedBox(height: AppSpacing.sm),
                 Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                  spacing: AppSpacing.xs,
+                  runSpacing: AppSpacing.xs,
                   children: [
                     if (recipe.cookTimeMinutes > 0)
                       _HeaderChip(
@@ -749,6 +745,16 @@ class _RecipeHeader extends StatelessWidget {
                   ],
                 ),
               ],
+            ),
+          ),
+          IconButton(
+            key: ValueKey<String>('recipe-detail-favorite-${recipe.id}'),
+            tooltip: isFavorite ? 'เอาออกจากรายการโปรด' : 'เพิ่มในรายการโปรด',
+            onPressed: () =>
+                ref.read(favoriteRecipeIdsProvider.notifier).toggle(recipe.id),
+            icon: Icon(
+              isFavorite ? Icons.favorite : Icons.favorite_border,
+              color: AppColors.primaryDark,
             ),
           ),
         ],
@@ -1002,19 +1008,20 @@ class _CookingChecklist extends StatelessWidget {
     return Column(
       children: steps.indexed
           .map(
-            (entry) => Card(
-              margin: const EdgeInsets.only(bottom: 10),
+            (entry) => AppCard(
+              margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+              padding: EdgeInsets.zero,
               child: CheckboxListTile(
                 value: completedSteps.contains(entry.$1),
                 onChanged: (value) => onChanged(entry.$1, value ?? false),
                 controlAffinity: ListTileControlAffinity.leading,
                 title: Text(
                   'ขั้นตอน ${entry.$1 + 1}',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: AppTextStyles.labelLarge,
                 ),
                 subtitle: Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(entry.$2),
+                  padding: const EdgeInsets.only(top: AppSpacing.xxs),
+                  child: Text(entry.$2, style: AppTextStyles.bodyMedium),
                 ),
               ),
             ),
@@ -1065,10 +1072,10 @@ class _EmptySteps extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Card(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Text('สูตรนี้ยังไม่มีข้อมูลขั้นตอนการทำ'),
+    return const AppCard(
+      child: Text(
+        'สูตรนี้ยังไม่มีข้อมูลขั้นตอนการทำ',
+        style: AppTextStyles.bodyMedium,
       ),
     );
   }
