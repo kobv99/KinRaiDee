@@ -53,16 +53,26 @@ void main() {
       );
 
       expect(find.text('Egg'), findsWidgets);
-      await tester.tap(find.byType(FilledButton).first);
+      await tester.tap(find.byKey(const ValueKey<String>('start-cooking-cta')));
       await tester.pumpAndSettle();
 
-      final checklist = find.byType(CheckboxListTile);
-      expect(checklist, findsNWidgets(2));
-      await tester.tap(checklist.at(0));
-      await tester.pump();
-      await tester.tap(checklist.at(1));
-      await tester.pump();
-      await tester.tap(find.byType(FilledButton).first);
+      // Wizard: serving step -> review step -> confirm step.
+      expect(find.text('เลือกจำนวนคน'), findsOneWidget);
+      await tester.tap(find.text('ต่อไป'));
+      await tester.pumpAndSettle();
+      expect(find.text('ตรวจสอบวัตถุดิบ'), findsOneWidget);
+      await tester.tap(find.text('ต่อไป'));
+      await tester.pumpAndSettle();
+      expect(find.text('พร้อมทำอาหาร'), findsOneWidget);
+      await tester.tap(find.text('เริ่มทำอาหาร'));
+      await tester.pumpAndSettle();
+
+      // Cooking Mode: step through both recipe steps ('Beat eggs', 'Cook eggs').
+      expect(find.text('Beat eggs'), findsOneWidget);
+      await tester.tap(find.text('ถัดไป'));
+      await tester.pumpAndSettle();
+      expect(find.text('Cook eggs'), findsOneWidget);
+      await tester.tap(find.text('เสร็จแล้ว'));
       await tester.pumpAndSettle();
 
       expect(find.byType(BottomSheet), findsOneWidget);
@@ -108,14 +118,18 @@ void main() {
         RecipeDetailPage(recipe: _recipe()),
       );
 
-      await tester.tap(find.byType(FilledButton).first);
+      await tester.tap(find.byKey(const ValueKey<String>('start-cooking-cta')));
       await tester.pumpAndSettle();
-      for (final checkbox
-          in find.byType(CheckboxListTile).evaluate().toList()) {
-        await tester.tap(find.byWidget(checkbox.widget));
-        await tester.pump();
-      }
-      await tester.tap(find.byType(FilledButton).first);
+      await tester.tap(find.text('ต่อไป'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('ต่อไป'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('เริ่มทำอาหาร'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('ถัดไป'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('เสร็จแล้ว'));
       await tester.pumpAndSettle();
 
       expect(find.byType(AlertDialog), findsOneWidget);
