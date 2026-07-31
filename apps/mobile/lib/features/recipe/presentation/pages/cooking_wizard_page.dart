@@ -9,7 +9,7 @@ import '../../../../core/design_system/design_tokens/app_colors.dart';
 import '../../../../core/design_system/design_tokens/app_spacing.dart';
 import '../../../../core/design_system/design_tokens/app_typography.dart';
 import '../../../../core/design_system/feature_components/cooking_step_card.dart';
-import '../../../../core/design_system/feature_components/ingredient_status_chip.dart';
+import '../../../../core/design_system/feature_components/pantry_readiness_card.dart';
 import '../../../../core/design_system/feature_components/serving_selector.dart';
 import '../../../../core/providers/pantry_provider.dart';
 import '../../domain/entities/recipe.dart';
@@ -130,6 +130,7 @@ class _CookingWizardPageState extends ConsumerState<CookingWizardPage> {
                 vertical: AppSpacing.sm,
               ),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   AppIconButton(
                     icon: Icons.close,
@@ -138,6 +139,7 @@ class _CookingWizardPageState extends ConsumerState<CookingWizardPage> {
                     foreground: AppColors.cookingTextPrimary,
                     onPressed: () => _confirmExitCookingMode(context),
                   ),
+                  const Icon(Icons.timer_outlined, color: AppColors.cookingTextSecondary),
                 ],
               ),
             ),
@@ -154,7 +156,12 @@ class _CookingWizardPageState extends ConsumerState<CookingWizardPage> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(AppSpacing.lg),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                0,
+                AppSpacing.lg,
+                AppSpacing.sm,
+              ),
               child: _isFinishing
                   ? const SizedBox(
                       height: 56,
@@ -177,6 +184,27 @@ class _CookingWizardPageState extends ConsumerState<CookingWizardPage> {
                       },
                     ),
             ),
+            if (!_isFinishing)
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(totalSteps, (index) {
+                    final isCurrent = index == _cookingStepIndex;
+                    return Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      width: isCurrent ? 18 : 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: isCurrent
+                            ? AppColors.primary
+                            : AppColors.cookingTextSecondary.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    );
+                  }),
+                ),
+              ),
           ],
         ),
       ),
@@ -384,42 +412,62 @@ class _ReviewStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final readyPercent = servingPlan.ingredients.isEmpty
-        ? 100
-        : ((servingPlan.enoughCount / servingPlan.ingredients.length) * 100).round();
+    final total = servingPlan.ingredients.length;
+    final haveCount = servingPlan.enoughCount;
+    final missing = servingPlan.ingredients.where((item) => !item.isEnough).toList(growable: false);
+    final readyPercent = total == 0 ? 100 : ((haveCount / total) * 100).round();
 
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            servingPlan.hasEnoughRequiredIngredients
-                ? 'พร้อมทำ $readyPercent% — มีวัตถุดิบครบ'
-                : 'พร้อมทำ $readyPercent% — ขาดวัตถุดิบหลัก ${servingPlan.missingRequiredCount} รายการ',
-            style: AppTypography.body,
+          PantryReadinessCard(
+            readyPercent: readyPercent,
+            haveCount: haveCount,
+            totalCount: total,
+            missingCount: missing.length,
           ),
-          const SizedBox(height: AppSpacing.lg),
-          Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.sm,
-            children: servingPlan.ingredients.map((item) {
-              final status = item.isEnough
-                  ? IngredientStatus.available
-                  : IngredientStatus.missing;
-              return IngredientStatusChip(name: item.ingredient.name, status: status);
-            }).toList(growable: false),
-          ),
-          if (!servingPlan.hasEnoughRequiredIngredients) ...[
+          const SizedBox(height: AppSpacing.xl),
+          Text('มีครบแล้ว', style: AppTypography.label),
+          const SizedBox(height: AppSpacing.sm),
+          for (final item in servingPlan.ingredients.where((i) => i.isEnough))
+            _ChecklistRow(label: item.ingredient.name, checked: true),
+          if (missing.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.lg),
-            AppCard(
-              color: AppColors.warningSoft,
-              bordered: false,
-              child: const Text(
-                'คุณยังเริ่มทำอาหารได้ตามปกติ ส่วนที่ขาดจะไม่ถูกหักออกจาก Pantry ตอนทำเสร็จ',
-                style: AppTypography.bodySmall,
-              ),
-            ),
+            Text('วัตถุดิบที่ขาด', style: AppTypography.label),
+            const SizedBox(height: AppSpacing.sm),
+            for (final item in missing)
+              _ChecklistRow(label: item.ingredient.name, checked: false),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ChecklistRow extends StatelessWidget {
+  const _ChecklistRow({required this.label, required this.checked});
+  final String label;
+  final bool checked;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(
+            checked ? Icons.check_circle : Icons.radio_button_unchecked,
+            size: 18,
+            color: checked ? AppColors.success : AppColors.textDisabled,
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Text(
+            label,
+            style: AppTypography.body.copyWith(
+              color: checked ? AppColors.textPrimary : AppColors.textSecondary,
+            ),
+          ),
         ],
       ),
     );

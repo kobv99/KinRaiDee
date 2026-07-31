@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/design_system/design_tokens/app_colors.dart';
 import '../../application/recipe_missing_shopping_controller.dart';
 import '../../domain/entities/recipe.dart';
 import '../providers/recipe_provider.dart';
 import '../providers/recipe_shopping_provider.dart';
-import '../widgets/recipe_readiness_panel.dart';
+import '../widgets/recipe_detail_header.dart';
 import 'cooking_wizard_page.dart';
 import 'recipe_detail_legacy.dart' as legacy;
 
@@ -20,8 +21,6 @@ class RecipeDetailPage extends ConsumerStatefulWidget {
 
 class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
   late final int _servings;
-  bool _expanded = false;
-  bool _dismissed = false;
   bool _isAddingMissing = false;
 
   @override
@@ -49,51 +48,37 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('สูตรอาหาร')),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'start-cooking-wizard',
-        onPressed: () => Navigator.of(context).push<void>(
-          MaterialPageRoute(
-            builder: (_) => CookingWizardPage(recipe: widget.recipe),
-          ),
-        ),
-        icon: const Icon(Icons.play_arrow_rounded),
-        label: const Text('เริ่มทำอาหาร'),
-      ),
-      body: Column(
-        children: [
-          AnimatedSize(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOut,
-            child: _dismissed
-                ? const SizedBox.shrink()
-                : Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
-                    child: RecipeReadinessPanel(
-                      readiness: readiness,
-                      expanded: _expanded,
-                      isAddingMissing: _isAddingMissing,
-                      onToggle: () => setState(() => _expanded = !_expanded),
-                      onDismiss: () => setState(() => _dismissed = true),
-                      onAddMissing:
-                          readiness == null ||
-                              readiness.missingIngredients.isEmpty
-                          ? null
-                          : _addMissingIngredients,
-                    ),
-                  ),
-          ),
-          Expanded(
-            child: MediaQuery.removePadding(
-              context: context,
-              removeTop: true,
-              child: Theme(
-                data: embeddedTheme,
-                child: legacy.RecipeDetailPage(recipe: widget.recipe),
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            RecipeDetailHeader(
+              recipe: widget.recipe,
+              readiness: readiness,
+              onBack: () => Navigator.of(context).maybePop(),
+              onAddMissing:
+                  readiness == null || readiness.missingIngredients.isEmpty
+                  ? null
+                  : _addMissingIngredients,
+              onStartCooking: () => Navigator.of(context).push<void>(
+                MaterialPageRoute(
+                  builder: (_) => CookingWizardPage(recipe: widget.recipe),
+                ),
               ),
             ),
-          ),
-        ],
+            Expanded(
+              child: MediaQuery.removePadding(
+                context: context,
+                removeTop: true,
+                child: Theme(
+                  data: embeddedTheme,
+                  child: legacy.RecipeDetailPage(recipe: widget.recipe),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
