@@ -37,6 +37,8 @@ class RecipeDetailHeader extends StatelessWidget {
     required this.onStartCooking,
     this.isFavorite = false,
     this.onToggleFavorite,
+    this.missingInShoppingCount = 0,
+    this.onGoToShopping,
   });
 
   final Recipe recipe;
@@ -47,6 +49,8 @@ class RecipeDetailHeader extends StatelessWidget {
   final VoidCallback onStartCooking;
   final bool isFavorite;
   final VoidCallback? onToggleFavorite;
+  final int missingInShoppingCount;
+  final VoidCallback? onGoToShopping;
 
   @override
   Widget build(BuildContext context) {
@@ -109,6 +113,8 @@ class RecipeDetailHeader extends StatelessWidget {
                   missingCount: missingCount,
                   onAddMissingIngredients: onAddMissing,
                   isAddingMissing: isAddingMissing,
+                  missingInShoppingCount: missingInShoppingCount,
+                  onGoToShopping: onGoToShopping,
                 ),
                 const SizedBox(height: AppSpacing.xl),
                 Text('วัตถุดิบหลัก', style: AppTypography.label),

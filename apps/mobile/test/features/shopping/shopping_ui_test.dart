@@ -11,6 +11,7 @@ import 'package:mobile/features/shopping/application/shopping_providers.dart';
 import 'package:mobile/features/shopping/domain/entities/shopping_list.dart';
 import 'package:mobile/features/shopping/presentation/pages/shopping_page.dart';
 import 'package:mobile/features/shopping/presentation/providers/shopping_view_provider.dart';
+import 'package:mobile/features/shopping/presentation/widgets/recommended_purchases_section.dart';
 
 import '../../support/shopping_ui_test_support.dart';
 
@@ -339,6 +340,45 @@ void main() {
         orderedEquals(before.items.map((item) => item.id)),
       );
     });
+
+    testWidgets(
+      'the active Shopping list renders above Recommended Purchases',
+      (tester) async {
+        final harness = await ShoppingUiHarness.create(
+          pantry: [
+            testPantryLot(
+              id: 'egg-lot',
+              canonicalId: 'egg',
+              name: 'Egg',
+              quantity: 2,
+              unit: 'piece',
+              now: now,
+            ),
+          ],
+          recipes: _recipes,
+          list: testShoppingList(now: now),
+        );
+        addTearDown(harness.dispose);
+        await harness.pump(tester);
+
+        final itemListTop = tester
+            .getTopLeft(
+              find.byKey(const ValueKey<String>('shopping-item-egg-item')),
+            )
+            .dy;
+        final recommendationsTop = tester
+            .getTopLeft(find.byType(RecommendedPurchasesSection))
+            .dy;
+
+        expect(
+          itemListTop,
+          lessThan(recommendationsTop),
+          reason:
+              'the active Shopping list is the primary task and must render '
+              'above the secondary Recommended Purchases section',
+        );
+      },
+    );
   });
 }
 

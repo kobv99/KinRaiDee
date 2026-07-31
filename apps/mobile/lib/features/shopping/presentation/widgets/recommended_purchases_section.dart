@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/theme/app_spacing.dart';
+import '../../../../core/presentation/unit_presentation.dart';
 import '../../../../shared/widgets/app_card.dart';
 import '../../application/shopping_recommendation_controller.dart';
 import '../../domain/entities/shopping_recommendation.dart';
 import '../providers/recommendation_ui_provider.dart';
 import '../providers/shopping_recommendation_provider.dart';
-import '../providers/shopping_view_provider.dart' show shoppingUnitLabel;
 
 class RecommendedPurchasesSection extends ConsumerStatefulWidget {
   const RecommendedPurchasesSection({super.key});
@@ -248,8 +248,8 @@ class _RecommendedPurchasesSectionState
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  'แนะนำให้เพิ่ม ${_quantity(recommendation.recommendedQuantity)} '
-                  '${shoppingUnitLabel(recommendation.recommendedUnitId)}',
+                  'แนะนำให้เพิ่ม '
+                  '${UnitPresentation.cookingQuantity(recommendation.recommendedQuantity, recommendation.recommendedUnitId)}',
                 ),
                 const SizedBox(height: AppSpacing.md),
                 Text(
@@ -383,8 +383,8 @@ class _RecommendationCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'เพิ่ม ${_quantity(recommendation.recommendedQuantity)} '
-                    '${shoppingUnitLabel(recommendation.recommendedUnitId)}',
+                    'เพิ่ม '
+                    '${UnitPresentation.cookingQuantity(recommendation.recommendedQuantity, recommendation.recommendedUnitId)}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodySmall,
@@ -432,14 +432,4 @@ class _MetricRow extends StatelessWidget {
       ),
     );
   }
-}
-
-String _quantity(double value) {
-  if (value == value.roundToDouble()) {
-    return value.toInt().toString();
-  }
-  return value
-      .toStringAsFixed(2)
-      .replaceFirst(RegExp(r'0+$'), '')
-      .replaceFirst(RegExp(r'\.$'), '');
 }

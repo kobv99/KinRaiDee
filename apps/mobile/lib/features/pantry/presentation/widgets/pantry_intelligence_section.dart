@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/providers/canonical_ingredient_providers.dart';
 import '../../../../app/theme/app_spacing.dart';
+import '../../../../core/presentation/unit_presentation.dart';
 import '../../../../shared/widgets/app_card.dart';
 import '../../../shopping/application/shopping_recommendation_controller.dart';
 import '../../../shopping/domain/entities/shopping_recommendation.dart';
@@ -152,7 +153,6 @@ class _PantryIntelligenceSectionState
       showDragHandle: true,
       builder: (sheetContext) {
         final evidence = recommendation.evidence;
-        final unitLabel = _unitLabel(recommendation.recommendedUnitId);
         return SafeArea(
           child: SingleChildScrollView(
             padding: EdgeInsets.fromLTRB(
@@ -172,8 +172,8 @@ class _PantryIntelligenceSectionState
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  'แนะนำให้เพิ่ม ${_quantity(recommendation.recommendedQuantity)} '
-                  '$unitLabel',
+                  'แนะนำให้เพิ่ม '
+                  '${UnitPresentation.cookingQuantity(recommendation.recommendedQuantity, recommendation.recommendedUnitId, unitEngine: ref.read(unitConversionEngineProvider))}',
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 Text(
@@ -295,14 +295,6 @@ class _PantryIntelligenceSectionState
         uiNotifier.setBusyIngredient(null);
       }
     }
-  }
-
-  String _unitLabel(String unitId) {
-    return ref
-            .read(unitConversionEngineProvider)
-            .resolveUnit(unitId)
-            ?.displayName ??
-        unitId;
   }
 
   void _showMessage(String message) {
@@ -633,15 +625,4 @@ class _InsightUnavailable extends StatelessWidget {
       ],
     );
   }
-}
-
-String _quantity(double value) {
-  if (value == value.roundToDouble()) {
-    return value.toInt().toString();
-  }
-
-  return value
-      .toStringAsFixed(2)
-      .replaceFirst(RegExp(r'0+$'), '')
-      .replaceFirst(RegExp(r'\.$'), '');
 }

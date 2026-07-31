@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/navigation/app_navigation_provider.dart';
 import '../../../../app/providers/canonical_ingredient_providers.dart';
+import '../../../../core/design_system/components/app_button.dart';
 import '../../../../core/design_system/components/responsive_content.dart';
 import '../../../../core/design_system/design_tokens/app_colors.dart';
 import '../../../../core/design_system/design_tokens/app_spacing.dart';
+import '../../../../core/design_system/design_tokens/app_typography.dart';
 import '../../../../core/providers/pantry_provider.dart';
 import '../../application/recipe_missing_shopping_controller.dart';
 import '../../domain/entities/recipe.dart';
@@ -48,6 +51,18 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
       registry: ref.watch(canonicalIngredientRegistryProvider),
     );
     final hasMissing = servingPlan.ingredients.any((item) => !item.isEnough);
+    final missingInShoppingIds = ref.watch(
+      recipeIngredientIdsInShoppingProvider(widget.recipe.id),
+    );
+    final missingInShoppingCount = servingPlan.ingredients
+        .where(
+          (item) =>
+              !item.isEnough &&
+              missingInShoppingIds.contains(
+                item.ingredient.canonicalIngredientId,
+              ),
+        )
+        .length;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -62,14 +77,23 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                 onBack: () => Navigator.of(context).maybePop(),
                 onAddMissing: hasMissing ? _addMissingIngredients : null,
                 isAddingMissing: _isAddingMissing,
-                isFavorite: ref.watch(favoriteRecipeIdsProvider).contains(widget.recipe.id),
-                onToggleFavorite: () =>
-                    ref.read(favoriteRecipeIdsProvider.notifier).toggle(widget.recipe.id),
+                isFavorite: ref
+                    .watch(favoriteRecipeIdsProvider)
+                    .contains(widget.recipe.id),
+                onToggleFavorite: () => ref
+                    .read(favoriteRecipeIdsProvider.notifier)
+                    .toggle(widget.recipe.id),
                 onStartCooking: () => Navigator.of(context).push<void>(
                   MaterialPageRoute(
                     builder: (_) => CookingWizardPage(recipe: widget.recipe),
                   ),
                 ),
+                missingInShoppingCount: missingInShoppingCount,
+                onGoToShopping: missingInShoppingCount > 0
+                    ? () => ref
+                          .read(appNavigationProvider.notifier)
+                          .openShopping()
+                    : null,
               ),
               const SizedBox(height: AppSpacing.lg),
               RecipeIngredientList(servingPlan: servingPlan),
@@ -101,9 +125,12 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
       if (!mounted) {
         return;
       }
+      if (result.outcome == RecipeMissingShoppingOutcome.committed) {
+        await _showAddedToShoppingConfirmation();
+        return;
+      }
       final message = switch (result.outcome) {
-        RecipeMissingShoppingOutcome.committed =>
-          'เพิ่มวัตถุดิบที่ขาด ${result.changedItemCount} รายการไป Shopping แล้ว',
+        RecipeMissingShoppingOutcome.committed => '',
         RecipeMissingShoppingOutcome.noMissingIngredients =>
           'Pantry พร้อมสำหรับสูตรนี้แล้ว',
         RecipeMissingShoppingOutcome.unchanged =>
@@ -129,5 +156,62 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
     final messenger = ScaffoldMessenger.of(context);
     messenger.clearSnackBars();
     messenger.showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// After missing ingredients are successfully added to Shopping, the
+  /// person must be able to jump there directly instead of navigating
+  /// there manually. "ทำต่อ" just dismisses and keeps them on Recipe
+  /// Detail; "ไปที่ Shopping" switches the main tab (handled by
+  /// MainShell), matching the same pattern used by the cooking wizard.
+  Future<void> _showAddedToShoppingConfirmation() async {
+    final goToShopping = await showModalBottomSheet<bool>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            0,
+            AppSpacing.lg,
+            AppSpacing.lg,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'เพิ่มวัตถุดิบที่ขาดเข้า Shopping แล้ว',
+                style: AppTypography.title,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Row(
+                children: [
+                  Expanded(
+                    child: AppButton(
+                      label: 'ทำต่อ',
+                      variant: AppButtonVariant.secondary,
+                      onPressed: () => Navigator.of(sheetContext).pop(false),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: AppButton(
+                      key: const ValueKey<String>(
+                        'added-to-shopping-confirmation-go-to-shopping',
+                      ),
+                      label: 'ไปที่ Shopping',
+                      onPressed: () => Navigator.of(sheetContext).pop(true),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (goToShopping == true && mounted) {
+      ref.read(appNavigationProvider.notifier).openShopping();
+    }
   }
 }

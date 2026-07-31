@@ -156,17 +156,6 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
                   horizontal,
                   0,
                 ),
-                sliver: const SliverToBoxAdapter(
-                  child: RecommendedPurchasesSection(),
-                ),
-              ),
-              SliverPadding(
-                padding: EdgeInsets.fromLTRB(
-                  horizontal,
-                  AppSpacing.md,
-                  horizontal,
-                  0,
-                ),
                 sliver: SliverToBoxAdapter(
                   child: _ShoppingControls(
                     view: view,
@@ -215,6 +204,19 @@ class _ShoppingPageState extends ConsumerState<ShoppingPage> {
                   horizontal,
                 ),
               ],
+              // Active Shopping List is the primary task; recommendations
+              // are secondary, so they render after it, not before.
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(
+                  horizontal,
+                  AppSpacing.lg,
+                  horizontal,
+                  0,
+                ),
+                sliver: const SliverToBoxAdapter(
+                  child: RecommendedPurchasesSection(),
+                ),
+              ),
               const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxl)),
             ],
           ),
