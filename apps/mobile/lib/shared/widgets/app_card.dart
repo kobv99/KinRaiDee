@@ -44,17 +44,22 @@ class AppCard extends StatelessWidget {
       child: child,
     );
 
-    if (onTap == null) {
-      return content;
-    }
-
+    // Always provide a Material ancestor here, even when onTap is null.
+    // AppCard wraps its child in an opaque DecoratedBox (the card
+    // background), and any ListTile-family widget nested inside (ListTile,
+    // CheckboxListTile, ExpansionTile, ...) needs a Material between itself
+    // and that opaque box to paint its own background/ink splashes —
+    // otherwise Flutter throws "ListTile background color or ink splashes
+    // may be invisible" at runtime.
     return Material(
       color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: AppRadius.card,
-        child: content,
-      ),
+      child: onTap == null
+          ? content
+          : InkWell(
+              onTap: onTap,
+              borderRadius: AppRadius.card,
+              child: content,
+            ),
     );
   }
 }
