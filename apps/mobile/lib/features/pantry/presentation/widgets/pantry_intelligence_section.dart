@@ -21,6 +21,12 @@ class PantryIntelligenceSection extends ConsumerStatefulWidget {
 
 class _PantryIntelligenceSectionState
     extends ConsumerState<PantryIntelligenceSection> {
+  // Collapsed by default: Pantry Insights/Recommended Purchases are not
+  // part of the primary "view, add, edit, delete ingredients" task, so
+  // they must not push Search/Filters/the ingredient list further down
+  // the page by default.
+  bool _expanded = false;
+
   @override
   Widget build(BuildContext context) {
     final insight = ref.watch(pantryInsightProvider);
@@ -32,44 +38,52 @@ class _PantryIntelligenceSectionState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _PantryInsightsCard(insight: insight),
-        if (!dismissed) ...[
-          const SizedBox(height: AppSpacing.md),
-          recommendations.when(
-            data: (items) {
-              if (items.isEmpty) {
-                return const SizedBox.shrink();
-              }
-              return _RecommendationPreview(
-                recommendations: items,
-                onDismiss: () {
-                  ref.read(recommendationUiProvider.notifier).dismiss();
-                },
-                onSelect: _showDetails,
-                onViewAll: () => _showAll(items),
-              );
-            },
-            loading: () => const LinearProgressIndicator(
-              key: ValueKey<String>('pantry-recommendations-loading'),
-              minHeight: 2,
-            ),
-            error: (error, stackTrace) => AppCard(
-              child: Row(
-                children: [
-                  const Icon(Icons.info_outline),
-                  const SizedBox(width: AppSpacing.sm),
-                  const Expanded(
-                    child: Text('ยังโหลดคำแนะนำการซื้อไม่ได้ในขณะนี้'),
-                  ),
-                  TextButton(
-                    onPressed: () =>
-                        ref.invalidate(shoppingRecommendationsProvider),
-                    child: const Text('ลองใหม่'),
-                  ),
-                ],
+        _InsightsSummaryToggle(
+          insight: insight,
+          expanded: _expanded,
+          onTap: () => setState(() => _expanded = !_expanded),
+        ),
+        if (_expanded) ...[
+          const SizedBox(height: AppSpacing.sm),
+          _PantryInsightsCard(insight: insight),
+          if (!dismissed) ...[
+            const SizedBox(height: AppSpacing.md),
+            recommendations.when(
+              data: (items) {
+                if (items.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+                return _RecommendationPreview(
+                  recommendations: items,
+                  onDismiss: () {
+                    ref.read(recommendationUiProvider.notifier).dismiss();
+                  },
+                  onSelect: _showDetails,
+                  onViewAll: () => _showAll(items),
+                );
+              },
+              loading: () => const LinearProgressIndicator(
+                key: ValueKey<String>('pantry-recommendations-loading'),
+                minHeight: 2,
+              ),
+              error: (error, stackTrace) => AppCard(
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline),
+                    const SizedBox(width: AppSpacing.sm),
+                    const Expanded(
+                      child: Text('ยังโหลดคำแนะนำการซื้อไม่ได้ในขณะนี้'),
+                    ),
+                    TextButton(
+                      onPressed: () =>
+                          ref.invalidate(shoppingRecommendationsProvider),
+                      child: const Text('ลองใหม่'),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
+          ],
         ],
       ],
     );
@@ -299,6 +313,58 @@ class _PantryIntelligenceSectionState
         content: Text(message),
         duration: const Duration(seconds: 4),
         persist: false,
+      ),
+    );
+  }
+}
+
+class _InsightsSummaryToggle extends StatelessWidget {
+  const _InsightsSummaryToggle({
+    required this.insight,
+    required this.expanded,
+    required this.onTap,
+  });
+
+  final AsyncValue<PantryInsight?> insight;
+  final bool expanded;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final summary = insight.when(
+      data: (value) => value == null
+          ? 'ยังสรุปข้อมูลไม่ได้'
+          : 'พร้อมทำ ${value.availableRecipeCount} · ขาด ${value.missingIngredientCount}',
+      loading: () => 'กำลังสรุปข้อมูล…',
+      error: (error, stackTrace) => 'ยังสรุปข้อมูลไม่ได้',
+    );
+
+    return InkWell(
+      key: const ValueKey<String>('pantry-insights-toggle'),
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+        child: Row(
+          children: [
+            const Icon(Icons.insights_outlined, size: 18),
+            const SizedBox(width: AppSpacing.xs),
+            const Text(
+              'Pantry Insights',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            Expanded(
+              child: Text(
+                summary,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+            Icon(expanded ? Icons.expand_less : Icons.expand_more),
+          ],
+        ),
       ),
     );
   }

@@ -10,6 +10,8 @@ import 'package:mobile/core/design_system/feature_components/recommendation_metr
 import 'package:mobile/core/design_system/feature_components/recipe_card.dart';
 import 'package:mobile/core/design_system/feature_components/pantry_readiness_card.dart';
 import 'package:mobile/core/design_system/feature_components/serving_selector.dart';
+import 'package:mobile/core/design_system/components/responsive_cta.dart';
+import 'package:mobile/core/design_system/feature_components/ingredient_status_chip.dart';
 
 Widget _wrap(Widget child) {
   return MaterialApp(
@@ -21,46 +23,55 @@ Widget _wrap(Widget child) {
 void main() {
   group('AppTheme', () {
     testWidgets('exposes AppSemanticColors extension', (tester) async {
-      await tester.pumpWidget(_wrap(Builder(
-        builder: (context) {
-          final semantic = Theme.of(context).extension<AppSemanticColors>();
-          expect(semantic, isNotNull);
-          expect(semantic!.success, isNotNull);
-          return const SizedBox();
-        },
-      )));
+      await tester.pumpWidget(
+        _wrap(
+          Builder(
+            builder: (context) {
+              final semantic = Theme.of(context).extension<AppSemanticColors>();
+              expect(semantic, isNotNull);
+              expect(semantic!.success, isNotNull);
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
     });
 
     testWidgets('text theme has all required roles', (tester) async {
-      await tester.pumpWidget(_wrap(Builder(
-        builder: (context) {
-          final text = Theme.of(context).textTheme;
-          expect(text.displayLarge, isNotNull);
-          expect(text.headlineMedium, isNotNull);
-          expect(text.titleMedium, isNotNull);
-          expect(text.bodyMedium, isNotNull);
-          expect(text.bodySmall, isNotNull);
-          expect(text.labelLarge, isNotNull);
-          return const SizedBox();
-        },
-      )));
+      await tester.pumpWidget(
+        _wrap(
+          Builder(
+            builder: (context) {
+              final text = Theme.of(context).textTheme;
+              expect(text.displayLarge, isNotNull);
+              expect(text.headlineMedium, isNotNull);
+              expect(text.titleMedium, isNotNull);
+              expect(text.bodyMedium, isNotNull);
+              expect(text.bodySmall, isNotNull);
+              expect(text.labelLarge, isNotNull);
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
     });
   });
 
   group('AppButton', () {
     testWidgets('primary variant fires onPressed', (tester) async {
       var tapped = false;
-      await tester.pumpWidget(_wrap(AppButton(
-        label: 'เริ่มทำอาหาร',
-        onPressed: () => tapped = true,
-      )));
+      await tester.pumpWidget(
+        _wrap(AppButton(label: 'เริ่มทำอาหาร', onPressed: () => tapped = true)),
+      );
       await tester.tap(find.text('เริ่มทำอาหาร'));
       await tester.pump();
       expect(tapped, isTrue);
     });
 
     testWidgets('disabled when onPressed is null', (tester) async {
-      await tester.pumpWidget(_wrap(const AppButton(label: 'Disabled', onPressed: null)));
+      await tester.pumpWidget(
+        _wrap(const AppButton(label: 'Disabled', onPressed: null)),
+      );
       final widget = tester.widget<ElevatedButton>(find.byType(ElevatedButton));
       expect(widget.onPressed, isNull);
     });
@@ -72,7 +83,9 @@ void main() {
   });
 
   testWidgets('AppChip shows selected state semantics', (tester) async {
-    await tester.pumpWidget(_wrap(const AppChip(label: 'พร้อมครบ', selected: true)));
+    await tester.pumpWidget(
+      _wrap(const AppChip(label: 'พร้อมครบ', selected: true)),
+    );
     expect(find.text('พร้อมครบ'), findsOneWidget);
   });
 
@@ -84,40 +97,56 @@ void main() {
   group('RecommendationMetric', () {
     testWidgets('is tappable and reports taps', (tester) async {
       var tapped = false;
-      await tester.pumpWidget(_wrap(RecommendationMetric(
-        icon: Icons.check,
-        value: '18',
-        label: 'Pantry Friendly',
-        onTap: () => tapped = true,
-      )));
+      await tester.pumpWidget(
+        _wrap(
+          RecommendationMetric(
+            icon: Icons.check,
+            value: '18',
+            label: 'Pantry Friendly',
+            onTap: () => tapped = true,
+          ),
+        ),
+      );
       await tester.tap(find.byType(RecommendationMetric));
       await tester.pump();
       expect(tapped, isTrue);
     });
   });
 
-  testWidgets('RecipeCard shows name, match %, and cooking time', (tester) async {
-    await tester.pumpWidget(_wrap(RecipeCard(
-      name: 'หมูกระเทียม',
-      pantryMatchPercent: 95,
-      readiness: RecipeReadiness.ready,
-      cookingTimeMinutes: 30,
-      onTap: () {},
-    )));
+  testWidgets('RecipeCard shows name, match %, and cooking time', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrap(
+        RecipeCard(
+          name: 'หมูกระเทียม',
+          pantryMatchPercent: 95,
+          readiness: RecipeReadiness.ready,
+          cookingTimeMinutes: 30,
+          onTap: () {},
+        ),
+      ),
+    );
     expect(find.textContaining('หมูกระเทียม'), findsOneWidget);
     expect(find.textContaining('95%'), findsOneWidget);
     expect(find.textContaining('30 นาที'), findsOneWidget);
   });
 
-  testWidgets('PantryReadinessCard exposes a working add-missing action', (tester) async {
+  testWidgets('PantryReadinessCard exposes a working add-missing action', (
+    tester,
+  ) async {
     var tapped = false;
-    await tester.pumpWidget(_wrap(PantryReadinessCard(
-      readyPercent: 95,
-      haveCount: 9,
-      totalCount: 10,
-      missingCount: 1,
-      onAddMissingIngredients: () => tapped = true,
-    )));
+    await tester.pumpWidget(
+      _wrap(
+        PantryReadinessCard(
+          readyPercent: 95,
+          haveCount: 9,
+          totalCount: 10,
+          missingCount: 1,
+          onAddMissingIngredients: () => tapped = true,
+        ),
+      ),
+    );
     expect(find.text('เพิ่มวัตถุดิบ'), findsOneWidget);
     await tester.tap(find.text('เพิ่มวัตถุดิบ'));
     await tester.pump();
@@ -127,16 +156,20 @@ void main() {
   group('ServingSelector', () {
     testWidgets('increments and decrements within bounds', (tester) async {
       var value = 2;
-      await tester.pumpWidget(_wrap(StatefulBuilder(
-        builder: (context, setState) {
-          return ServingSelector(
-            value: value,
-            min: 1,
-            max: 4,
-            onChanged: (v) => setState(() => value = v),
-          );
-        },
-      )));
+      await tester.pumpWidget(
+        _wrap(
+          StatefulBuilder(
+            builder: (context, setState) {
+              return ServingSelector(
+                value: value,
+                min: 1,
+                max: 4,
+                onChanged: (v) => setState(() => value = v),
+              );
+            },
+          ),
+        ),
+      );
       expect(find.text('2'), findsOneWidget);
       await tester.tap(find.byIcon(Icons.add));
       await tester.pump();
@@ -146,6 +179,87 @@ void main() {
       await tester.tap(find.byIcon(Icons.remove));
       await tester.pump();
       expect(find.text('1'), findsOneWidget);
+    });
+  });
+
+  group('IngredientStatusChip', () {
+    testWidgets('shows an explicit status label, not just a colored icon', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          const Column(
+            children: [
+              IngredientStatusChip(
+                name: 'หมู',
+                status: IngredientStatus.available,
+              ),
+              IngredientStatusChip(
+                name: 'ไข่',
+                status: IngredientStatus.missing,
+              ),
+            ],
+          ),
+        ),
+      );
+
+      expect(find.text('มี'), findsOneWidget);
+      expect(find.text('ขาด'), findsOneWidget);
+    });
+  });
+
+  group('ResponsiveCta', () {
+    Future<void> setViewportWidth(WidgetTester tester, double width) async {
+      final dpr = tester.view.devicePixelRatio;
+      tester.view.physicalSize = Size(width, 800) * dpr;
+      addTearDown(tester.view.resetPhysicalSize);
+    }
+
+    testWidgets('stays full width below the breakpoint (phone)', (
+      tester,
+    ) async {
+      await setViewportWidth(tester, 390);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: const Scaffold(
+            body: ResponsiveCta(
+              child: SizedBox(
+                width: double.infinity,
+                height: 48,
+                key: ValueKey('cta'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final size = tester.getSize(find.byKey(const ValueKey('cta')));
+      expect(size.width, 390);
+    });
+
+    testWidgets('is capped to maxWidth at/above the breakpoint (desktop)', (
+      tester,
+    ) async {
+      await setViewportWidth(tester, 1280);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: const Scaffold(
+            body: ResponsiveCta(
+              maxWidth: 360,
+              child: SizedBox(
+                width: double.infinity,
+                height: 48,
+                key: ValueKey('cta'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final size = tester.getSize(find.byKey(const ValueKey('cta')));
+      expect(size.width, 360);
     });
   });
 }

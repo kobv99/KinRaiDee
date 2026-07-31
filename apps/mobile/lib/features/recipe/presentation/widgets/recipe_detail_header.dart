@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/design_system/components/app_button.dart';
 import '../../../../core/design_system/components/app_chip.dart';
 import '../../../../core/design_system/components/app_icon_button.dart';
+import '../../../../core/design_system/components/responsive_cta.dart';
 import '../../../../core/design_system/design_tokens/app_colors.dart';
 import '../../../../core/design_system/design_tokens/app_spacing.dart';
 import '../../../../core/design_system/design_tokens/app_typography.dart';
@@ -11,6 +12,7 @@ import '../../../../core/design_system/feature_components/pantry_readiness_card.
 import '../../domain/entities/recipe.dart';
 import '../../domain/entities/recipe_ingredient.dart';
 import '../../domain/services/recipe_serving_calculator.dart';
+import '../recipe_difficulty_label.dart';
 
 /// Recipe Detail hero + readiness section, matching the Sprint 5.5 mockup:
 /// back/favorite/menu icons over the hero area, name + Pantry Friendly
@@ -69,19 +71,33 @@ class RecipeDetailHeader extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Expanded(child: Text(recipe.name, style: AppTypography.headline)),
+                  Expanded(
+                    child: Text(recipe.name, style: AppTypography.headline),
+                  ),
                   if (readyPercent >= 70)
-                    const AppChip(label: 'Pantry Friendly', tone: AppChipTone.primary),
+                    const AppChip(
+                      label: 'Pantry Friendly',
+                      tone: AppChipTone.primary,
+                    ),
                 ],
               ),
               const SizedBox(height: AppSpacing.sm),
               Row(
                 children: [
-                  _MetaItem(icon: Icons.schedule, label: '${recipe.cookTimeMinutes} นาที'),
+                  _MetaItem(
+                    icon: Icons.schedule,
+                    label: '${recipe.cookTimeMinutes} นาที',
+                  ),
                   const SizedBox(width: AppSpacing.lg),
-                  _MetaItem(icon: Icons.local_fire_department_outlined, label: recipe.difficulty),
+                  _MetaItem(
+                    icon: Icons.local_fire_department_outlined,
+                    label: recipeDifficultyLabel(recipe.difficulty),
+                  ),
                   const SizedBox(width: AppSpacing.lg),
-                  _MetaItem(icon: Icons.people_outline, label: '${servingPlan.servings} คน'),
+                  _MetaItem(
+                    icon: Icons.people_outline,
+                    label: '${servingPlan.servings} คน',
+                  ),
                 ],
               ),
               const SizedBox(height: AppSpacing.xl),
@@ -101,7 +117,11 @@ class RecipeDetailHeader extends StatelessWidget {
                   spacing: AppSpacing.sm,
                   runSpacing: AppSpacing.sm,
                   children: servingPlan.ingredients
-                      .where((item) => item.ingredient.role == RecipeIngredientRole.primary)
+                      .where(
+                        (item) =>
+                            item.ingredient.role ==
+                            RecipeIngredientRole.primary,
+                      )
                       .map(
                         (item) => IngredientStatusChip(
                           name: item.ingredient.name,
@@ -114,16 +134,12 @@ class RecipeDetailHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.xl),
               ],
-              Row(
-                children: [
-                  Expanded(
-                    child: AppButton(
-                      key: const ValueKey<String>('start-cooking-cta'),
-                      label: 'เริ่มทำอาหาร',
-                      onPressed: onStartCooking,
-                    ),
-                  ),
-                ],
+              ResponsiveCta(
+                child: AppButton(
+                  key: const ValueKey<String>('start-cooking-cta'),
+                  label: 'เริ่มทำอาหาร',
+                  onPressed: onStartCooking,
+                ),
               ),
             ],
           ),
@@ -154,7 +170,9 @@ int _weightedReadyPercent(List<ScaledRecipeIngredient> ingredients) {
     final available = item.pantryQuantityInRecipeUnit;
     final ratio = available == null
         ? (item.isEnough ? 1.0 : 0.0)
-        : (item.requiredQuantity <= 0 ? 1.0 : (available / item.requiredQuantity).clamp(0.0, 1.0));
+        : (item.requiredQuantity <= 0
+              ? 1.0
+              : (available / item.requiredQuantity).clamp(0.0, 1.0));
     totalWeight += weight;
     earnedWeight += weight * ratio;
   }
@@ -183,8 +201,12 @@ class _HeroImagePlaceholder extends StatelessWidget {
     // large emoji placeholder. Wiring real photos would need a new
     // `imageUrl` field on Recipe plus an actual image asset/CDN — out of
     // scope here.
-    return AspectRatio(
-      aspectRatio: 16 / 10,
+    // Fixed height, not viewport-driven aspect ratio: an AspectRatio-based
+    // hero grows in lockstep with the (ResponsiveContent-capped) width,
+    // ballooning to ~600px tall on desktop for what is only an emoji
+    // placeholder. A fixed height keeps the hero compact everywhere.
+    return SizedBox(
+      height: 148,
       child: Stack(
         children: [
           Positioned.fill(
@@ -196,7 +218,9 @@ class _HeroImagePlaceholder extends StatelessWidget {
                   colors: [AppColors.primarySoft, AppColors.surfaceMuted],
                 ),
               ),
-              child: Center(child: Text(emoji, style: const TextStyle(fontSize: 96))),
+              child: Center(
+                child: Text(emoji, style: const TextStyle(fontSize: 56)),
+              ),
             ),
           ),
           Positioned(
@@ -206,18 +230,20 @@ class _HeroImagePlaceholder extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                AppIconButton(icon: Icons.arrow_back, semanticLabel: 'ย้อนกลับ', onPressed: onBack),
-                Row(
-                  children: [
-                    AppIconButton(
-                      icon: isFavorite ? Icons.favorite : Icons.favorite_border,
-                      semanticLabel: isFavorite ? 'เอาออกจากรายการโปรด' : 'บันทึกเป็นรายการโปรด',
-                      foreground: isFavorite ? AppColors.primary : AppColors.textPrimary,
-                      onPressed: onToggleFavorite,
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    AppIconButton(icon: Icons.more_vert, semanticLabel: 'เมนูเพิ่มเติม', onPressed: null),
-                  ],
+                AppIconButton(
+                  icon: Icons.arrow_back,
+                  semanticLabel: 'ย้อนกลับ',
+                  onPressed: onBack,
+                ),
+                AppIconButton(
+                  icon: isFavorite ? Icons.favorite : Icons.favorite_border,
+                  semanticLabel: isFavorite
+                      ? 'เอาออกจากรายการโปรด'
+                      : 'บันทึกเป็นรายการโปรด',
+                  foreground: isFavorite
+                      ? AppColors.primary
+                      : AppColors.textPrimary,
+                  onPressed: onToggleFavorite,
                 ),
               ],
             ),

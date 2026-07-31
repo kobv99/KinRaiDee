@@ -23,7 +23,7 @@ class RecipeHubPage extends StatelessWidget {
               children: [
                 const Expanded(
                   child: Text(
-                    'คำแนะนำเป็นทางเลือก คุณยังดูสูตรทั้งหมดได้',
+                    'ไม่ถูกใจเมนูไหน? เลือกดูสูตรทั้งหมดได้เลย',
                     maxLines: 2,
                   ),
                 ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/design_system/components/responsive_content.dart';
 import '../../domain/entities/recipe.dart';
 import '../providers/recipe_provider.dart';
 import 'recipe_detail_page.dart';
@@ -13,47 +14,49 @@ class AllRecipesPage extends ConsumerWidget {
     final recipes = ref.watch(recipesProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('สูตรทั้งหมด')),
-      body: recipes.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stackTrace) =>
-            _LoadError(onRetry: () => ref.invalidate(recipesProvider)),
-        data: (items) {
-          final sorted = List<Recipe>.of(items)
-            ..sort((first, second) => first.name.compareTo(second.name));
-          if (sorted.isEmpty) {
-            return const _EmptyRecipes();
-          }
-          return ListView(
-            key: const ValueKey<String>('all-recipes-list'),
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-            children: [
-              const _FreedomNotice(),
-              const SizedBox(height: 12),
-              ...sorted.map(
-                (recipe) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Card(
-                    margin: EdgeInsets.zero,
-                    clipBehavior: Clip.antiAlias,
-                    child: ListTile(
-                      key: ValueKey<String>('all-recipe-${recipe.id}'),
-                      onTap: () => _openRecipe(context, recipe),
-                      leading: CircleAvatar(child: Text(recipe.emoji)),
-                      title: Text(
-                        recipe.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
+      body: ResponsiveContent(
+        child: recipes.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stackTrace) =>
+              _LoadError(onRetry: () => ref.invalidate(recipesProvider)),
+          data: (items) {
+            final sorted = List<Recipe>.of(items)
+              ..sort((first, second) => first.name.compareTo(second.name));
+            if (sorted.isEmpty) {
+              return const _EmptyRecipes();
+            }
+            return ListView(
+              key: const ValueKey<String>('all-recipes-list'),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              children: [
+                const _FreedomNotice(),
+                const SizedBox(height: 12),
+                ...sorted.map(
+                  (recipe) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Card(
+                      margin: EdgeInsets.zero,
+                      clipBehavior: Clip.antiAlias,
+                      child: ListTile(
+                        key: ValueKey<String>('all-recipe-${recipe.id}'),
+                        onTap: () => _openRecipe(context, recipe),
+                        leading: CircleAvatar(child: Text(recipe.emoji)),
+                        title: Text(
+                          recipe.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Text(_subtitle(recipe)),
+                        trailing: const Icon(Icons.chevron_right_rounded),
                       ),
-                      subtitle: Text(_subtitle(recipe)),
-                      trailing: const Icon(Icons.chevron_right_rounded),
                     ),
                   ),
                 ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     );
   }

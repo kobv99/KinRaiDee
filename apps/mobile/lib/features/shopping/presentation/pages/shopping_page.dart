@@ -760,8 +760,10 @@ class _ShoppingControls extends ConsumerWidget {
     final notifier = ref.read(shoppingViewProvider.notifier);
     final recipes = recipeNames.entries.toList()
       ..sort((first, second) => first.value.compareTo(second.value));
+
     return AppCard(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TextField(
             key: const ValueKey<String>('shopping-search-field'),
@@ -783,100 +785,138 @@ class _ShoppingControls extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
+          Wrap(
+            spacing: AppSpacing.xs,
+            runSpacing: AppSpacing.xs,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              OutlinedButton.icon(
+                key: const ValueKey<String>('shopping-open-filters'),
+                onPressed: () => _showFilterSheet(context, ref, view, recipes),
+                icon: const Icon(Icons.tune, size: 18),
+                label: const Text('ตัวกรอง'),
+                style: OutlinedButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
+              if (view.category != null)
+                InputChip(
+                  key: const ValueKey<String>('shopping-active-category-chip'),
+                  label: Text(shoppingCategoryLabel(view.category!)),
+                  onDeleted: () => notifier.setCategory(null),
+                ),
+              if (view.recipeId != null && recipeNames[view.recipeId] != null)
+                InputChip(
+                  key: const ValueKey<String>('shopping-active-recipe-chip'),
+                  label: Text(recipeNames[view.recipeId]!),
+                  onDeleted: () => notifier.setRecipe(null),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showFilterSheet(
+    BuildContext context,
+    WidgetRef ref,
+    ShoppingViewState view,
+    List<MapEntry<String, String>> recipes,
+  ) async {
+    final notifier = ref.read(shoppingViewProvider.notifier);
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, AppSpacing.lg),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(
-                  width: 260,
-                  child: DropdownButtonFormField<ShoppingCategory?>(
-                    key: const ValueKey<String>('shopping-category-filter'),
-                    initialValue: view.category,
-                    isDense: true,
-                    decoration: const InputDecoration(
-                      labelText: 'หมวดหมู่',
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    ),
-                    items: <DropdownMenuItem<ShoppingCategory?>>[
-                      const DropdownMenuItem(value: null, child: Text('ทั้งหมด')),
-                      ...ShoppingCategory.values.map(
-                        (category) => DropdownMenuItem(
-                          value: category,
-                          child: Text(shoppingCategoryLabel(category)),
-                        ),
-                      ),
-                    ],
-                    onChanged: notifier.setCategory,
+                Text(
+                  'ตัวกรองและการเรียงลำดับ',
+                  style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
+                const SizedBox(height: AppSpacing.md),
+                DropdownButtonFormField<ShoppingCategory?>(
+                  key: const ValueKey<String>('shopping-category-filter'),
+                  initialValue: view.category,
+                  decoration: const InputDecoration(labelText: 'หมวดหมู่'),
+                  items: <DropdownMenuItem<ShoppingCategory?>>[
+                    const DropdownMenuItem(value: null, child: Text('ทั้งหมด')),
+                    ...ShoppingCategory.values.map(
+                      (category) => DropdownMenuItem(
+                        value: category,
+                        child: Text(shoppingCategoryLabel(category)),
+                      ),
+                    ),
+                  ],
+                  onChanged: notifier.setCategory,
+                ),
                 if (recipes.isNotEmpty) ...[
-                  const SizedBox(width: AppSpacing.sm),
-                  SizedBox(
-                    width: 280,
-                    child: DropdownButtonFormField<String?>(
-                      key: const ValueKey<String>('shopping-recipe-filter'),
-                      initialValue: view.recipeId,
-                      isDense: true,
-                      decoration: const InputDecoration(
-                        labelText: 'จากเมนู',
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  const SizedBox(height: AppSpacing.sm),
+                  DropdownButtonFormField<String?>(
+                    key: const ValueKey<String>('shopping-recipe-filter'),
+                    initialValue: view.recipeId,
+                    decoration: const InputDecoration(labelText: 'จากเมนู'),
+                    items: <DropdownMenuItem<String?>>[
+                      const DropdownMenuItem(
+                        value: null,
+                        child: Text('ทุกเมนู'),
                       ),
-                      items: <DropdownMenuItem<String?>>[
-                        const DropdownMenuItem(
-                          value: null,
-                          child: Text('ทุกเมนู'),
+                      ...recipes.map(
+                        (entry) => DropdownMenuItem(
+                          value: entry.key,
+                          child: Text(entry.value),
                         ),
-                        ...recipes.map(
-                          (entry) => DropdownMenuItem(
-                            value: entry.key,
-                            child: Text(entry.value),
-                          ),
-                        ),
-                      ],
-                      onChanged: notifier.setRecipe,
-                    ),
-                  ),
-                ],
-                const SizedBox(width: AppSpacing.sm),
-                SizedBox(
-                  width: 220,
-                  child: DropdownButtonFormField<ShoppingSortOption>(
-                    key: const ValueKey<String>('shopping-sort-filter'),
-                    initialValue: view.sort,
-                    isDense: true,
-                    decoration: const InputDecoration(
-                      labelText: 'เรียงตาม',
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: ShoppingSortOption.category,
-                        child: Text('หมวดหมู่'),
-                      ),
-                      DropdownMenuItem(
-                        value: ShoppingSortOption.alphabetical,
-                        child: Text('ชื่อ'),
-                      ),
-                      DropdownMenuItem(
-                        value: ShoppingSortOption.recipeSource,
-                        child: Text('เมนูต้นทาง'),
                       ),
                     ],
-                    onChanged: (value) {
-                      if (value != null) {
-                        notifier.setSort(value);
-                      }
-                    },
+                    onChanged: notifier.setRecipe,
+                  ),
+                ],
+                const SizedBox(height: AppSpacing.sm),
+                DropdownButtonFormField<ShoppingSortOption>(
+                  key: const ValueKey<String>('shopping-sort-filter'),
+                  initialValue: view.sort,
+                  decoration: const InputDecoration(labelText: 'เรียงตาม'),
+                  items: const [
+                    DropdownMenuItem(
+                      value: ShoppingSortOption.category,
+                      child: Text('หมวดหมู่'),
+                    ),
+                    DropdownMenuItem(
+                      value: ShoppingSortOption.alphabetical,
+                      child: Text('ชื่อ'),
+                    ),
+                    DropdownMenuItem(
+                      value: ShoppingSortOption.recipeSource,
+                      child: Text('เมนูต้นทาง'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      notifier.setSort(value);
+                    }
+                  },
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () => Navigator.of(sheetContext).pop(),
+                    child: const Text('เสร็จสิ้น'),
                   ),
                 ),
               ],
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

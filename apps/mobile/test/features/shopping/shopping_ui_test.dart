@@ -105,12 +105,26 @@ void main() {
       expect(find.text('ใน Pantry 2 ชิ้น'), findsOneWidget);
       expect(
         find.byKey(const ValueKey<String>('shopping-category-filter')),
+        findsNothing,
+      );
+
+      // Category/sort dropdowns are secondary, tucked behind a filter
+      // sheet so Search and the actual Shopping list stay dominant.
+      await tester.tap(
+        find.byKey(const ValueKey<String>('shopping-open-filters')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey<String>('shopping-category-filter')),
         findsOneWidget,
       );
       expect(
         find.byKey(const ValueKey<String>('shopping-sort-filter')),
         findsOneWidget,
       );
+      await tester.tapAt(const Offset(20, 20));
+      await tester.pumpAndSettle();
+
       expect(find.text('รายการที่เสร็จแล้ว'), findsNothing);
       expect(find.text('เสร็จแล้ว'), findsNothing);
 

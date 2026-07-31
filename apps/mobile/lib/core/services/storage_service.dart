@@ -14,6 +14,7 @@ class StorageService {
   static const String pinnedHeroIngredientKey = 'pinned_hero_ingredient_key';
   static const String cookingHistoryKey = 'cooking_history';
   static const String inventoryEnvelopeKey = 'inventory_state_envelope_v1';
+  static const String defaultServingsKey = 'default_servings';
 
   static Future<void> init() async {
     await Hive.initFlutter();
@@ -100,11 +101,26 @@ class StorageService {
 
   static Future<void> saveFavoriteRecipeIds(Set<String> ids) async {
     final normalizedIds =
-        ids.map((id) => id.trim()).where((id) => id.isNotEmpty).toList(
-          growable: false,
-        )..sort();
+        ids
+            .map((id) => id.trim())
+            .where((id) => id.isNotEmpty)
+            .toList(growable: false)
+          ..sort();
 
     await _pantryBox.put(favoriteRecipeIdsKey, normalizedIds);
+  }
+
+  static int? loadDefaultServings() {
+    final value = _pantryBox.get(defaultServingsKey);
+    if (value is! num) {
+      return null;
+    }
+    final servings = value.toInt();
+    return servings >= 1 && servings <= 12 ? servings : null;
+  }
+
+  static Future<void> saveDefaultServings(int servings) async {
+    await _pantryBox.put(defaultServingsKey, servings.clamp(1, 12));
   }
 
   static String? loadPinnedHeroIngredientKey() {
