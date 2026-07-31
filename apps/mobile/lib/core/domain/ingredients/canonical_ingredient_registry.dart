@@ -323,15 +323,7 @@ BigInt _fnv1a64(String value) {
 }
 
 const Map<String, List<String>> defaultSupplementalIngredientAliases =
-    <String, List<String>>{
-      'chicken': <String>[
-        'Chicken Breast',
-        'Chicken breast',
-        'Chicken',
-        'Boneless Chicken Breast',
-        'อกไก่',
-      ],
-    };
+    <String, List<String>>{};
 
 const Map<String, String> defaultCanonicalIngredientRedirects =
-    <String, String>{'chicken_breast': 'chicken'};
+    <String, String>{};

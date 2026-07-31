@@ -3,18 +3,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/providers/canonical_ingredient_providers.dart';
 import '../../../../core/providers/pantry_provider.dart';
 import '../../../pantry/application/inventory_transaction_providers.dart';
+import '../../../pantry/presentation/providers/cooking_history_provider.dart';
 import '../../../substitution/presentation/providers/substitution_provider.dart';
 import '../../data/datasources/local_recipe_datasource.dart';
 import '../../data/repositories/local_hero_selection_repository.dart';
 import '../../data/repositories/local_recipe_repository.dart';
 import '../../domain/entities/recipe.dart';
+import '../../domain/entities/knowledge_base_health.dart';
 import '../../domain/entities/recipe_match.dart';
+import '../../domain/entities/recipe_recommendation.dart';
 import '../../domain/entities/recipe_readiness.dart';
 import '../../domain/entities/smart_recommendation.dart';
 import '../../domain/repositories/hero_selection_repository.dart';
 import '../../domain/repositories/recipe_repository.dart';
 import '../../domain/services/recipe_candidate_service.dart';
+import '../../domain/services/knowledge_base_health_service.dart';
 import '../../domain/services/recipe_readiness_service.dart';
+import '../../domain/services/recipe_recommendation_engine.dart';
 import '../../domain/services/smart_recommendation_engine.dart';
 
 final recipeRepositoryProvider = Provider<RecipeRepository>((ref) {
@@ -23,6 +28,24 @@ final recipeRepositoryProvider = Provider<RecipeRepository>((ref) {
 
 final recipesProvider = FutureProvider<List<Recipe>>((ref) {
   return ref.read(recipeRepositoryProvider).getRecipes();
+});
+
+final knowledgeBaseHealthProvider = FutureProvider<KnowledgeBaseHealth>((
+  ref,
+) async {
+  final registry = ref.watch(canonicalIngredientRegistryProvider);
+  if (registry == null) {
+    throw StateError('Canonical Ingredient Registry is not ready.');
+  }
+  final recipes = await ref.watch(recipesProvider.future);
+  final substitutions = await ref
+      .watch(ingredientSubstitutionRepositoryProvider)
+      .getAll();
+  return const KnowledgeBaseHealthService().inspect(
+    registry: registry,
+    recipes: recipes,
+    substitutions: substitutions,
+  );
 });
 
 final recipeReadinessServiceProvider = Provider<RecipeReadinessService?>((ref) {
@@ -111,6 +134,62 @@ final recipeMatchesProvider = FutureProvider<List<RecipeMatch>>((ref) async {
     evaluatedAt: ref.watch(appClockProvider).now(),
   );
 });
+
+class RecipeRecommendationQuery {
+  const RecipeRecommendationQuery({
+    this.filter = const RecommendationFilter(),
+    this.sort = RecommendationSort.highestScore,
+  });
+
+  final RecommendationFilter filter;
+  final RecommendationSort sort;
+}
+
+class RecipeRecommendationQueryNotifier
+    extends Notifier<RecipeRecommendationQuery> {
+  @override
+  RecipeRecommendationQuery build() => const RecipeRecommendationQuery();
+
+  void update({RecommendationFilter? filter, RecommendationSort? sort}) {
+    state = RecipeRecommendationQuery(
+      filter: filter ?? state.filter,
+      sort: sort ?? state.sort,
+    );
+  }
+
+  void reset() => state = const RecipeRecommendationQuery();
+}
+
+final recipeRecommendationQueryProvider =
+    NotifierProvider<
+      RecipeRecommendationQueryNotifier,
+      RecipeRecommendationQuery
+    >(RecipeRecommendationQueryNotifier.new);
+
+final recipeRecommendationResultsProvider =
+    FutureProvider<List<RecipeRecommendation>>((ref) async {
+      final matches = await ref.watch(recipeMatchesProvider.future);
+      final query = ref.watch(recipeRecommendationQueryProvider);
+      return const RecipeRecommendationEngine().evaluateAll(
+        matches: matches,
+        pantry: ref.watch(pantryProvider),
+        evaluatedAt: ref.watch(appClockProvider).now(),
+        cookingHistory: ref.watch(cookingHistoryProvider),
+        filter: query.filter,
+        sort: query.sort,
+      );
+    });
+
+final recipeRecommendationByIdProvider =
+    Provider.family<AsyncValue<RecipeRecommendation?>, String>((ref, recipeId) {
+      return ref
+          .watch(recipeRecommendationResultsProvider)
+          .whenData(
+            (items) => items
+                .where((item) => item.match.recipe.id == recipeId)
+                .firstOrNull,
+          );
+    });
 
 class RecommendationSessionState {
   const RecommendationSessionState({this.pageIndex = 0, this.shuffleSeed = 0});
@@ -247,7 +326,11 @@ class RecipeRecommendationUnavailable implements Exception {
 final smartRecommendationProvider = Provider<AsyncValue<SmartRecommendation>>((
   ref,
 ) {
-  final matches = ref.watch(recipeMatchesProvider);
+  final matches = ref
+      .watch(recipeRecommendationResultsProvider)
+      .whenData(
+        (items) => items.map((item) => item.match).toList(growable: false),
+      );
   final pantry = ref.watch(pantryProvider);
   final heroSelection = ref.watch(heroSelectionProvider);
   final session = ref.watch(recommendationSessionProvider);

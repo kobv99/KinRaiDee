@@ -23,7 +23,11 @@ void main() {
     () async {
       final registry = await IngredientCatalog().loadRegistry();
 
-      expect(registry.resolve('Chicken Breast').ingredient?.id, 'chicken');
+      expect(
+        registry.resolve('Chicken Breast').ingredient?.id,
+        'chicken_breast',
+      );
+      expect(registry.areCompatibleIds('chicken', 'chicken_breast'), isTrue);
       expect(registry.resolve('Duck').ingredient?.id, 'duck');
       expect(registry.resolve('Tilapia').ingredient?.id, 'tilapia');
       expect(registry.resolve('ปลาทับทิม').ingredient?.id, 'tilapia');

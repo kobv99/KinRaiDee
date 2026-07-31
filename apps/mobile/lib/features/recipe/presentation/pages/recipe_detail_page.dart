@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../application/recipe_missing_shopping_controller.dart';
 import '../../../substitution/presentation/widgets/recipe_substitution_panel.dart';
 import '../../domain/entities/recipe.dart';
+import '../../domain/entities/recipe_readiness.dart';
 import '../providers/recipe_provider.dart';
 import '../providers/recipe_shopping_provider.dart';
 import '../widgets/recipe_readiness_panel.dart';
+import '../widgets/recipe_recommendation_explanation_panel.dart';
 import 'recipe_detail_legacy.dart' as legacy;
 
 class RecipeDetailPage extends ConsumerStatefulWidget {
@@ -36,6 +38,9 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
       recipeReadinessProvider(
         RecipeReadinessRequest(recipe: widget.recipe, servings: _servings),
       ),
+    );
+    final recommendation = ref.watch(
+      recipeRecommendationByIdProvider(widget.recipe.id),
     );
     final theme = Theme.of(context);
     final isNarrow = MediaQuery.sizeOf(context).width <= 360;
@@ -73,17 +78,33 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                     ),
                   ),
           ),
+          recommendation.when(
+            data: (value) => value == null
+                ? const SizedBox.shrink()
+                : Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: RecipeRecommendationExplanationPanel(
+                      recommendation: value,
+                    ),
+                  ),
+            loading: () => const SizedBox.shrink(),
+            error: (error, stackTrace) => const SizedBox.shrink(),
+          ),
           if (readiness != null &&
               readiness.recipe.supportsSubstitutions &&
               readiness.substitutionCandidates.isNotEmpty)
-            AnimatedSize(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOut,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: RecipeSubstitutionPanel(
-                  recipeId: widget.recipe.id,
-                  readiness: readiness,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Card(
+                child: ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.swap_horiz),
+                  title: const Text('มีวัตถุดิบทดแทน'),
+                  trailing: TextButton(
+                    key: const ValueKey<String>('view-substitution-popup'),
+                    onPressed: () => _showSubstitutionPopup(readiness),
+                    child: const Text('ดู'),
+                  ),
                 ),
               ),
             ),
@@ -100,6 +121,47 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _showSubstitutionPopup(RecipeReadiness readiness) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        final size = MediaQuery.sizeOf(dialogContext);
+        return AlertDialog(
+          title: Row(
+            children: [
+              const Expanded(child: Text('วัตถุดิบทดแทน')),
+              IconButton(
+                tooltip: 'ปิด',
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                icon: const Icon(Icons.close),
+              ),
+            ],
+          ),
+          content: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: 420,
+              maxHeight: size.height * 0.62,
+            ),
+            child: SingleChildScrollView(
+              child: RecipeSubstitutionPanel(
+                recipeId: widget.recipe.id,
+                readiness: readiness,
+                compactPopup: true,
+                onClose: () => Navigator.of(dialogContext).pop(),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('ปิด'),
+            ),
+          ],
+        );
+      },
     );
   }
 

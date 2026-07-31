@@ -11,10 +11,14 @@ class RecipeSubstitutionPanel extends ConsumerWidget {
     super.key,
     required this.recipeId,
     required this.readiness,
+    this.compactPopup = false,
+    this.onClose,
   });
 
   final String recipeId;
   final RecipeReadiness readiness;
+  final bool compactPopup;
+  final VoidCallback? onClose;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -33,6 +37,16 @@ class RecipeSubstitutionPanel extends ConsumerWidget {
         if (groups.isEmpty) return const SizedBox.shrink();
 
         final recommendationSignature = _recommendationSignature(groups);
+        if (compactPopup) {
+          return _ExpandedSubstitutionCard(
+            recipeId: recipeId,
+            groups: groups,
+            accepted: accepted,
+            displayName: displayName,
+            onIgnore: onClose ?? () {},
+            onHide: onClose ?? () {},
+          );
+        }
         final preference = ref.watch(
           recipeSubstitutionPanelPreferenceProvider.select(
             (preferences) => preferences[recipeId],

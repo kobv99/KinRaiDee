@@ -1,3 +1,4 @@
+import '../../../../core/domain/ingredients/canonical_ingredient.dart';
 import '../../../../core/domain/ingredients/canonical_ingredient_registry.dart';
 import '../../../../core/domain/units/unit_contract.dart';
 import '../../../../core/models/ingredient.dart' as pantry_model;
@@ -196,15 +197,25 @@ class RecipeReadinessService {
         status: RecipeIngredientReadinessStatus.missing,
       );
     }
-    if (targetUnitId == null) {
+    final trackingType = registry.byId(canonicalId)?.trackingType;
+    if (trackingType == IngredientTrackingType.presenceOnly ||
+        trackingType == IngredientTrackingType.stockBased) {
       return _result(
         ingredient: ingredient,
         canonicalId: canonicalId,
         requiredQuantity: requiredQuantity,
-        availableQuantity: 0,
-        ratio: 0,
+        availableQuantity: requiredQuantity,
+        ratio: 1,
         weight: weight,
-        status: RecipeIngredientReadinessStatus.incompatibleUnit,
+        status: RecipeIngredientReadinessStatus.available,
+      );
+    }
+    if (targetUnitId == null) {
+      return _availableByIdentity(
+        ingredient: ingredient,
+        canonicalId: canonicalId,
+        requiredQuantity: requiredQuantity,
+        weight: weight,
       );
     }
 
@@ -229,14 +240,11 @@ class RecipeReadinessService {
       hasCompatibleQuantity = true;
     }
     if (!hasCompatibleQuantity) {
-      return _result(
+      return _availableByIdentity(
         ingredient: ingredient,
         canonicalId: canonicalId,
         requiredQuantity: requiredQuantity,
-        availableQuantity: 0,
-        ratio: 0,
         weight: weight,
-        status: RecipeIngredientReadinessStatus.incompatibleUnit,
       );
     }
 
@@ -254,6 +262,23 @@ class RecipeReadinessService {
       ratio: ratio,
       weight: weight,
       status: status,
+    );
+  }
+
+  RecipeIngredientReadiness _availableByIdentity({
+    required RecipeIngredient ingredient,
+    required String canonicalId,
+    required double requiredQuantity,
+    required double weight,
+  }) {
+    return _result(
+      ingredient: ingredient,
+      canonicalId: canonicalId,
+      requiredQuantity: requiredQuantity,
+      availableQuantity: requiredQuantity,
+      ratio: 1,
+      weight: weight,
+      status: RecipeIngredientReadinessStatus.available,
     );
   }
 
