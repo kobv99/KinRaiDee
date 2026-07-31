@@ -13,6 +13,7 @@ import '../../../../core/design_system/feature_components/cooking_step_card.dart
 import '../../../../core/design_system/feature_components/pantry_readiness_card.dart';
 import '../../../../core/design_system/feature_components/serving_selector.dart';
 import '../../../../core/providers/pantry_provider.dart';
+import '../../application/recipe_missing_shopping_controller.dart';
 import '../../domain/entities/recipe.dart';
 import '../../domain/services/pantry_deduction_planner.dart';
 import '../../domain/services/recipe_serving_calculator.dart';
@@ -44,6 +45,7 @@ class _CookingWizardPageState extends ConsumerState<CookingWizardPage> {
   _WizardPhase _phase = _WizardPhase.serving;
   int _cookingStepIndex = 0;
   bool _isFinishing = false;
+  bool _isAddingMissing = false;
 
   @override
   void initState() {
@@ -96,7 +98,11 @@ class _CookingWizardPageState extends ConsumerState<CookingWizardPage> {
                   servings: _servings,
                   onChanged: (value) => setState(() => _servings = value),
                 ),
-              _WizardPhase.review => _ReviewStep(servingPlan: servingPlan),
+              _WizardPhase.review => _ReviewStep(
+                  servingPlan: servingPlan,
+                  isAddingMissing: _isAddingMissing,
+                  onAddMissing: _addMissingIngredients,
+                ),
               _WizardPhase.confirm => _ConfirmStep(servingPlan: servingPlan),
               _WizardPhase.cooking => const SizedBox.shrink(), // handled above
             },
@@ -237,6 +243,43 @@ class _CookingWizardPageState extends ConsumerState<CookingWizardPage> {
         _cookingStepIndex = 0;
       });
     }
+  }
+
+  Future<void> _addMissingIngredients() async {
+    if (_isAddingMissing) return;
+    final controller = ref.read(recipeMissingShoppingControllerProvider);
+    if (controller == null) {
+      _showMessage('ยังตรวจ Pantry ไม่สำเร็จ คุณยังเริ่มทำอาหารได้และเพิ่มรายการภายหลังได้');
+      return;
+    }
+    setState(() => _isAddingMissing = true);
+    try {
+      final result = await controller.addMissingIngredients(
+        recipe: widget.recipe,
+        servings: _servings,
+      );
+      if (!mounted) return;
+      final message = switch (result.outcome) {
+        RecipeMissingShoppingOutcome.committed =>
+          'เพิ่มวัตถุดิบที่ขาด ${result.changedItemCount} รายการไป Shopping แล้ว',
+        RecipeMissingShoppingOutcome.noMissingIngredients => 'Pantry พร้อมสำหรับสูตรนี้แล้ว',
+        RecipeMissingShoppingOutcome.unchanged => 'วัตถุดิบที่แนะนำมีอยู่ใน Shopping แล้ว',
+        RecipeMissingShoppingOutcome.notCandidateRecipe =>
+          'ยังไม่พบวัตถุดิบหลักของสูตรนี้ใน Pantry คุณยังเริ่มทำอาหารได้และวางแผนซื้อภายหลังได้',
+        RecipeMissingShoppingOutcome.failed => 'เพิ่มรายการไม่สำเร็จ ข้อมูลเดิมยังคงปลอดภัย',
+      };
+      _showMessage(message);
+    } on Object {
+      if (mounted) _showMessage('เพิ่มรายการไม่สำเร็จ ข้อมูลเดิมยังคงปลอดภัย');
+    } finally {
+      if (mounted) setState(() => _isAddingMissing = false);
+    }
+  }
+
+  void _showMessage(String message) {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    messenger.showSnackBar(SnackBar(content: Text(message)));
   }
 
   // -------------------------------------------------------------------
@@ -408,9 +451,15 @@ class _ServingStep extends StatelessWidget {
 }
 
 class _ReviewStep extends StatelessWidget {
-  const _ReviewStep({required this.servingPlan});
+  const _ReviewStep({
+    required this.servingPlan,
+    required this.isAddingMissing,
+    required this.onAddMissing,
+  });
 
   final RecipeServingPlan servingPlan;
+  final bool isAddingMissing;
+  final VoidCallback onAddMissing;
 
   @override
   Widget build(BuildContext context) {
@@ -428,6 +477,7 @@ class _ReviewStep extends StatelessWidget {
             haveCount: haveCount,
             totalCount: total,
             missingCount: missing.length,
+            onAddMissingIngredients: isAddingMissing ? null : onAddMissing,
           ),
           const SizedBox(height: AppSpacing.xl),
           Text('มีครบแล้ว', style: AppTypography.label),
@@ -483,24 +533,26 @@ class _ConfirmStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Text('🍳', style: TextStyle(fontSize: 56)),
-        const SizedBox(height: AppSpacing.lg),
-        Text('คุณพร้อมทำ', style: AppTypography.body, textAlign: TextAlign.center),
-        Text(
-          servingPlan.recipe.name,
-          style: AppTypography.headline,
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        Text(
-          'สำหรับ ${servingPlan.servings} คน · ใช้เวลาโดยประมาณ ${servingPlan.recipe.cookTimeMinutes} นาที',
-          style: AppTypography.bodySmall,
-          textAlign: TextAlign.center,
-        ),
-      ],
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('🍳', style: TextStyle(fontSize: 56)),
+          const SizedBox(height: AppSpacing.lg),
+          Text('คุณพร้อมทำ', style: AppTypography.body, textAlign: TextAlign.center),
+          Text(
+            servingPlan.recipe.name,
+            style: AppTypography.headline,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'สำหรับ ${servingPlan.servings} คน · ใช้เวลาโดยประมาณ ${servingPlan.recipe.cookTimeMinutes} นาที',
+            style: AppTypography.bodySmall,
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 }

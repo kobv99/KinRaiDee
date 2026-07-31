@@ -3,13 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/design_system/components/responsive_content.dart';
 import '../../../../core/design_system/design_tokens/app_colors.dart';
+import '../../../../core/design_system/design_tokens/app_spacing.dart';
 import '../../application/recipe_missing_shopping_controller.dart';
 import '../../domain/entities/recipe.dart';
 import '../providers/recipe_provider.dart';
 import '../providers/recipe_shopping_provider.dart';
 import '../widgets/recipe_detail_header.dart';
+import '../widgets/recipe_ingredient_list.dart';
 import 'cooking_wizard_page.dart';
-import 'recipe_detail_legacy.dart' as legacy;
 
 class RecipeDetailPage extends ConsumerStatefulWidget {
   const RecipeDetailPage({super.key, required this.recipe});
@@ -37,55 +38,31 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
         RecipeReadinessRequest(recipe: widget.recipe, servings: _servings),
       ),
     );
-    final theme = Theme.of(context);
-    final isNarrow = MediaQuery.sizeOf(context).width <= 360;
-    final embeddedTheme = theme.copyWith(
-      appBarTheme: theme.appBarTheme.copyWith(toolbarHeight: 0),
-      textTheme: isNarrow
-          ? theme.textTheme.copyWith(
-              bodySmall: theme.textTheme.bodySmall?.copyWith(fontSize: 9.5),
-            )
-          : theme.textTheme,
-    );
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         top: false,
         child: ResponsiveContent(
-          child: Column(
+          child: ListView(
             children: [
-              ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.sizeOf(context).height * 0.55,
-                ),
-                child: SingleChildScrollView(
-                  child: RecipeDetailHeader(
-                    recipe: widget.recipe,
-                    readiness: readiness,
-                    onBack: () => Navigator.of(context).maybePop(),
-                    onAddMissing:
-                        readiness == null || readiness.missingIngredients.isEmpty
-                        ? null
-                        : _addMissingIngredients,
-                    onStartCooking: () => Navigator.of(context).push<void>(
-                      MaterialPageRoute(
-                        builder: (_) => CookingWizardPage(recipe: widget.recipe),
-                      ),
-                    ),
+              RecipeDetailHeader(
+                recipe: widget.recipe,
+                readiness: readiness,
+                onBack: () => Navigator.of(context).maybePop(),
+                onAddMissing:
+                    readiness == null || readiness.missingIngredients.isEmpty
+                    ? null
+                    : _addMissingIngredients,
+                onStartCooking: () => Navigator.of(context).push<void>(
+                  MaterialPageRoute(
+                    builder: (_) => CookingWizardPage(recipe: widget.recipe),
                   ),
                 ),
               ),
-              Expanded(
-                child: MediaQuery.removePadding(
-                  context: context,
-                  removeTop: true,
-                  child: Theme(
-                    data: embeddedTheme,
-                    child: legacy.RecipeDetailPage(recipe: widget.recipe),
-                  ),
-                ),
-              ),
+              const SizedBox(height: AppSpacing.lg),
+              RecipeIngredientList(readiness: readiness),
+              const SizedBox(height: AppSpacing.xxl),
             ],
           ),
         ),
