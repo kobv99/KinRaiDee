@@ -69,6 +69,15 @@ class _CookingWizardPageState extends ConsumerState<CookingWizardPage> {
 
   @override
   Widget build(BuildContext context) {
+    // TEMPORARY — Sprint 5.6 Product Acceptance FAIL debugging. Do not
+    // remove until the reported "wizard body renders only the bottom CTA"
+    // failure is understood and reproduced. Every value the acceptance
+    // report's debugging checklist asked for, logged on every build.
+    debugPrint(
+      '[wizard-debug] build() recipeId=${widget.recipe.id} '
+      'recipeName=${widget.recipe.name} phase=$_phase servings=$_servings',
+    );
+
     // Everything below depends on this computation succeeding. If it ever
     // throws (bad recipe data, a unit-conversion edge case, anything
     // unanticipated), the wizard must show an explicit error state with
@@ -79,14 +88,26 @@ class _CookingWizardPageState extends ConsumerState<CookingWizardPage> {
     try {
       final pantry = ref.watch(pantryProvider);
       final registry = ref.watch(canonicalIngredientRegistryProvider);
+      debugPrint(
+        '[wizard-debug] pantry.length=${pantry.length} '
+        'registry=${registry == null ? 'NULL' : '${registry.ingredients.length} ingredients'}',
+      );
       servingPlan = const RecipeServingCalculator().calculate(
         recipe: widget.recipe,
         pantry: pantry,
         servings: _servings,
         registry: registry,
       );
+      debugPrint(
+        '[wizard-debug] servingPlan computed: '
+        'ingredients=${servingPlan.ingredients.length} '
+        'enoughCount=${servingPlan.enoughCount} '
+        'missingCount=${servingPlan.ingredients.where((i) => !i.isEnough).length} '
+        'optionalCount=${servingPlan.ingredients.where((i) => i.ingredient.effectiveRole() == RecipeIngredientRole.optional).length}',
+      );
     } on Object catch (error, stackTrace) {
       computeError = error;
+      debugPrint('[wizard-debug] servingPlan computation THREW: $error');
       FlutterError.reportError(
         FlutterErrorDetails(
           exception: error,
@@ -100,6 +121,10 @@ class _CookingWizardPageState extends ConsumerState<CookingWizardPage> {
     }
 
     if (computeError != null || servingPlan == null) {
+      debugPrint(
+        '[wizard-debug] returning WizardErrorScaffold '
+        '(computeError=$computeError, servingPlan=$servingPlan)',
+      );
       return WizardErrorScaffold(
         phaseLabel: _phaseLabel(_phase),
         onRetry: () => setState(() {}),
@@ -108,10 +133,15 @@ class _CookingWizardPageState extends ConsumerState<CookingWizardPage> {
     }
 
     if (_phase == _WizardPhase.cooking) {
+      debugPrint('[wizard-debug] returning cooking mode body');
       return _buildCookingMode(context, servingPlan);
     }
 
     final missingInShoppingCount = _missingInShoppingCount(servingPlan);
+    debugPrint(
+      '[wizard-debug] rendering phase=$_phase body, '
+      'missingInShoppingCount=$missingInShoppingCount',
+    );
 
     return PopScope(
       canPop: _phase == _WizardPhase.serving,
@@ -362,6 +392,8 @@ class _CookingWizardPageState extends ConsumerState<CookingWizardPage> {
       lists,
       widget.recipe.id,
     );
+    // TEMPORARY — Sprint 5.6 Product Acceptance FAIL debugging, see build().
+    debugPrint('[wizard-debug] shoppingIngredientIds=$idsInShopping');
     return servingPlan.ingredients
         .where(
           (item) =>
