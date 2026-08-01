@@ -1,0 +1,167 @@
+name: Fix main ingredient handoff tests
+
+on:
+  push:
+    branches:
+      - fix/main-ingredient-codex-handoff
+    paths:
+      - .github/workflows/fix-main-ingredient-handoff-tests.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix-validate-and-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/main-ingredient-codex-handoff
+
+      - name: Apply focused fixes
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              target = Path(path)
+              source = target.read_text(encoding='utf-8')
+              if old not in source:
+                  raise SystemExit(f'Expected block not found in {path}')
+              target.write_text(source.replace(old, new, 1), encoding='utf-8')
+
+          replace_once(
+              'apps/mobile/lib/features/recipe/data/pantry_catalog_canonical_definitions.dart',
+              """  _DefinitionSeed(
+            'salmon',
+            'Salmon',
+            'ปลาแซลมอน',
+            'seafood',
+            '🐟',
+            aliases: <String>['แซลมอน', 'salmon'],
+            parentId: 'fish',
+            unitFamily: IngredientUnitFamily.fish,
+          ),""",
+              """  _DefinitionSeed(
+            'salmon',
+            'Salmon',
+            'ปลาแซลมอน',
+            'seafood',
+            '🐟',
+            aliases: <String>['แซลมอน', 'salmon'],
+            parentId: 'fish',
+            unitFamily: IngredientUnitFamily.fish,
+            nodeType: CanonicalIngredientNodeType.ingredient,
+            selectableAsMainIngredient: true,
+            ingredientForms: <String>[
+              'boneless_fillet',
+              'steak',
+              'whole_cleaned',
+            ],
+            textures: <String>['oily_firm'],
+            supportedCookingMethods: <String>['ทอด', 'ย่าง', 'อบ', 'นึ่ง'],
+          ),""",
+          )
+
+          replace_once(
+              'apps/mobile/test/features/pantry/pantry_catalog_integrity_test.dart',
+              "expect(registry.resolve('Chicken Breast').ingredient?.id, 'chicken');",
+              "expect(registry.resolve('Chicken Breast').ingredient?.id, 'chicken_breast');",
+          )
+
+          replace_once(
+              'apps/mobile/test/features/pantry/pantry_data_integrity_test.dart',
+              "containsAll(<String>{'duck', 'chicken', 'tilapia'})",
+              "containsAll(<String>{'duck', 'chicken_breast', 'tilapia'})",
+          )
+
+          replace_once(
+              'apps/mobile/test/features/recipe/local_recipe_datasource_test.dart',
+              """      expect(
+            mackerelRecipes,
+            everyElement(
+              predicate(
+                (recipe) => recipe.compatibility.exactIngredientIds.contains(
+                  'mackerel',
+                ),
+              ),
+            ),
+          );""",
+              """      expect(
+            mackerelRecipes.every(
+              (recipe) => recipe.compatibility.exactIngredientIds.contains(
+                'mackerel',
+              ),
+            ),
+            isTrue,
+          );""",
+          )
+
+          replace_once(
+              'apps/mobile/test/features/recipe/presentation/cooking_wizard_real_data_test.dart',
+              """      await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull, reason: 'All Recipes list');
+
+          final allRecipeTiles = find.byWidgetPredicate(""",
+              """      await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull, reason: 'All Recipes list');
+
+          // Recipe discovery is search-first: the unfiltered catalog stays
+          // hidden until the person intentionally searches or filters.
+          await tester.enterText(
+            find.byKey(
+              const ValueKey<String>('recipe-discovery-search-field'),
+            ),
+            'ปลาทู',
+          );
+          await tester.pumpAndSettle();
+          expect(
+            tester.takeException(),
+            isNull,
+            reason: 'search-first recipe discovery',
+          );
+
+          final allRecipeTiles = find.byWidgetPredicate(""",
+          )
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.7'
+          channel: stable
+          cache: true
+
+      - name: Get dependencies
+        working-directory: apps/mobile
+        run: flutter pub get
+
+      - name: Format
+        working-directory: apps/mobile
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze
+        working-directory: apps/mobile
+        run: flutter analyze
+
+      - name: Test
+        working-directory: apps/mobile
+        run: flutter test
+
+      - name: Build web
+        working-directory: apps/mobile
+        run: flutter build web
+
+      - name: Commit validated fixes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/fix-main-ingredient-handoff-tests.yml
+          git add apps/mobile/lib/features/recipe/data/pantry_catalog_canonical_definitions.dart
+          git add apps/mobile/test/features/pantry/pantry_catalog_integrity_test.dart
+          git add apps/mobile/test/features/pantry/pantry_data_integrity_test.dart
+          git add apps/mobile/test/features/recipe/local_recipe_datasource_test.dart
+          git add apps/mobile/test/features/recipe/presentation/cooking_wizard_real_data_test.dart
+          git commit -m "fix: align handoff tests with canonical discovery"
+          git push origin HEAD:fix/main-ingredient-codex-handoff
