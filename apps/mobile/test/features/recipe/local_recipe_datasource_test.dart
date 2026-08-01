@@ -32,14 +32,12 @@ void main() {
       expect(fishRecipes, hasLength(20));
       expect(mackerelRecipes, hasLength(7));
       expect(
-        mackerelRecipes,
-        everyElement(
-          predicate(
-            (recipe) => recipe.compatibility.exactIngredientIds.contains(
-              'mackerel',
-            ),
+        mackerelRecipes.every(
+          (recipe) => recipe.compatibility.exactIngredientIds.contains(
+            'mackerel',
           ),
         ),
+        isTrue,
       );
       expect(saltedEggRecipes, hasLength(12));
     },
