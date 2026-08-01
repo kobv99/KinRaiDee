@@ -56,185 +56,176 @@ class _RecipePageState extends ConsumerState<RecipePage> {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, stackTrace) =>
               _ErrorView(onRetry: () => ref.invalidate(recipesProvider)),
-          data: (result) {
-            if (!result.requestedSelectionAvailable) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                ref.read(heroSelectionProvider.notifier).useAutomatic();
-              });
-            }
-
-            if (!result.hasHero) {
-              return RefreshIndicator(
-                onRefresh: () => _reload(ref),
-                child: _NoHeroView(
-                  canChooseManually: result.heroOptions.isNotEmpty,
-                  onChooseManually: () => _showHeroPicker(
-                    context,
-                    ref,
-                    result.heroOptions,
-                    null,
-                    result.heroSelectionMode,
-                  ),
-                ),
-              );
-            }
-
-            return RefreshIndicator(
-              onRefresh: () => _reload(ref),
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-                children: [
-                  _HeroIngredientCard(
-                    hero: result.hero!,
-                    selectionMode: result.heroSelectionMode,
-                    reason: result.heroReason,
-                    onChange: () => _showHeroPicker(
-                      context,
-                      ref,
-                      result.heroOptions,
-                      result.hero!,
-                      result.heroSelectionMode,
-                    ),
-                    onTogglePin: () async {
-                      final notifier = ref.read(heroSelectionProvider.notifier);
-                      if (result.isPinned) {
-                        await notifier.useAutomatic();
-                      } else {
-                        await notifier.pin(result.hero!.key);
-                      }
-                      ref.read(recommendationSessionProvider.notifier).reset();
-                    },
-                  ),
-                  if (result.heroOptions.length > 1) ...[
-                    const SizedBox(height: AppSpacing.md),
-                    _MeatTypeChipsRow(
-                      options: result.heroOptions,
-                      activeKey: result.hero!.key,
-                      onSelect: (option) async {
-                        await ref
-                            .read(heroSelectionProvider.notifier)
-                            .selectForSession(option.key);
-                        ref
-                            .read(recommendationSessionProvider.notifier)
-                            .reset();
-                      },
-                    ),
-                  ],
-                  const SizedBox(height: AppSpacing.sm),
-                  _QuickFilterChipsRow(
-                    active: _activeFilters,
-                    onToggle: (filter) => setState(() {
-                      if (!_activeFilters.remove(filter)) {
-                        _activeFilters.add(filter);
-                      }
-                    }),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Top Picks สำหรับ ${result.hero!.name}',
-                          key: const ValueKey<String>('top-picks-heading'),
-                          style: AppTypography.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (result.canRefresh)
-                        TextButton.icon(
-                          onPressed: () => ref
-                              .read(recommendationSessionProvider.notifier)
-                              .showNext(result.totalHeroRecipes),
-                          style: TextButton.styleFrom(
-                            visualDensity: VisualDensity.compact,
-                          ),
-                          icon: const Icon(Icons.refresh, size: 16),
-                          label: const Text('เปลี่ยนชุด'),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    result.totalHeroRecipes == 0
-                        ? 'ยังไม่มีเมนูที่ยืนยันความเข้ากันได้โดยตรง'
-                        : 'พบ ${result.totalHeroRecipes} เมนูที่ยืนยันความเข้ากันได้ · แตะเพื่อดูรายละเอียด',
-                    key: const ValueKey<String>('top-picks-summary'),
-                    style: AppTypography.caption,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Builder(
-                    builder: (context) {
-                      final filteredPrimary = result.primaryMatches
-                          .where(_passesFilters)
-                          .toList(growable: false);
-                      final filteredAdaptable = result.adaptableMatches
-                          .where(_passesFilters)
-                          .toList(growable: false);
-
-                      if (_activeFilters.isNotEmpty &&
-                          filteredPrimary.isEmpty &&
-                          filteredAdaptable.isEmpty) {
-                        return const Padding(
-                          padding: EdgeInsets.symmetric(
-                            vertical: AppSpacing.xl,
-                          ),
-                          child: Text(
-                            'ไม่มีเมนูที่ตรงกับตัวกรองที่เลือก ลองเอาตัวกรองออกบางส่วน',
-                            textAlign: TextAlign.center,
-                            style: AppTypography.body,
-                          ),
-                        );
-                      }
-
-                      return Column(
-                        children: [
-                          if (filteredPrimary.isEmpty)
-                            const Padding(
-                              key: ValueKey<String>(
-                                'top-picks-empty-state',
-                              ),
-                              padding: EdgeInsets.symmetric(
-                                vertical: AppSpacing.lg,
-                              ),
-                              child: Text(
-                                'ยังไม่พบเมนูที่เข้ากันโดยตรง ลองเลือกวัตถุดิบหลักอื่น',
-                                textAlign: TextAlign.center,
-                                style: AppTypography.body,
-                              ),
-                            ),
-                          ...filteredPrimary.map(
-                            (match) => Padding(
-                              key: ValueKey<String>(
-                                'top-pick-${match.recipe.id}',
-                              ),
-                              padding: const EdgeInsets.only(
-                                bottom: AppSpacing.sm,
-                              ),
-                              child: _RecipeMatchCard(
-                                match: match,
-                                onOpen: () => _openRecipeDetail(context, match),
-                              ),
-                            ),
-                          ),
-                          if (filteredAdaptable.isNotEmpty) ...[
-                            const SizedBox(height: 24),
-                            _AdaptableRecipesSection(
-                              matches: filteredAdaptable,
-                              onOpen: (match) =>
-                                  _openRecipeDetail(context, match),
-                            ),
-                          ],
-                        ],
-                      );
-                    },
-                  ),
-                ],
-              ),
-            );
-          },
+          data: _buildRecommendation,
         ),
+      ),
+    );
+  }
+
+  Widget _buildRecommendation(SmartRecommendation result) {
+    if (!result.requestedSelectionAvailable) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        final selection = ref.read(heroSelectionProvider);
+        if (!selection.isAutomatic) {
+          ref.read(heroSelectionProvider.notifier).useAutomatic();
+          ref.read(recommendationSessionProvider.notifier).reset();
+        }
+      });
+    }
+
+    if (!result.hasHero) {
+      return RefreshIndicator(
+        onRefresh: () => _reload(ref),
+        child: _NoHeroView(
+          canChooseManually: result.heroOptions.isNotEmpty,
+          onChooseManually: () => _showHeroPicker(
+            context,
+            ref,
+            result.heroOptions,
+            null,
+            result.heroSelectionMode,
+          ),
+        ),
+      );
+    }
+
+    final hero = result.hero!;
+    final filteredPrimary = result.primaryMatches
+        .where(_passesFilters)
+        .toList(growable: false);
+    final filteredAdaptable = result.adaptableMatches
+        .where(_passesFilters)
+        .toList(growable: false);
+    final filtersHideEverything =
+        _activeFilters.isNotEmpty &&
+        filteredPrimary.isEmpty &&
+        filteredAdaptable.isEmpty;
+
+    return RefreshIndicator(
+      onRefresh: () => _reload(ref),
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+        children: [
+          _HeroIngredientCard(
+            hero: hero,
+            selectionMode: result.heroSelectionMode,
+            reason: result.heroReason,
+            onChange: () => _showHeroPicker(
+              context,
+              ref,
+              result.heroOptions,
+              hero,
+              result.heroSelectionMode,
+            ),
+            onTogglePin: () async {
+              final notifier = ref.read(heroSelectionProvider.notifier);
+              if (result.isPinned) {
+                await notifier.useAutomatic();
+              } else {
+                await notifier.pin(hero.key);
+              }
+              ref.read(recommendationSessionProvider.notifier).reset();
+            },
+          ),
+          if (result.heroOptions.length > 1) ...[
+            const SizedBox(height: AppSpacing.md),
+            _HeroQuickSelectRow(
+              options: result.heroOptions,
+              activeKey: hero.key,
+              onSelect: (option) async {
+                await ref
+                    .read(heroSelectionProvider.notifier)
+                    .selectForSession(option.key);
+                ref.read(recommendationSessionProvider.notifier).reset();
+              },
+            ),
+          ],
+          const SizedBox(height: AppSpacing.sm),
+          _QuickFilterChips(
+            active: _activeFilters,
+            onToggle: (filter) => setState(() {
+              if (!_activeFilters.remove(filter)) {
+                _activeFilters.add(filter);
+              }
+            }),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Top Picks สำหรับ ${hero.name}',
+                  key: const ValueKey<String>('top-picks-heading'),
+                  style: AppTypography.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (result.canRefresh)
+                TextButton.icon(
+                  onPressed: () => ref
+                      .read(recommendationSessionProvider.notifier)
+                      .showNext(result.totalHeroRecipes),
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  icon: const Icon(Icons.refresh, size: 16),
+                  label: const Text('เปลี่ยนชุด'),
+                ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            result.totalHeroRecipes == 0
+                ? 'ยังไม่มีเมนูที่ยืนยันความเข้ากันได้โดยตรง'
+                : 'พบ ${result.totalHeroRecipes} เมนูที่ยืนยันความเข้ากันได้',
+            key: const ValueKey<String>('top-picks-summary'),
+            style: AppTypography.caption,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          if (filtersHideEverything)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
+              child: Text(
+                'ไม่มีเมนูที่ตรงกับตัวกรองที่เลือก ลองเอาตัวกรองออกบางส่วน',
+                textAlign: TextAlign.center,
+                style: AppTypography.body,
+              ),
+            )
+          else ...[
+            if (filteredPrimary.isEmpty)
+              const Padding(
+                key: ValueKey<String>('top-picks-empty-state'),
+                padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                child: Text(
+                  'ยังไม่พบเมนูที่เข้ากันโดยตรง ลองเลือกวัตถุดิบหลักอื่น',
+                  textAlign: TextAlign.center,
+                  style: AppTypography.body,
+                ),
+              ),
+            ...filteredPrimary.map(
+              (match) => Padding(
+                key: ValueKey<String>('top-pick-${match.recipe.id}'),
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: _RecipeMatchCard(
+                  match: match,
+                  onOpen: () => _openRecipeDetail(context, match),
+                ),
+              ),
+            ),
+            if (filteredAdaptable.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.lg),
+              _AdaptableRecipesSection(
+                matches: filteredAdaptable,
+                onOpen: (match) => _openRecipeDetail(context, match),
+              ),
+            ],
+          ],
+        ],
       ),
     );
   }
@@ -298,7 +289,7 @@ class _RecipePageState extends ConsumerState<RecipePage> {
           : null,
     );
 
-    if (result == null) {
+    if (result == null || !mounted) {
       return;
     }
 
@@ -310,8 +301,6 @@ class _RecipePageState extends ConsumerState<RecipePage> {
       if (result.pinAction == MainIngredientPinAction.pin) {
         await selection.pin(ingredientId);
       } else {
-        // A normal selection and an explicit unpin both keep the ingredient
-        // selected for this session without persisting the pin.
         await selection.selectForSession(ingredientId);
       }
     }
@@ -319,11 +308,8 @@ class _RecipePageState extends ConsumerState<RecipePage> {
   }
 }
 
-/// Lets the person switch which main ingredient drives recommendations
-/// with a single tap, instead of only through the "เปลี่ยน" picker sheet —
-/// recommendations should not feel locked to one ingredient.
-class _MeatTypeChipsRow extends StatelessWidget {
-  const _MeatTypeChipsRow({
+class _HeroQuickSelectRow extends StatelessWidget {
+  const _HeroQuickSelectRow({
     required this.options,
     required this.activeKey,
     required this.onSelect,
@@ -343,11 +329,10 @@ class _MeatTypeChipsRow extends StatelessWidget {
         separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.xs),
         itemBuilder: (context, index) {
           final option = options[index];
-          final selected = option.key == activeKey;
           return ChoiceChip(
             key: ValueKey<String>('hero-quick-select-${option.key}'),
             label: Text('${option.emoji} ${option.name}'),
-            selected: selected,
+            selected: option.key == activeKey,
             onSelected: (_) => onSelect(option),
           );
         },
@@ -356,18 +341,15 @@ class _MeatTypeChipsRow extends StatelessWidget {
   }
 }
 
-/// Client-side filters over the already-scored recommendation list — lets
-/// the person narrow "what to eat today" by more than just the single hero
-/// ingredient (readiness, missing count, cook time).
-class _QuickFilterChipsRow extends StatelessWidget {
-  const _QuickFilterChipsRow({required this.active, required this.onToggle});
+class _QuickFilterChips extends StatelessWidget {
+  const _QuickFilterChips({required this.active, required this.onToggle});
 
   final Set<_QuickFilter> active;
   final ValueChanged<_QuickFilter> onToggle;
 
   @override
   Widget build(BuildContext context) {
-    const labels = {
+    const labels = <_QuickFilter, (String, IconData)>{
       _QuickFilter.ready: ('พร้อมทำ', Icons.check_circle_outline),
       _QuickFilter.lowMissing: ('ขาดน้อย', Icons.shopping_basket_outlined),
       _QuickFilter.quick: ('เมนูด่วน', Icons.bolt_outlined),
@@ -376,18 +358,16 @@ class _QuickFilterChipsRow extends StatelessWidget {
     return Wrap(
       spacing: AppSpacing.xs,
       runSpacing: AppSpacing.xs,
-      children: _QuickFilter.values
-          .map((filter) {
-            final (label, icon) = labels[filter]!;
-            return FilterChip(
-              key: ValueKey<String>('recipe-quick-filter-${filter.name}'),
-              avatar: Icon(icon, size: 16),
-              label: Text(label),
-              selected: active.contains(filter),
-              onSelected: (_) => onToggle(filter),
-            );
-          })
-          .toList(growable: false),
+      children: _QuickFilter.values.map((filter) {
+        final (label, icon) = labels[filter]!;
+        return FilterChip(
+          key: ValueKey<String>('recipe-quick-filter-${filter.name}'),
+          avatar: Icon(icon, size: 16),
+          label: Text(label),
+          selected: active.contains(filter),
+          onSelected: (_) => onToggle(filter),
+        );
+      }).toList(growable: false),
     );
   }
 }
@@ -396,62 +376,89 @@ class _HeroIngredientCard extends StatelessWidget {
   const _HeroIngredientCard({
     required this.hero,
     required this.selectionMode,
+    required this.reason,
     required this.onChange,
     required this.onTogglePin,
   });
 
   final HeroIngredientOption hero;
   final HeroSelectionMode selectionMode;
+  final String reason;
   final VoidCallback onChange;
   final VoidCallback onTogglePin;
 
   @override
   Widget build(BuildContext context) {
     final isPinned = selectionMode == HeroSelectionMode.pinned;
+    final modeLabel = switch (selectionMode) {
+      HeroSelectionMode.automatic => 'ระบบเลือกอัตโนมัติ',
+      HeroSelectionMode.manual => 'เลือกด้วยตนเอง',
+      HeroSelectionMode.pinned => 'ปักหมุดไว้',
+    };
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: AppColors.primarySoft,
         borderRadius: AppRadius.largeRadius,
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(hero.emoji, style: const TextStyle(fontSize: 22)),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Text(
-              '${hero.name} · ${hero.recipeCount} เมนู',
-              style: AppTypography.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+          Row(
+            children: [
+              Text(hero.emoji, style: const TextStyle(fontSize: 24)),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${hero.name} · ${hero.recipeCount} เมนู',
+                      style: AppTypography.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(modeLabel, style: AppTypography.caption),
+                  ],
+                ),
+              ),
+              IconButton(
+                tooltip: isPinned
+                    ? 'กลับไปให้ระบบเลือก'
+                    : 'ปักหมุดวัตถุดิบนี้',
+                onPressed: onTogglePin,
+                icon: Icon(
+                  isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                  size: 18,
+                ),
+                visualDensity: VisualDensity.compact,
+              ),
+              TextButton(
+                onPressed: onChange,
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                ),
+                child: const Text('เปลี่ยน'),
+              ),
+            ],
           ),
-          IconButton(
-            tooltip: isPinned ? 'กลับไปให้ระบบเลือก' : 'ปักหมุดวัตถุดิบนี้',
-            onPressed: onTogglePin,
-            icon: Icon(
-              isPinned ? Icons.push_pin : Icons.push_pin_outlined,
-              size: 18,
-            ),
-            visualDensity: VisualDensity.compact,
-          ),
-          TextButton(
-            onPressed: onChange,
-            style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-            child: const Text('เปลี่ยน'),
-          ),
+          if (reason.trim().isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Text(reason, style: AppTypography.caption),
+          ],
         ],
       ),
     );
   }
 }
 
-class _MoreRecipesSection extends StatelessWidget {
-  const _MoreRecipesSection({required this.matches, required this.onOpen});
+class _AdaptableRecipesSection extends StatelessWidget {
+  const _AdaptableRecipesSection({
+    required this.matches,
+    required this.onOpen,
+  });
 
   final List<RecipeMatch> matches;
   final ValueChanged<RecipeMatch> onOpen;
@@ -461,25 +468,26 @@ class _MoreRecipesSection extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
-        leading: const Icon(Icons.add_circle_outline),
+        key: const ValueKey<String>('adaptable-recipes-section'),
+        leading: const Icon(Icons.tune_outlined),
         title: const Text(
-          'เมนูเพิ่มเติมจากวัตถุดิบที่มี',
+          'เมนูที่อาจปรับใช้ได้',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        subtitle: Text('${matches.length} เมนู — เรียงตามเปอร์เซ็นต์'),
+        subtitle: Text(
+          '${matches.length} เมนูจากกลุ่มวัตถุดิบเดียวกัน ตรวจสูตรก่อนตัดสินใจ',
+        ),
         childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-        children: matches
-            .map(
-              (match) => Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: _RecipeMatchCard(
-                  match: match,
-                  compact: true,
-                  onOpen: () => onOpen(match),
-                ),
-              ),
-            )
-            .toList(growable: false),
+        children: matches.map((match) {
+          return Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: _RecipeMatchCard(
+              match: match,
+              compact: true,
+              onOpen: () => onOpen(match),
+            ),
+          );
+        }).toList(growable: false),
       ),
     );
   }
@@ -498,6 +506,7 @@ class _RecipeMatchCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final reason = match.matchReason.trim();
     return Card(
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
@@ -519,6 +528,19 @@ class _RecipeMatchCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
+                    if (reason.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        reason,
+                        key: ValueKey<String>(
+                          'match-reason-${match.recipe.id}',
+                        ),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 7),
                     Wrap(
                       spacing: 6,
@@ -539,7 +561,7 @@ class _RecipeMatchCard extends StatelessWidget {
                             label: '${match.recipe.cookTimeMinutes} นาที',
                           ),
                         if (!compact)
-                          _InfoChip(
+                          const _InfoChip(
                             icon: Icons.groups_2_outlined,
                             label: 'เลือกจำนวนคน',
                           ),
@@ -574,11 +596,12 @@ class _InfoChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: emphasized ? colors.secondaryContainer : colors.surfaceContainer,
+        color: emphasized
+            ? colors.secondaryContainer
+            : colors.surfaceContainer,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
@@ -601,7 +624,6 @@ class _ScoreBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-
     return Container(
       width: 48,
       height: 48,
@@ -621,7 +643,13 @@ class _ScoreBadge extends StatelessWidget {
 }
 
 class _NoHeroView extends StatelessWidget {
-  const _NoHeroView();
+  const _NoHeroView({
+    required this.canChooseManually,
+    required this.onChooseManually,
+  });
+
+  final bool canChooseManually;
+  final VoidCallback onChooseManually;
 
   @override
   Widget build(BuildContext context) {
@@ -629,7 +657,7 @@ class _NoHeroView extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(24),
       children: [
-        const SizedBox(height: 100),
+        const SizedBox(height: 80),
         const Icon(Icons.kitchen_outlined, size: 72),
         const SizedBox(height: 18),
         Text(
@@ -641,12 +669,25 @@ class _NoHeroView extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'ลองเพิ่มกุ้ง หมู ไก่ เนื้อวัว ปลาหมึก หรือไข่ใน Pantry แล้วกลับมาหน้านี้อีกครั้ง',
+          canChooseManually
+              ? 'เลือกวัตถุดิบที่ต้องการสำรวจได้ แม้ยังไม่มีอยู่ใน Pantry'
+              : 'ลองเพิ่มวัตถุดิบใน Pantry แล้วกลับมาหน้านี้อีกครั้ง',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
+        if (canChooseManually) ...[
+          const SizedBox(height: AppSpacing.lg),
+          Center(
+            child: FilledButton.icon(
+              key: const ValueKey<String>('choose-main-ingredient-manually'),
+              onPressed: onChooseManually,
+              icon: const Icon(Icons.search),
+              label: const Text('เลือกวัตถุดิบหลัก'),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -687,18 +728,4 @@ class _ErrorView extends StatelessWidget {
       ),
     );
   }
-}
-
-String _heroOptionSubtitle(HeroIngredientOption option) {
-  final parts = <String>['${option.recipeCount} เมนู'];
-  if (option.readyCount > 0) {
-    parts.add('พร้อมทำ ${option.readyCount}');
-  } else {
-    parts.add('ดีที่สุด ${option.bestScorePercent}%');
-  }
-  final days = option.daysUntilExpiry;
-  if (days != null && days <= 7) {
-    parts.add(days <= 0 ? 'ควรใช้วันนี้' : 'หมดอายุใน $days วัน');
-  }
-  return parts.join(' · ');
 }
