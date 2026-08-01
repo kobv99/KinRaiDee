@@ -101,15 +101,25 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: 'Recipe tab');
 
-      // "สูตรทั้งหมด" -> full unrestricted recipe list, independent of
-      // Pantry-based recommendation state (a fresh test pantry has no
-      // recommendable hero ingredient, so this is the reliable way to
-      // reach a real recipe).
+      // "สูตรทั้งหมด" opens search-first discovery, independent of Pantry.
       await tester.tap(
         find.byKey(const ValueKey<String>('browse-all-recipes-button')),
       );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: 'All Recipes list');
+
+      await tester.enterText(
+        find.byKey(
+          const ValueKey<String>('recipe-discovery-search-field'),
+        ),
+        'ปลาทู',
+      );
+      await tester.pumpAndSettle();
+      expect(
+        tester.takeException(),
+        isNull,
+        reason: 'search-first recipe discovery',
+      );
 
       final allRecipeTiles = find.byWidgetPredicate(
         (widget) =>
@@ -137,7 +147,6 @@ void main() {
       expect(recipe.steps, isNotEmpty, reason: 'real recipe cooking steps');
       final realIngredientName = recipe.ingredients.first.name;
 
-      // Recipe Detail must show the real recipe name.
       expect(find.text(recipeName), findsWidgets);
 
       await tester.tap(find.byKey(const ValueKey<String>('start-cooking-cta')));
