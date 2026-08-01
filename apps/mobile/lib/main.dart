@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -12,9 +14,38 @@ import 'features/pantry/data/repositories/hive_inventory_commit_repository.dart'
 import 'features/pantry/domain/repositories/inventory_commit_repository.dart';
 import 'features/recipe/data/ingredient_catalog.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+void main() {
+  // Runs the whole app inside a guarded zone so that errors from
+  // fire-and-forget async work outside the widget build phase — most
+  // notably google_fonts' background font-fetch Futures, which reject
+  // without anyone awaiting them — are caught and logged instead of
+  // escaping as an uncaught top-level JS exception. An uncaught rejection
+  // at that point can land in the same microtask turn as an in-flight
+  // CanvasKit frame callback and disrupt it, which is consistent with
+  // reports of a screen's content painting blank while sibling chrome
+  // (built earlier, already-painted) stays visible.
+  runZonedGuarded(
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
+      FlutterError.onError = (details) {
+        FlutterError.presentError(details);
+      };
+      await _bootstrap();
+    },
+    (error, stackTrace) {
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stackTrace,
+          library: 'main',
+          context: ErrorDescription('an uncaught async error'),
+        ),
+      );
+    },
+  );
+}
 
+Future<void> _bootstrap() async {
   await StorageService.init();
   final inventoryRepository = HiveInventoryCommitRepository();
   var recovery = await inventoryRepository.recoverPendingTransactions();
