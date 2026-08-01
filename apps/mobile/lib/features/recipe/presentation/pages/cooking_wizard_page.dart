@@ -18,6 +18,7 @@ import '../../../../core/design_system/feature_components/pantry_readiness_card.
 import '../../../../core/design_system/feature_components/serving_selector.dart';
 import '../../../../core/providers/pantry_provider.dart';
 import '../../../profile/presentation/providers/default_servings_provider.dart';
+import '../../../shopping/application/shopping_providers.dart';
 import '../../application/recipe_missing_shopping_controller.dart';
 import '../../domain/entities/recipe.dart';
 import '../../domain/entities/recipe_ingredient.dart';
@@ -347,9 +348,19 @@ class _CookingWizardPageState extends ConsumerState<CookingWizardPage> {
   /// Ingredient Review step can mark them instead of offering to add them
   /// again — reactive, so it updates immediately after a successful add or
   /// after returning from Shopping.
+  ///
+  /// Computed from the already-watched [shoppingListsProvider] via a plain
+  /// function rather than a `Provider.family` keyed on the recipe id: this
+  /// page and `RecipeDetailPage` underneath it (the wizard is pushed on
+  /// top, not instead of it) both need this set for the same recipe at the
+  /// same time, and a shared family instance would mean two independently
+  /// paused/resumed widget subscriptions to it across the same Navigator
+  /// transition — see recipe_shopping_provider.dart for the full reasoning.
   int _missingInShoppingCount(RecipeServingPlan servingPlan) {
-    final idsInShopping = ref.watch(
-      recipeIngredientIdsInShoppingProvider(widget.recipe.id),
+    final lists = ref.watch(shoppingListsProvider).value ?? const [];
+    final idsInShopping = recipeIngredientIdsInShopping(
+      lists,
+      widget.recipe.id,
     );
     return servingPlan.ingredients
         .where(

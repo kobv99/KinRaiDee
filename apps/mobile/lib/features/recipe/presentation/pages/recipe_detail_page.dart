@@ -9,6 +9,7 @@ import '../../../../core/design_system/design_tokens/app_colors.dart';
 import '../../../../core/design_system/design_tokens/app_spacing.dart';
 import '../../../../core/design_system/design_tokens/app_typography.dart';
 import '../../../../core/providers/pantry_provider.dart';
+import '../../../shopping/application/shopping_providers.dart';
 import '../../application/recipe_missing_shopping_controller.dart';
 import '../../domain/entities/recipe.dart';
 import '../../domain/services/recipe_serving_calculator.dart';
@@ -51,8 +52,10 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
       registry: ref.watch(canonicalIngredientRegistryProvider),
     );
     final hasMissing = servingPlan.ingredients.any((item) => !item.isEnough);
-    final missingInShoppingIds = ref.watch(
-      recipeIngredientIdsInShoppingProvider(widget.recipe.id),
+    final shoppingLists = ref.watch(shoppingListsProvider).value ?? const [];
+    final missingInShoppingIds = recipeIngredientIdsInShopping(
+      shoppingLists,
+      widget.recipe.id,
     );
     final missingInShoppingCount = servingPlan.ingredients
         .where(

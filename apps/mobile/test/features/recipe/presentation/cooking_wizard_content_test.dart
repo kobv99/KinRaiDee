@@ -108,6 +108,67 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Test Recipe'), findsOneWidget, reason: 'confirm step');
   });
+
+  testWidgets(
+    'pushing the wizard from Recipe Detail never throws mid-transition and '
+    'never leaves the body blank once settled (Sprint 5.6 blank-body '
+    'regression) — Recipe Detail stays mounted underneath the wizard for '
+    'this whole push, both watching the same per-recipe Shopping data, '
+    'which is the one structural difference from pushing the wizard off a '
+    'bare caller screen',
+    (tester) async {
+      final harness = await _Harness.create(pantry: _partialPantry());
+      addTearDown(harness.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: harness.container,
+          child: MaterialApp(home: RecipeDetailPage(recipe: _recipe())),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+
+      await tester.tap(find.byKey(const ValueKey<String>('start-cooking-cta')));
+
+      // Step through the MaterialPageRoute push transition frame by frame
+      // (its default duration is 300ms) instead of jumping straight to the
+      // settled end state with pumpAndSettle — a setState()/markNeedsBuild()
+      // -during-build failure, if there is one, would happen on one of
+      // these intermediate frames while the Overlay is still building, not
+      // necessarily on the first or the final one.
+      for (var elapsed = 0; elapsed <= 320; elapsed += 16) {
+        await tester.pump(const Duration(milliseconds: 16));
+        expect(
+          tester.takeException(),
+          isNull,
+          reason: 'no exception at ${elapsed}ms into the push transition',
+        );
+      }
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+
+      // The reported symptom was an AppBar/CTA-visible-but-otherwise-blank
+      // body: assert the actual step content rendered, not just that no
+      // exception was thrown.
+      expect(find.text('เลือกจำนวนคน'), findsOneWidget, reason: 'AppBar title');
+      expect(find.text('Test Recipe'), findsOneWidget, reason: 'body content');
+      expect(
+        find.text('สำหรับกี่คน?'),
+        findsOneWidget,
+        reason: 'serving selector heading',
+      );
+      expect(find.text('ต่อไป'), findsOneWidget, reason: 'bottom CTA');
+
+      // Advancing a step keeps Recipe Detail's own subscription to the same
+      // Shopping data alive underneath, unpaused, the whole time.
+      await tester.tap(find.text('ต่อไป'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.text('ตรวจสอบวัตถุดิบ'), findsOneWidget);
+      expect(find.text('Pork'), findsOneWidget, reason: 'review step content');
+    },
+  );
 }
 
 Future<void> _pumpWizard(

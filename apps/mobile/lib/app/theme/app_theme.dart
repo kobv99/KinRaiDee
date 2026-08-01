@@ -1,9 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/design_system/theme/app_theme_extensions.dart';
 import 'app_colors.dart';
 import 'app_radius.dart';
+
+// Bundled locally in assets/fonts/ instead of fetched via google_fonts'
+// runtime CDN calls — matches the same base google_fonts itself used
+// (ThemeData.light().textTheme with the font family applied), just
+// without the network dependency. That CDN dependency was a real
+// production risk: any hiccup fetching a font variant mid-build (blocked
+// network, corporate proxy, a mangled response tripping google_fonts'
+// own checksum guard) surfaced as an unhandled async exception with no
+// clean way for the app to recover from it.
+//
+// Two families, not one: NotoSansThai (as packaged) covers Thai script
+// only, with no Latin/digit glyphs at all, matching how Noto is split
+// upstream (Latin and script-specific coverage are separate families,
+// composed via fallback — normally by the OS's font substitution, but a
+// bundled app font has no such fallback unless it's declared explicitly).
+const String _latinFontFamily = 'NotoSans';
+const String _thaiFontFamily = 'NotoSansThai';
 
 abstract final class AppTheme {
   static ThemeData get light {
@@ -16,14 +32,18 @@ abstract final class AppTheme {
       error: AppColors.error,
     );
 
-    final baseTextTheme = GoogleFonts.notoSansThaiTextTheme();
+    final baseTextTheme = ThemeData.light().textTheme.apply(
+      fontFamily: _latinFontFamily,
+      fontFamilyFallback: [_thaiFontFamily],
+    );
 
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: AppColors.background,
-      fontFamily: GoogleFonts.notoSansThai().fontFamily,
+      fontFamily: _latinFontFamily,
+      fontFamilyFallback: const [_thaiFontFamily],
       extensions: const [AppSemanticColors.light],
       textTheme: baseTextTheme.copyWith(
         displayLarge: baseTextTheme.displayLarge?.copyWith(

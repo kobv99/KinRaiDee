@@ -4,6 +4,7 @@ import '../../../../core/providers/pantry_provider.dart';
 import '../../../pantry/application/inventory_transaction_providers.dart';
 import '../../../shopping/application/shopping_providers.dart';
 import '../../../shopping/domain/entities/shopping_item_status.dart';
+import '../../../shopping/domain/entities/shopping_list.dart';
 import '../../application/recipe_missing_shopping_controller.dart';
 
 final recipeMissingShoppingControllerProvider =
@@ -25,23 +26,33 @@ final recipeMissingShoppingControllerProvider =
 
 /// Canonical ingredient ids for [recipeId] that already have an active
 /// Shopping item sourced from that recipe (via
-/// [ShoppingItem.sourceReferenceIds]). Recomputes whenever the Shopping
-/// lists change, so Recipe Detail can distinguish "missing and not
-/// planned" from "missing but already in Shopping" and stay reactive when
-/// items are added, purchased, or removed from Shopping elsewhere.
-final recipeIngredientIdsInShoppingProvider =
-    Provider.family<Set<String>, String>((ref, recipeId) {
-      final lists = ref.watch(shoppingListsProvider).value ?? const [];
-      final ids = <String>{};
-      for (final list in lists) {
-        for (final item in list.items) {
-          if (item.status != ShoppingItemStatus.active) {
-            continue;
-          }
-          if (item.sourceReferenceIds.contains(recipeId)) {
-            ids.add(item.canonicalIngredientId);
-          }
-        }
+/// [ShoppingItem.sourceReferenceIds]).
+///
+/// Deliberately a plain function rather than a `Provider.family`: Recipe
+/// Detail and the Cooking Wizard are two separate `ConsumerStatefulWidget`s
+/// that can both be mounted at once (the wizard is pushed on top of Recipe
+/// Detail, not instead of it), and both need this same per-recipe set. A
+/// `Provider.family` instance for a given `recipeId` would then be watched
+/// by two independently-paused/resumed widget subscriptions at the same
+/// time across the very Navigator push transition that was implicated in
+/// the Sprint 5.6 blank-body report — one extra shared provider hop that a
+/// plain function watching the already-fetched shopping lists avoids
+/// entirely. Callers already watch [shoppingListsProvider] themselves (or
+/// can cheaply do so) and pass the resolved value in here.
+Set<String> recipeIngredientIdsInShopping(
+  List<ShoppingList> lists,
+  String recipeId,
+) {
+  final ids = <String>{};
+  for (final list in lists) {
+    for (final item in list.items) {
+      if (item.status != ShoppingItemStatus.active) {
+        continue;
       }
-      return ids;
-    });
+      if (item.sourceReferenceIds.contains(recipeId)) {
+        ids.add(item.canonicalIngredientId);
+      }
+    }
+  }
+  return ids;
+}
