@@ -93,16 +93,24 @@ class _RecipePageState extends ConsumerState<RecipePage> {
     }
 
     final hero = result.hero!;
+    final quickOptions = result.heroOptions
+        .where((option) => option.isInPantry || option.key == hero.key)
+        .take(8)
+        .toList(growable: false);
     final filteredPrimary = result.primaryMatches
         .where(_passesFilters)
         .toList(growable: false);
     final filteredAdaptable = result.adaptableMatches
         .where(_passesFilters)
         .toList(growable: false);
+    final filteredMore = result.moreMatches
+        .where(_passesFilters)
+        .toList(growable: false);
     final filtersHideEverything =
         _activeFilters.isNotEmpty &&
         filteredPrimary.isEmpty &&
-        filteredAdaptable.isEmpty;
+        filteredAdaptable.isEmpty &&
+        filteredMore.isEmpty;
 
     return RefreshIndicator(
       onRefresh: () => _reload(ref),
@@ -131,10 +139,10 @@ class _RecipePageState extends ConsumerState<RecipePage> {
               ref.read(recommendationSessionProvider.notifier).reset();
             },
           ),
-          if (result.heroOptions.length > 1) ...[
+          if (quickOptions.length > 1) ...[
             const SizedBox(height: AppSpacing.md),
             _HeroQuickSelectRow(
-              options: result.heroOptions,
+              options: quickOptions,
               activeKey: hero.key,
               onSelect: (option) async {
                 await ref
@@ -221,6 +229,13 @@ class _RecipePageState extends ConsumerState<RecipePage> {
               const SizedBox(height: AppSpacing.lg),
               _AdaptableRecipesSection(
                 matches: filteredAdaptable,
+                onOpen: (match) => _openRecipeDetail(context, match),
+              ),
+            ],
+            if (filteredMore.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.lg),
+              _MoreRecipesSection(
+                matches: filteredMore,
                 onOpen: (match) => _openRecipeDetail(context, match),
               ),
             ],
@@ -477,6 +492,43 @@ class _AdaptableRecipesSection extends StatelessWidget {
         subtitle: Text(
           '${matches.length} เมนูจากกลุ่มวัตถุดิบเดียวกัน ตรวจสูตรก่อนตัดสินใจ',
         ),
+        childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        children: matches.map((match) {
+          return Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: _RecipeMatchCard(
+              match: match,
+              compact: true,
+              onOpen: () => onOpen(match),
+            ),
+          );
+        }).toList(growable: false),
+      ),
+    );
+  }
+}
+
+class _MoreRecipesSection extends StatelessWidget {
+  const _MoreRecipesSection({
+    required this.matches,
+    required this.onOpen,
+  });
+
+  final List<RecipeMatch> matches;
+  final ValueChanged<RecipeMatch> onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: ExpansionTile(
+        key: const ValueKey<String>('more-recipes-section'),
+        leading: const Icon(Icons.add_circle_outline),
+        title: const Text(
+          'เมนูเพิ่มเติมจากวัตถุดิบที่มี',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text('${matches.length} เมนู · เรียงตามความพร้อม'),
         childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
         children: matches.map((match) {
           return Padding(
