@@ -96,20 +96,6 @@ class MainIngredientCompatibilityService {
       );
     }
 
-    final recipeMethods = _tokens(
-      metadata.cookingMethods.isEmpty
-          ? recipe.cookingMethods
-          : metadata.cookingMethods,
-    );
-    final ingredientMethods = _tokens(selected.cookingMethods);
-    if (recipeMethods.isNotEmpty &&
-        ingredientMethods.isNotEmpty &&
-        recipeMethods.intersection(ingredientMethods).isEmpty) {
-      return const MainIngredientCompatibilityResult.excluded(
-        MainIngredientExclusionReason.incompatibleCookingMethod,
-      );
-    }
-
     final tier = _resolveTier(
       recipe: recipe,
       selectedId: selectedId,
@@ -121,6 +107,27 @@ class MainIngredientCompatibilityService {
             ? MainIngredientExclusionReason.noMatch
             : MainIngredientExclusionReason.unverifiedFamily,
       );
+    }
+
+    // An exact recipe is itself the authoritative statement that its own
+    // cooking method works for the named canonical ingredient. Method-profile
+    // checks remain a hard gate for preferred, compatible, substitute, and
+    // family matches, where suitability is being extended beyond the recipe's
+    // exact hero ingredient.
+    if (tier != MainIngredientMatchTier.exact) {
+      final recipeMethods = _tokens(
+        metadata.cookingMethods.isEmpty
+            ? recipe.cookingMethods
+            : metadata.cookingMethods,
+      );
+      final ingredientMethods = _tokens(selected.cookingMethods);
+      if (recipeMethods.isNotEmpty &&
+          ingredientMethods.isNotEmpty &&
+          recipeMethods.intersection(ingredientMethods).isEmpty) {
+        return const MainIngredientCompatibilityResult.excluded(
+          MainIngredientExclusionReason.incompatibleCookingMethod,
+        );
+      }
     }
 
     return MainIngredientCompatibilityResult.eligible(
