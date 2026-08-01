@@ -38,7 +38,10 @@ class ExpiringSoonSection extends StatelessWidget {
         for (final ingredient in topThree)
           Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-            child: PriorityIngredientCard(ingredient: ingredient, onTap: onOpenPantry),
+            child: PriorityIngredientCard(
+              ingredient: ingredient,
+              onTap: onOpenPantry,
+            ),
           ),
       ],
     );

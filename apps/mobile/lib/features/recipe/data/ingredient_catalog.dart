@@ -156,6 +156,12 @@ class IngredientCatalog {
       recommendedUnitIds: recommendedUnitIds,
       unitFamily: unitFamily,
       parentId: json['parentId']?.toString(),
+      nodeType: _nodeType(json['nodeType']?.toString()),
+      selectableAsMainIngredient:
+          json['selectableAsMainIngredient'] as bool? ?? true,
+      ingredientForms: _stringList(json['ingredientForms']),
+      textures: _stringList(json['textures']),
+      supportedCookingMethods: _stringList(json['supportedCookingMethods']),
       metadata: IngredientMetadata(
         schemaVersion: _intValue(json['schemaVersion'], fallback: 1),
         revision: _intValue(json['revision'], fallback: 1),
@@ -163,6 +169,15 @@ class IngredientCatalog {
       ),
     );
   }
+}
+
+CanonicalIngredientNodeType _nodeType(String? value) {
+  for (final type in CanonicalIngredientNodeType.values) {
+    if (type.name == value) {
+      return type;
+    }
+  }
+  return CanonicalIngredientNodeType.ingredient;
 }
 
 IngredientUnitFamily? _unitFamily(String? value) {

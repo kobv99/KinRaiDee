@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/app/navigation/app_navigation_provider.dart';
-import 'package:mobile/core/design_system/components/app_button.dart';
 import 'package:mobile/features/recipe/domain/entities/recipe.dart';
 import 'package:mobile/features/recipe/domain/entities/recipe_ingredient.dart';
 import 'package:mobile/features/recipe/presentation/pages/cooking_wizard_page.dart';
@@ -152,14 +151,12 @@ void main() {
         const ValueKey<String>('add-missing-to-shopping'),
       );
       expect(addMissingButton, findsOneWidget);
-      // Tapped via its callback rather than a simulated pointer event: this
-      // step's PantryReadinessCard sits inside a SingleChildScrollView
-      // nested under ResponsiveContent, and raw offset-based taps land on
-      // the surrounding route's transition chrome instead of the button in
-      // this environment. Invoking the exact same onPressed a real tap
-      // would fire is a faithful, standard way to exercise the behavior
-      // without being hostage to that layout's hit-test quirk.
-      tester.widget<AppButton>(addMissingButton).onPressed!();
+      expect(
+        addMissingButton.hitTestable(),
+        findsOneWidget,
+        reason: 'the Shopping action must receive real pointer input',
+      );
+      await tester.tap(addMissingButton);
       await tester.pumpAndSettle();
 
       expect(

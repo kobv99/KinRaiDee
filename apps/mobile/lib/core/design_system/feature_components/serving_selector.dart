@@ -57,7 +57,9 @@ class _StepButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final enabled = onTap != null;
     return Material(
-      color: enabled ? AppColors.surfaceMuted : AppColors.surfaceMuted.withValues(alpha: 0.5),
+      color: enabled
+          ? AppColors.surfaceMuted
+          : AppColors.surfaceMuted.withValues(alpha: 0.5),
       shape: const CircleBorder(),
       child: InkWell(
         customBorder: const CircleBorder(),
@@ -65,7 +67,10 @@ class _StepButton extends StatelessWidget {
         child: SizedBox(
           width: 48,
           height: 48,
-          child: Icon(icon, color: enabled ? AppColors.textPrimary : AppColors.textDisabled),
+          child: Icon(
+            icon,
+            color: enabled ? AppColors.textPrimary : AppColors.textDisabled,
+          ),
         ),
       ),
     );

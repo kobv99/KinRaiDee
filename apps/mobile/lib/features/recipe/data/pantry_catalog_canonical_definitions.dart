@@ -27,6 +27,11 @@ List<CanonicalIngredient> applyPantryCatalogCanonicalCoverage(
       recommendedUnitIds: current.recommendedUnitIds,
       unitFamily: current.unitFamily,
       parentId: current.parentId,
+      nodeType: current.nodeType,
+      selectableAsMainIngredient: current.selectableAsMainIngredient,
+      ingredientForms: current.ingredientForms,
+      textures: current.textures,
+      supportedCookingMethods: current.supportedCookingMethods,
       metadata: current.metadata,
     );
   }
@@ -58,6 +63,11 @@ class _DefinitionSeed {
     this.parentId,
     this.pantryStable = false,
     this.unitFamily = IngredientUnitFamily.generic,
+    this.nodeType = CanonicalIngredientNodeType.ingredient,
+    this.selectableAsMainIngredient = true,
+    this.ingredientForms = const <String>[],
+    this.textures = const <String>[],
+    this.supportedCookingMethods = const <String>[],
   });
 
   final String id;
@@ -70,6 +80,11 @@ class _DefinitionSeed {
   final String? parentId;
   final bool pantryStable;
   final IngredientUnitFamily unitFamily;
+  final CanonicalIngredientNodeType nodeType;
+  final bool selectableAsMainIngredient;
+  final List<String> ingredientForms;
+  final List<String> textures;
+  final List<String> supportedCookingMethods;
 
   CanonicalIngredient build() {
     final units = switch (profile) {
@@ -122,6 +137,11 @@ class _DefinitionSeed {
           ? IngredientUnitFamily.liquid
           : unitFamily,
       parentId: parentId,
+      nodeType: nodeType,
+      selectableAsMainIngredient: selectableAsMainIngredient,
+      ingredientForms: ingredientForms,
+      textures: textures,
+      supportedCookingMethods: supportedCookingMethods,
       metadata: const IngredientMetadata(
         schemaVersion: 1,
         revision: 1,

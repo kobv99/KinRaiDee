@@ -16,13 +16,20 @@ Future<T?> showAppBottomSheet<T>({
     context: context,
     backgroundColor: AppColors.surface,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.extraLarge)),
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(AppRadius.extraLarge),
+      ),
     ),
     isScrollControlled: true,
     builder: (context) {
       return SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.md, AppSpacing.xl, AppSpacing.xl),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.xl,
+            AppSpacing.md,
+            AppSpacing.xl,
+            AppSpacing.xl,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -32,7 +39,10 @@ Future<T?> showAppBottomSheet<T>({
                   width: 40,
                   height: 4,
                   margin: const EdgeInsets.only(bottom: AppSpacing.lg),
-                  decoration: BoxDecoration(color: AppColors.border, borderRadius: AppRadius.pillRadius),
+                  decoration: BoxDecoration(
+                    color: AppColors.border,
+                    borderRadius: AppRadius.pillRadius,
+                  ),
                 ),
               ),
               Row(
@@ -82,7 +92,9 @@ Future<bool> showAppConfirmDialog({
         AppButton(
           label: confirmLabel,
           expand: false,
-          variant: destructive ? AppButtonVariant.secondary : AppButtonVariant.primary,
+          variant: destructive
+              ? AppButtonVariant.secondary
+              : AppButtonVariant.primary,
           onPressed: () => Navigator.of(context).pop(true),
         ),
       ],
@@ -93,15 +105,24 @@ Future<bool> showAppConfirmDialog({
 
 /// Lightweight success/info toast (SnackBar under the hood). Never blocks
 /// the UI, per spec ("avoid blocking dialogs for minor success messages").
-void showAppToast(BuildContext context, String message, {bool isError = false}) {
+void showAppToast(
+  BuildContext context,
+  String message, {
+  bool isError = false,
+}) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
     ..showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
         backgroundColor: isError ? AppColors.error : AppColors.textPrimary,
-        shape: const RoundedRectangleBorder(borderRadius: AppRadius.mediumRadius),
-        content: Text(message, style: AppTypography.body.copyWith(color: AppColors.textOnPrimary)),
+        shape: const RoundedRectangleBorder(
+          borderRadius: AppRadius.mediumRadius,
+        ),
+        content: Text(
+          message,
+          style: AppTypography.body.copyWith(color: AppColors.textOnPrimary),
+        ),
         duration: const Duration(seconds: 2),
       ),
     );

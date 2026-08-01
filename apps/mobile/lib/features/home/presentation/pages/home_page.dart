@@ -37,7 +37,10 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   Widget build(BuildContext context) {
     final matchesAsync = ref.watch(recipeMatchesProvider);
-    final totalRecipes = matchesAsync.maybeWhen(data: (m) => m.length, orElse: () => 0);
+    final totalRecipes = matchesAsync.maybeWhen(
+      data: (m) => m.length,
+      orElse: () => 0,
+    );
     final readyToCookCount = matchesAsync.maybeWhen(
       data: (m) => m.where((match) => match.canCook).length,
       orElse: () => 0,
@@ -48,16 +51,22 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
     final quickRecipeCount = matchesAsync.maybeWhen(
       data: (m) => m
-          .where((match) => match.recipe.cookTimeMinutes > 0 && match.recipe.cookTimeMinutes <= 30)
+          .where(
+            (match) =>
+                match.recipe.cookTimeMinutes > 0 &&
+                match.recipe.cookTimeMinutes <= 30,
+          )
           .length,
       orElse: () => 0,
     );
     final expiringSoonIngredients = ref.watch(
       pantryProvider.select((ingredients) {
-        final filtered = ingredients.where((i) {
-          final days = i.daysUntilExpiry;
-          return !i.isExpired && days != null && days <= 7;
-        }).toList(growable: false);
+        final filtered = ingredients
+            .where((i) {
+              final days = i.daysUntilExpiry;
+              return !i.isExpired && days != null && days <= 7;
+            })
+            .toList(growable: false);
         filtered.sort((a, b) {
           final da = a.daysUntilExpiry ?? 9999;
           final db = b.daysUntilExpiry ?? 9999;
@@ -94,7 +103,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                 // 2-3. Greeting + primary question
                 Text(_greeting(), style: AppTypography.bodySmall),
                 const SizedBox(height: 2),
-                const Text('วันนี้อยากกินอะไรดี?', style: AppTypography.headline),
+                const Text(
+                  'วันนี้อยากกินอะไรดี?',
+                  style: AppTypography.headline,
+                ),
                 const SizedBox(height: AppSpacing.lg),
                 // 4. Daily summary — one card, interactive filter
                 DailySummaryCard(
@@ -105,7 +117,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                   expiringSoonCount: expiringSoonCount,
                   selectedFilter: _filter,
                   onFilterSelected: (next) => setState(
-                    () => _filter = _filter == next ? HomeRecipeFilter.all : next,
+                    () =>
+                        _filter = _filter == next ? HomeRecipeFilter.all : next,
                   ),
                   onOpenPantry: widget.onOpenPantry,
                 ),
@@ -122,7 +135,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                 if (expiringSoonIngredients.isNotEmpty)
                   const SizedBox(height: AppSpacing.xl),
                 // 7. Search field — routes to Recipe tab, where search lives
-                _SearchEntryField(onTap: widget.onOpenRecipes ?? widget.onOpenPantry),
+                _SearchEntryField(
+                  onTap: widget.onOpenRecipes ?? widget.onOpenPantry,
+                ),
               ],
             ),
           ),
@@ -152,7 +167,10 @@ class _SearchEntryField extends StatelessWidget {
         borderRadius: AppRadius.pillRadius,
         onTap: onTap,
         child: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+          padding: EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.md,
+          ),
           child: Row(
             children: [
               Icon(Icons.search, color: AppColors.textSecondary, size: 20),

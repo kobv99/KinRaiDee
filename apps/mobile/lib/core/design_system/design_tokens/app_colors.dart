@@ -34,7 +34,9 @@ class AppColors {
   static const Color successSoft = Color(0xFFE9F6EA);
   static const Color warning = Color(0xFFF4A340);
   static const Color warningSoft = Color(0xFFFCF1DF);
-  static const Color error = Color(0xFFD3453B); // Reserved for destructive actions/real errors only
+  static const Color error = Color(
+    0xFFD3453B,
+  ); // Reserved for destructive actions/real errors only
   static const Color errorSoft = Color(0xFFFAE7E5);
   static const Color info = Color(0xFF3D7DD8);
 
@@ -63,5 +65,4 @@ class AppColors {
   static const Color surfaceVariant = surfaceMuted;
   static const Color textMuted = Color(0xFF9A918C);
   static const Color divider = border;
-
 }

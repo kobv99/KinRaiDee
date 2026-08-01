@@ -177,6 +177,17 @@ class CanonicalIngredientRegistry {
         _ancestorIds(second).contains(first);
   }
 
+  /// Returns the canonical hierarchy path above [id] without implying that
+  /// every ancestor is a valid culinary substitute. Recommendation matching
+  /// may use these IDs only when a recipe explicitly opts in to a family.
+  Set<String> ancestorIdsFor(String id) {
+    final canonicalId = canonicalIdFor(id);
+    if (canonicalId == null) {
+      return const <String>{};
+    }
+    return Set<String>.unmodifiable(_ancestorIds(canonicalId));
+  }
+
   List<String> missingMappings(Iterable<String> values) {
     return values
         .where((value) => !resolve(value).isResolved)
@@ -324,14 +335,14 @@ BigInt _fnv1a64(String value) {
 
 const Map<String, List<String>> defaultSupplementalIngredientAliases =
     <String, List<String>>{
-      'chicken': <String>[
+      'chicken': <String>['Chicken'],
+      'chicken_breast': <String>[
         'Chicken Breast',
         'Chicken breast',
-        'Chicken',
         'Boneless Chicken Breast',
         'อกไก่',
       ],
     };
 
 const Map<String, String> defaultCanonicalIngredientRedirects =
-    <String, String>{'chicken_breast': 'chicken'};
+    <String, String>{};

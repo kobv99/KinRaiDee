@@ -4,7 +4,7 @@ import 'package:mobile/core/domain/ingredients/canonical_ingredient_registry.dar
 
 void main() {
   group('CanonicalIngredientRegistry', () {
-    test('normalizes chicken aliases and localized names to one identity', () {
+    test('keeps generic chicken and chicken breast as distinct identities', () {
       final registry = CanonicalIngredientRegistry(
         ingredients: <CanonicalIngredient>[
           _ingredient('chicken', canonicalName: 'Chicken', thaiName: 'ไก่'),
@@ -17,14 +17,14 @@ void main() {
         redirects: defaultCanonicalIngredientRedirects,
       );
 
+      expect(registry.resolve('Chicken').ingredient?.id, 'chicken');
       for (final value in <String>[
         'Chicken Breast',
         'Chicken breast',
-        'Chicken',
         'Boneless Chicken Breast',
         'อกไก่',
       ]) {
-        expect(registry.resolve(value).ingredient?.id, 'chicken');
+        expect(registry.resolve(value).ingredient?.id, 'chicken_breast');
       }
     });
 
@@ -65,6 +65,8 @@ void main() {
       );
 
       expect(registry.areCompatibleIds('pork', 'pork_neck'), isTrue);
+      expect(registry.ancestorIdsFor('pork_neck'), <String>{'pork'});
+      expect(registry.ancestorIdsFor('unknown'), isEmpty);
       expect(registry.resolve('dragon fruit peel').isResolved, isFalse);
       final first = registry.unmappedIdFor(' Dragon   Fruit Peel ');
       final second = registry.unmappedIdFor('dragon fruit peel');

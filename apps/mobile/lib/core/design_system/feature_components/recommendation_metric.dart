@@ -41,7 +41,10 @@ class RecommendationMetric extends StatelessWidget {
         borderRadius: AppRadius.mediumRadius,
         child: Container(
           constraints: const BoxConstraints(minWidth: 64, minHeight: 48),
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.sm,
+            vertical: AppSpacing.sm,
+          ),
           decoration: BoxDecoration(
             color: background,
             borderRadius: AppRadius.mediumRadius,
@@ -54,14 +57,25 @@ class RecommendationMetric extends StatelessWidget {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: selected ? AppColors.primary.withValues(alpha: 0.15) : AppColors.surfaceMuted,
+                  color: selected
+                      ? AppColors.primary.withValues(alpha: 0.15)
+                      : AppColors.surfaceMuted,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, size: 18, color: selected ? AppColors.primary : iconColor),
+                child: Icon(
+                  icon,
+                  size: 18,
+                  color: selected ? AppColors.primary : iconColor,
+                ),
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(value, style: AppTypography.title),
-              Text(label, style: AppTypography.caption, maxLines: 1, overflow: TextOverflow.ellipsis),
+              Text(
+                label,
+                style: AppTypography.caption,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ],
           ),
         ),

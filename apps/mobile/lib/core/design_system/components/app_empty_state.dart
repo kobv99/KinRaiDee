@@ -23,7 +23,10 @@ class AppEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxl, horizontal: AppSpacing.xl),
+      padding: const EdgeInsets.symmetric(
+        vertical: AppSpacing.xxxl,
+        horizontal: AppSpacing.xl,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -57,7 +60,10 @@ class AppErrorState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxl, horizontal: AppSpacing.xl),
+      padding: const EdgeInsets.symmetric(
+        vertical: AppSpacing.xxxl,
+        horizontal: AppSpacing.xl,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

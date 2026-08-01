@@ -1,4 +1,5 @@
 import '../domain/entities/recipe.dart';
+import '../domain/entities/recipe_compatibility.dart';
 import '../domain/entities/recipe_ingredient.dart';
 import 'recipe_ingredient_catalog.dart';
 
@@ -78,6 +79,7 @@ class RecipePackParser {
             heroIngredientId: heroId,
             heroIngredientName: heroName,
             popularity: (row['popularity'] as num?)?.toInt() ?? 0,
+            compatibility: _compatibilityFor(pack: pack, row: row),
             ingredients: ingredients,
             steps: _buildSteps(
               method: method,
@@ -88,6 +90,43 @@ class RecipePackParser {
           );
         })
         .toList(growable: false);
+  }
+
+  RecipeCompatibilityMetadata _compatibilityFor({
+    required Map<String, dynamic> pack,
+    required Map<String, dynamic> row,
+  }) {
+    final merged = <String, dynamic>{};
+    _copyCompatibilityFields(pack, merged);
+    final packCompatibility = pack['compatibility'];
+    if (packCompatibility is Map) {
+      _copyCompatibilityFields(
+        Map<String, dynamic>.from(packCompatibility),
+        merged,
+      );
+    }
+    _copyCompatibilityFields(row, merged);
+    final rowCompatibility = row['compatibility'];
+    if (rowCompatibility is Map) {
+      _copyCompatibilityFields(
+        Map<String, dynamic>.from(rowCompatibility),
+        merged,
+      );
+    }
+    return RecipeCompatibilityMetadata.fromJson(merged);
+  }
+
+  void _copyCompatibilityFields(
+    Map<String, dynamic> source,
+    Map<String, dynamic> target,
+  ) {
+    for (final key in _compatibilityMetadataKeys) {
+      if (source.containsKey(key)) {
+        // Empty row-level lists intentionally replace pack defaults. This is
+        // how an explicitly supported recipe can remove a pack exclusion.
+        target[key] = source[key];
+      }
+    }
   }
 
   /// Builds a step list whose length reflects the recipe's actual
@@ -118,6 +157,22 @@ class RecipePackParser {
         .toList(growable: false);
   }
 }
+
+const Set<String> _compatibilityMetadataKeys = <String>{
+  'exactIngredientIds',
+  'preferredIngredientIds',
+  'compatibleIngredientIds',
+  'substituteIngredientIds',
+  'excludedIngredientIds',
+  'ingredientFamilyIds',
+  'requiredIngredientForm',
+  'requiredIngredientForms',
+  'allowedIngredientForms',
+  'excludedIngredientForms',
+  'requiredTexture',
+  'cookingMethods',
+  'suitabilityNotes',
+};
 
 const String _defaultMethod = 'ปรุง';
 

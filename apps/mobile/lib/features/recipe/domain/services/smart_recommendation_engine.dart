@@ -1,41 +1,61 @@
 import '../../../../core/models/ingredient.dart';
 import '../../../../core/domain/ingredients/canonical_ingredient_registry.dart';
 import '../entities/recipe.dart';
+import '../entities/recipe_compatibility.dart';
 import '../entities/recipe_ingredient.dart';
 import '../entities/recipe_match.dart';
 import '../entities/smart_recommendation.dart';
 import 'ingredient_name_matcher.dart';
+import 'main_ingredient_compatibility_service.dart';
 
 class SmartRecommendationEngine {
-  const SmartRecommendationEngine({this.pageSize = 5, this.moreLimit = 8})
-    : assert(pageSize > 0),
-      assert(moreLimit >= 0);
+  const SmartRecommendationEngine({
+    this.pageSize = 5,
+    this.moreLimit = 8,
+    this.compatibilityService = const MainIngredientCompatibilityService(),
+  }) : assert(pageSize > 0),
+       assert(moreLimit >= 0);
 
   final int pageSize;
   final int moreLimit;
+  final MainIngredientCompatibilityService compatibilityService;
 
   SmartRecommendation build({
     required List<RecipeMatch> matches,
     required List<Ingredient> pantry,
+    List<RecipeMatch>? allRecipeMatches,
     String? selectedHeroKey,
     HeroSelectionMode? selectionMode,
     String? selectionReason,
     int pageIndex = 0,
     int shuffleSeed = 0,
     CanonicalIngredientRegistry? registry,
+    MainIngredientSelection? selectedIngredient,
+    Set<String> recentHeroKeys = const <String>{},
   }) {
+    final recommendationSource = allRecipeMatches ?? matches;
     final availablePantry = pantry
         .where((ingredient) => ingredient.quantity > 0 && !ingredient.isExpired)
         .toList(growable: false);
-    final optionCandidates = _buildHeroOptions(
-      matches,
+    final normalizedRecentKeys = recentHeroKeys.map(_normalize).toSet();
+    final automaticCandidates = _buildHeroOptions(
+      recommendationSource,
       availablePantry,
       registry,
+      normalizedRecentKeys,
     );
-    final heroOptions = optionCandidates
-        .map((candidate) => candidate.option)
-        .toList(growable: false);
-    final selectedKey = _normalize(selectedHeroKey ?? '');
+    final optionCandidates = <_HeroCandidate>[...automaticCandidates];
+    if (registry != null) {
+      _appendSupportedOptions(
+        candidates: optionCandidates,
+        matches: recommendationSource,
+        registry: registry,
+        recentKeys: normalizedRecentKeys,
+      );
+    }
+    final selectedKey = _normalize(
+      selectedIngredient?.canonicalIngredientId ?? selectedHeroKey ?? '',
+    );
     final requestedMode =
         selectionMode ??
         (selectedKey.isEmpty
@@ -51,14 +71,40 @@ class SmartRecommendationEngine {
           break;
         }
       }
+      if (requestedCandidate == null) {
+        final requestedSelection =
+            selectedIngredient ?? _selectionForKey(selectedKey, registry);
+        requestedCandidate = _buildCandidateForSelection(
+          recommendationSource,
+          requestedSelection,
+          isInPantry: false,
+          categoryLabel:
+              registry?.byId(requestedSelection.canonicalIngredientId)?.category ??
+              '',
+          searchTerms: registry
+                  ?.byId(requestedSelection.canonicalIngredientId)
+                  ?.searchableNames
+                  .toList(growable: false) ??
+              const <String>[],
+          isRecent: normalizedRecentKeys.contains(selectedKey),
+        );
+        if (requestedCandidate != null) {
+          optionCandidates.add(requestedCandidate);
+        }
+      }
     }
+
+    optionCandidates.sort(_comparePickerCandidates);
+    final heroOptions = optionCandidates
+        .map((candidate) => candidate.option)
+        .toList(growable: false);
 
     final requestedSelectionAvailable =
         requestedMode == HeroSelectionMode.automatic ||
         requestedCandidate != null;
     final selectedCandidate =
         requestedCandidate ??
-        (optionCandidates.isEmpty ? null : optionCandidates.first);
+        (automaticCandidates.isEmpty ? null : automaticCandidates.first);
     final resolvedMode = requestedCandidate == null
         ? HeroSelectionMode.automatic
         : requestedMode;
@@ -66,7 +112,11 @@ class SmartRecommendationEngine {
     if (selectedCandidate == null) {
       final fallbackMatches =
           matches
-              .where((match) => match.matchedIngredients.isNotEmpty)
+              .map(
+                (match) =>
+                    _bestPantryCompatibility(match, availablePantry, registry),
+              )
+              .whereType<RecipeMatch>()
               .toList(growable: false)
             ..sort(_compareDisplayRank);
 
@@ -81,20 +131,30 @@ class SmartRecommendationEngine {
       );
     }
 
-    final heroPantryIngredient = selectedCandidate.ingredient;
+    final evaluatedForHero = recommendationSource
+        .map((match) => _withCompatibility(match, selectedCandidate.selection))
+        .whereType<RecipeMatch>()
+        .toList(growable: false);
     final heroPool =
-        matches
+        evaluatedForHero
             .where(
-              (match) => _recipeHeroMatchesPantry(
-                match.recipe,
-                heroPantryIngredient,
-                registry,
-              ),
+              (match) =>
+                  match.mainIngredientMatchTier !=
+                  MainIngredientMatchTier.family,
             )
             .toList(growable: false)
           ..sort(
             (first, second) => _comparePoolOrder(first, second, shuffleSeed),
           );
+    final adaptable =
+        evaluatedForHero
+            .where(
+              (match) =>
+                  match.mainIngredientMatchTier ==
+                  MainIngredientMatchTier.family,
+            )
+            .toList(growable: false)
+          ..sort(_compareDisplayRank);
 
     final pageCount = heroPool.isEmpty
         ? 0
@@ -109,20 +169,17 @@ class SmartRecommendationEngine {
               ? <RecipeMatch>[]
               : heroPool.sublist(start, end)
           ..sort(_compareDisplayRank);
-    final heroRecipeIds = heroPool.map((match) => match.recipe.id).toSet();
+    final heroRecipeIds = evaluatedForHero
+        .map((match) => match.recipe.id)
+        .toSet();
     final more =
         matches
-            .where(
+            .where((match) => !heroRecipeIds.contains(match.recipe.id))
+            .map(
               (match) =>
-                  !heroRecipeIds.contains(match.recipe.id) &&
-                  availablePantry.any(
-                    (ingredient) => _recipeHeroMatchesPantry(
-                      match.recipe,
-                      ingredient,
-                      registry,
-                    ),
-                  ),
+                  _bestPantryCompatibility(match, availablePantry, registry),
             )
+            .whereType<RecipeMatch>()
             .toList(growable: false)
           ..sort(_compareDisplayRank);
 
@@ -130,6 +187,9 @@ class SmartRecommendationEngine {
       hero: selectedCandidate.option,
       heroOptions: heroOptions,
       primaryMatches: List<RecipeMatch>.unmodifiable(primary),
+      adaptableMatches: List<RecipeMatch>.unmodifiable(
+        adaptable.take(moreLimit),
+      ),
       moreMatches: List<RecipeMatch>.unmodifiable(more.take(moreLimit)),
       totalHeroRecipes: heroPool.length,
       pageIndex: safePageIndex,
@@ -148,68 +208,133 @@ class SmartRecommendationEngine {
     List<RecipeMatch> matches,
     List<Ingredient> pantry,
     CanonicalIngredientRegistry? registry,
+    Set<String> recentKeys,
   ) {
     final candidatesByKey = <String, _HeroCandidate>{};
 
     for (final pantryIngredient in pantry) {
-      final matchingRecipes = matches
-          .where(
-            (match) => _recipeHeroMatchesPantry(
-              match.recipe,
-              pantryIngredient,
-              registry,
-            ),
-          )
-          .toList(growable: false);
-      if (matchingRecipes.isEmpty) {
-        continue;
-      }
-
-      final representativeRecipe = matchingRecipes.first.recipe;
-      final canonicalId = pantryIngredient.canonicalIngredientId.isNotEmpty
-          ? pantryIngredient.canonicalIngredientId
-          : representativeRecipe.resolvedHeroIngredientId;
-      final key = _normalize(
-        canonicalId.isEmpty
-            ? representativeRecipe.resolvedHeroIngredientName
-            : canonicalId,
-      );
-      if (key.isEmpty) {
-        continue;
-      }
-
-      var bestScorePercent = 0;
-      var readyCount = 0;
-      for (final match in matchingRecipes) {
-        if (match.scorePercent > bestScorePercent) {
-          bestScorePercent = match.scorePercent;
+      final matchingByKey = <String, List<RecipeMatch>>{};
+      final selectionByKey = <String, MainIngredientSelection>{};
+      for (final match in matches) {
+        final selection = _selectionForPantry(
+          pantryIngredient,
+          match.recipe,
+          registry,
+        );
+        final evaluated = _withCompatibility(match, selection);
+        if (evaluated == null) {
+          continue;
         }
-        if (match.canCook) {
-          readyCount++;
+        final key = _normalize(selection.canonicalIngredientId);
+        if (key.isEmpty) {
+          continue;
         }
+        final canonical = registry?.byId(key);
+        if (registry != null &&
+            (canonical == null || !canonical.canSelectAsMainIngredient)) {
+          continue;
+        }
+        selectionByKey[key] = selection;
+        matchingByKey.putIfAbsent(key, () => <RecipeMatch>[]).add(evaluated);
       }
 
-      final candidate = _HeroCandidate(
-        ingredient: pantryIngredient,
-        option: HeroIngredientOption(
-          key: key,
-          name: pantryIngredient.name,
-          emoji: pantryIngredient.emoji,
-          recipeCount: matchingRecipes.length,
-          readyCount: readyCount,
-          bestScorePercent: bestScorePercent,
-          daysUntilExpiry: pantryIngredient.daysUntilExpiry,
-        ),
-      );
-      final current = candidatesByKey[key];
-      if (current == null || _compareHeroCandidates(candidate, current) < 0) {
-        candidatesByKey[key] = candidate;
+      for (final entry in matchingByKey.entries) {
+        final key = entry.key;
+        final matchingRecipes = entry.value;
+        var bestScorePercent = 0;
+        var readyCount = 0;
+        MainIngredientMatchTier? bestMatchTier;
+        for (final match in matchingRecipes) {
+          if (match.scorePercent > bestScorePercent) {
+            bestScorePercent = match.scorePercent;
+          }
+          if (match.canCook) {
+            readyCount++;
+          }
+          final tier = match.mainIngredientMatchTier;
+          if (tier != null &&
+              (bestMatchTier == null ||
+                  tier.priority > bestMatchTier.priority)) {
+            bestMatchTier = tier;
+          }
+        }
+        final canonical = registry?.byId(key);
+
+        final candidate = _HeroCandidate(
+          ingredient: pantryIngredient,
+          selection: selectionByKey[key]!,
+          option: HeroIngredientOption(
+            key: key,
+            name: pantryIngredient.name,
+            emoji: pantryIngredient.emoji,
+            recipeCount: matchingRecipes.length,
+            readyCount: readyCount,
+            bestScorePercent: bestScorePercent,
+            daysUntilExpiry: pantryIngredient.daysUntilExpiry,
+            isInPantry: true,
+            categoryLabel: canonical?.category ?? pantryIngredient.category,
+            searchTerms:
+                canonical?.searchableNames.toList(growable: false) ??
+                <String>[pantryIngredient.name],
+            isRecent: recentKeys.contains(key),
+            bestMatchTier: bestMatchTier,
+          ),
+        );
+        final current = candidatesByKey[key];
+        if (current == null || _compareHeroCandidates(candidate, current) < 0) {
+          candidatesByKey[key] = candidate;
+        }
       }
     }
 
     final candidates = candidatesByKey.values.toList(growable: false)
       ..sort(_compareHeroCandidates);
     return candidates;
+  }
+
+  void _appendSupportedOptions({
+    required List<_HeroCandidate> candidates,
+    required List<RecipeMatch> matches,
+    required CanonicalIngredientRegistry registry,
+    required Set<String> recentKeys,
+  }) {
+    final existingKeys = candidates
+        .map((candidate) => candidate.option.key)
+        .toSet();
+    for (final canonical in registry.ingredients) {
+      if (!canonical.canSelectAsMainIngredient ||
+          existingKeys.contains(canonical.id)) {
+        continue;
+      }
+      final candidate = _buildCandidateForSelection(
+        matches,
+        _selectionForKey(canonical.id, registry),
+        isInPantry: false,
+        categoryLabel: canonical.category,
+        searchTerms: canonical.searchableNames.toList(growable: false),
+        isRecent: recentKeys.contains(canonical.id),
+      );
+      if (candidate != null) {
+        candidates.add(candidate);
+        existingKeys.add(canonical.id);
+      }
+    }
+  }
+
+  int _comparePickerCandidates(_HeroCandidate first, _HeroCandidate second) {
+    if (first.option.isInPantry != second.option.isInPantry) {
+      return first.option.isInPantry ? -1 : 1;
+    }
+    if (first.option.isRecent != second.option.isRecent) {
+      return first.option.isRecent ? -1 : 1;
+    }
+    if (first.option.isInPantry) {
+      final automaticRank = _compareHeroCandidates(first, second);
+      if (automaticRank != 0) {
+        return automaticRank;
+      }
+    }
+    return first.option.name.compareTo(second.option.name);
   }
 
   int _compareHeroCandidates(_HeroCandidate first, _HeroCandidate second) {
@@ -220,9 +345,13 @@ class SmartRecommendationEngine {
       return priorityComparison;
     }
 
-    final createdComparison = second.ingredient.createdAt.compareTo(
-      first.ingredient.createdAt,
-    );
+    final firstCreated = first.ingredient?.createdAt;
+    final secondCreated = second.ingredient?.createdAt;
+    final createdComparison = secondCreated == null
+        ? (firstCreated == null ? 0 : 1)
+        : firstCreated == null
+        ? -1
+        : secondCreated.compareTo(firstCreated);
     if (createdComparison != 0) {
       return createdComparison;
     }
@@ -233,6 +362,7 @@ class SmartRecommendationEngine {
   int _autoPriority(_HeroCandidate candidate) {
     final option = candidate.option;
     var priority =
+        ((option.bestMatchTier?.priority ?? 0) * 1000000) +
         (option.readyCount * 1000) +
         (option.bestScorePercent * 10) +
         (option.recipeCount * 2);
@@ -281,34 +411,160 @@ class SmartRecommendationEngine {
     }
   }
 
-  bool _recipeHeroMatchesPantry(
-    Recipe recipe,
-    Ingredient pantryIngredient,
+  MainIngredientSelection _selectionForKey(
+    String key,
     CanonicalIngredientRegistry? registry,
   ) {
-    final hero = recipe.heroIngredient;
-    return recipe.ingredients.any((ingredient) {
-      final role = ingredient.effectiveRole(
-        isHero: identical(ingredient, hero),
-      );
-      return role == RecipeIngredientRole.primary &&
-          _ingredientMatches(ingredient, pantryIngredient, registry);
-    });
+    final canonical = registry?.byId(key);
+    return compatibilityService.enrichSelection(
+      MainIngredientSelection(
+        canonicalIngredientId: canonical?.id ?? key,
+        displayName: canonical?.displayName() ?? key,
+        emoji: canonical?.emoji ?? '🍳',
+      ),
+    );
   }
 
-  bool _ingredientMatches(
-    RecipeIngredient ingredient,
+  MainIngredientSelection _selectionForPantry(
     Ingredient pantryIngredient,
+    Recipe recipe,
     CanonicalIngredientRegistry? registry,
   ) {
-    return recipeIngredientMatchesPantry(
-      ingredient,
-      pantryIngredient,
-      registry: registry,
+    var canonicalId = pantryIngredient.canonicalIngredientId.trim();
+    if (canonicalId.isNotEmpty) {
+      canonicalId = registry?.canonicalIdFor(canonicalId) ?? canonicalId;
+    } else {
+      final resolved = registry?.resolve(pantryIngredient.name).ingredient;
+      if (resolved != null) {
+        canonicalId = resolved.id;
+      } else if (registry == null) {
+        final hero = recipe.heroIngredient;
+        for (final ingredient in recipe.ingredients) {
+          final role = ingredient.effectiveRole(
+            isHero: identical(ingredient, hero),
+          );
+          if (role == RecipeIngredientRole.primary &&
+              recipeIngredientMatchesPantryName(
+                ingredient,
+                pantryIngredient.name,
+              )) {
+            canonicalId = ingredient.id;
+            break;
+          }
+        }
+      }
+    }
+
+    return compatibilityService.enrichSelection(
+      MainIngredientSelection(
+        canonicalIngredientId: canonicalId,
+        displayName: pantryIngredient.name,
+        emoji: pantryIngredient.emoji,
+      ),
+    );
+  }
+
+  _HeroCandidate? _buildCandidateForSelection(
+    List<RecipeMatch> matches,
+    MainIngredientSelection selection, {
+    required bool isInPantry,
+    String categoryLabel = '',
+    List<String> searchTerms = const <String>[],
+    bool isRecent = false,
+  }) {
+    final enriched = compatibilityService.enrichSelection(selection);
+    final key = _normalize(enriched.canonicalIngredientId);
+    if (key.isEmpty) {
+      return null;
+    }
+    final matchingRecipes = matches
+        .map((match) => _withCompatibility(match, enriched))
+        .whereType<RecipeMatch>()
+        .toList(growable: false);
+    if (matchingRecipes.isEmpty) {
+      return null;
+    }
+
+    var bestScorePercent = 0;
+    var readyCount = 0;
+    MainIngredientMatchTier? bestMatchTier;
+    for (final match in matchingRecipes) {
+      if (match.scorePercent > bestScorePercent) {
+        bestScorePercent = match.scorePercent;
+      }
+      if (match.canCook) {
+        readyCount++;
+      }
+      final tier = match.mainIngredientMatchTier;
+      if (tier != null &&
+          (bestMatchTier == null || tier.priority > bestMatchTier.priority)) {
+        bestMatchTier = tier;
+      }
+    }
+    return _HeroCandidate(
+      selection: enriched,
+      option: HeroIngredientOption(
+        key: key,
+        name: enriched.displayName,
+        emoji: enriched.emoji,
+        recipeCount: matchingRecipes.length,
+        readyCount: readyCount,
+        bestScorePercent: bestScorePercent,
+        isInPantry: isInPantry,
+        categoryLabel: categoryLabel,
+        searchTerms: searchTerms,
+        isRecent: isRecent,
+        bestMatchTier: bestMatchTier,
+      ),
+    );
+  }
+
+  RecipeMatch? _withCompatibility(
+    RecipeMatch match,
+    MainIngredientSelection selection,
+  ) {
+    final result = compatibilityService.evaluate(
+      recipe: match.recipe,
+      selection: selection,
+    );
+    return result.isEligible
+        ? match.withMainIngredientCompatibility(result)
+        : null;
+  }
+
+  RecipeMatch? _bestPantryCompatibility(
+    RecipeMatch match,
+    List<Ingredient> pantry,
+    CanonicalIngredientRegistry? registry,
+  ) {
+    RecipeMatch? best;
+    for (final ingredient in pantry) {
+      final evaluated = _withCompatibility(
+        match,
+        _selectionForPantry(ingredient, match.recipe, registry),
+      );
+      if (evaluated == null) {
+        continue;
+      }
+      if (best == null || _compareCompatibility(evaluated, best) < 0) {
+        best = evaluated;
+      }
+    }
+    return best;
+  }
+
+  int _compareCompatibility(RecipeMatch first, RecipeMatch second) {
+    return (second.mainIngredientCompatibility?.tierPriority ?? 0).compareTo(
+      first.mainIngredientCompatibility?.tierPriority ?? 0,
     );
   }
 
   int _comparePoolOrder(RecipeMatch first, RecipeMatch second, int seed) {
+    final compatibilityComparison = _compareCompatibility(first, second);
+    if (compatibilityComparison != 0) {
+      return compatibilityComparison;
+    }
+
     if (first.canCook != second.canCook) {
       return first.canCook ? -1 : 1;
     }
@@ -338,6 +594,11 @@ class SmartRecommendationEngine {
   }
 
   int _compareDisplayRank(RecipeMatch first, RecipeMatch second) {
+    final compatibilityComparison = _compareCompatibility(first, second);
+    if (compatibilityComparison != 0) {
+      return compatibilityComparison;
+    }
+
     final scoreComparison = second.score.compareTo(first.score);
     if (scoreComparison != 0) {
       return scoreComparison;
@@ -385,13 +646,18 @@ class SmartRecommendationEngine {
   }
 
   String _normalize(String value) {
-    return normalizeRecipeIngredientName(value);
+    return normalizeCompatibilityToken(value);
   }
 }
 
 class _HeroCandidate {
-  const _HeroCandidate({required this.ingredient, required this.option});
+  const _HeroCandidate({
+    required this.selection,
+    required this.option,
+    this.ingredient,
+  });
 
-  final Ingredient ingredient;
+  final Ingredient? ingredient;
+  final MainIngredientSelection selection;
   final HeroIngredientOption option;
 }

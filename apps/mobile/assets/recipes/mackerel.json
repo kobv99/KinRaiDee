@@ -1,0 +1,88 @@
+{
+  "version": 2,
+  "hero": {
+    "id": "mackerel",
+    "name": "ปลาทู",
+    "emoji": "🐟",
+    "quantity": 2,
+    "unit": "ตัว",
+    "aliases": ["ปลาทูนึ่ง"]
+  },
+  "exactIngredientIds": ["mackerel"],
+  "preferredIngredientIds": ["mackerel"],
+  "allowedIngredientForms": ["whole_cleaned", "butterflied"],
+  "requiredTexture": "oily_tender",
+  "suitabilityNotes": "ออกแบบสำหรับปลาทูทั้งตัวหรือปลาทูผ่ากลางโดยตรง",
+  "recipes": [
+    {
+      "id": "mackerel_01",
+      "name": "เมี่ยงปลาทู",
+      "method": "นึ่ง",
+      "time": 30,
+      "difficulty": "easy",
+      "emoji": "🥬",
+      "popularity": 96,
+      "ingredients": ["rice", "lime", "chili", "garlic", "fish_sauce"]
+    },
+    {
+      "id": "mackerel_02",
+      "name": "น้ำพริกปลาทู",
+      "method": "ทอด",
+      "time": 25,
+      "difficulty": "easy",
+      "emoji": "🌶️",
+      "popularity": 95,
+      "ingredients": ["chili", "garlic", "lime", "fish_sauce", "cooking_oil"]
+    },
+    {
+      "id": "mackerel_03",
+      "name": "ต้มยำปลาทู",
+      "method": "ต้ม",
+      "time": 30,
+      "difficulty": "medium",
+      "emoji": "🍲",
+      "popularity": 94,
+      "ingredients": ["lemongrass", "kaffir_lime_leaf", "galangal", "chili", "lime", "fish_sauce"]
+    },
+    {
+      "id": "mackerel_04",
+      "name": "ปลาทูทอด",
+      "method": "ทอด",
+      "time": 20,
+      "difficulty": "easy",
+      "emoji": "🐟",
+      "popularity": 93,
+      "ingredients": ["salt", "cooking_oil"]
+    },
+    {
+      "id": "mackerel_05",
+      "name": "ยำปลาทู",
+      "method": "ยำ",
+      "time": 20,
+      "difficulty": "easy",
+      "emoji": "🥗",
+      "popularity": 92,
+      "ingredients": ["lime", "chili", "fish_sauce", "onion", "celery"]
+    },
+    {
+      "id": "mackerel_06",
+      "name": "ฉู่ฉี่ปลาทู",
+      "method": "แกง",
+      "time": 35,
+      "difficulty": "medium",
+      "emoji": "🍛",
+      "popularity": 91,
+      "ingredients": ["red_curry_paste", "coconut_milk", "fish_sauce", "sugar", "kaffir_lime_leaf"]
+    },
+    {
+      "id": "mackerel_07",
+      "name": "ข้าวคลุกน้ำพริกปลาทู",
+      "method": "คลุก",
+      "time": 25,
+      "difficulty": "easy",
+      "emoji": "🍚",
+      "popularity": 90,
+      "ingredients": ["rice", "chili", "garlic", "lime", "fish_sauce"]
+    }
+  ]
+}

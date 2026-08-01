@@ -21,7 +21,8 @@ class AppSkeleton extends StatefulWidget {
   State<AppSkeleton> createState() => _AppSkeletonState();
 }
 
-class _AppSkeletonState extends State<AppSkeleton> with SingleTickerProviderStateMixin {
+class _AppSkeletonState extends State<AppSkeleton>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1100),
@@ -35,12 +36,16 @@ class _AppSkeletonState extends State<AppSkeleton> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
-    final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     if (reduceMotion) {
       return Container(
         width: widget.width,
         height: widget.height,
-        decoration: BoxDecoration(color: AppColors.surfaceMuted, borderRadius: widget.radius),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceMuted,
+          borderRadius: widget.radius,
+        ),
       );
     }
     return AnimatedBuilder(
@@ -72,7 +77,11 @@ class AppRecipeCardSkeleton extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppSkeleton(width: width, height: width, radius: AppRadius.largeRadius),
+          AppSkeleton(
+            width: width,
+            height: width,
+            radius: AppRadius.largeRadius,
+          ),
           const SizedBox(height: 8),
           AppSkeleton(width: width * 0.8, height: 14),
           const SizedBox(height: 6),

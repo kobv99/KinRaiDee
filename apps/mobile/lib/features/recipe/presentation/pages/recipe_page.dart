@@ -9,6 +9,7 @@ import '../../../../core/design_system/design_tokens/app_typography.dart';
 import '../../domain/entities/recipe_match.dart';
 import '../../domain/entities/smart_recommendation.dart';
 import '../providers/recipe_provider.dart';
+import '../widgets/main_ingredient_picker_sheet.dart';
 import 'recipe_detail_page.dart';
 
 enum _QuickFilter { ready, lowMissing, quick }
@@ -65,7 +66,16 @@ class _RecipePageState extends ConsumerState<RecipePage> {
             if (!result.hasHero) {
               return RefreshIndicator(
                 onRefresh: () => _reload(ref),
-                child: const _NoHeroView(),
+                child: _NoHeroView(
+                  canChooseManually: result.heroOptions.isNotEmpty,
+                  onChooseManually: () => _showHeroPicker(
+                    context,
+                    ref,
+                    result.heroOptions,
+                    null,
+                    result.heroSelectionMode,
+                  ),
+                ),
               );
             }
 
@@ -78,6 +88,7 @@ class _RecipePageState extends ConsumerState<RecipePage> {
                   _HeroIngredientCard(
                     hero: result.hero!,
                     selectionMode: result.heroSelectionMode,
+                    reason: result.heroReason,
                     onChange: () => _showHeroPicker(
                       context,
                       ref,
@@ -124,7 +135,8 @@ class _RecipePageState extends ConsumerState<RecipePage> {
                     children: [
                       Expanded(
                         child: Text(
-                          'Top Picks จาก${result.hero!.name}',
+                          'Top Picks สำหรับ ${result.hero!.name}',
+                          key: const ValueKey<String>('top-picks-heading'),
                           style: AppTypography.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -145,7 +157,10 @@ class _RecipePageState extends ConsumerState<RecipePage> {
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
-                    'แตะเมนูเพื่อเลือกจำนวนคน ดูปริมาณวัตถุดิบ และเปิดสูตรอาหาร',
+                    result.totalHeroRecipes == 0
+                        ? 'ยังไม่มีเมนูที่ยืนยันความเข้ากันได้โดยตรง'
+                        : 'พบ ${result.totalHeroRecipes} เมนูที่ยืนยันความเข้ากันได้ · แตะเพื่อดูรายละเอียด',
+                    key: const ValueKey<String>('top-picks-summary'),
                     style: AppTypography.caption,
                   ),
                   const SizedBox(height: AppSpacing.md),
@@ -154,13 +169,13 @@ class _RecipePageState extends ConsumerState<RecipePage> {
                       final filteredPrimary = result.primaryMatches
                           .where(_passesFilters)
                           .toList(growable: false);
-                      final filteredMore = result.moreMatches
+                      final filteredAdaptable = result.adaptableMatches
                           .where(_passesFilters)
                           .toList(growable: false);
 
                       if (_activeFilters.isNotEmpty &&
                           filteredPrimary.isEmpty &&
-                          filteredMore.isEmpty) {
+                          filteredAdaptable.isEmpty) {
                         return const Padding(
                           padding: EdgeInsets.symmetric(
                             vertical: AppSpacing.xl,
@@ -175,8 +190,25 @@ class _RecipePageState extends ConsumerState<RecipePage> {
 
                       return Column(
                         children: [
+                          if (filteredPrimary.isEmpty)
+                            const Padding(
+                              key: ValueKey<String>(
+                                'top-picks-empty-state',
+                              ),
+                              padding: EdgeInsets.symmetric(
+                                vertical: AppSpacing.lg,
+                              ),
+                              child: Text(
+                                'ยังไม่พบเมนูที่เข้ากันโดยตรง ลองเลือกวัตถุดิบหลักอื่น',
+                                textAlign: TextAlign.center,
+                                style: AppTypography.body,
+                              ),
+                            ),
                           ...filteredPrimary.map(
                             (match) => Padding(
+                              key: ValueKey<String>(
+                                'top-pick-${match.recipe.id}',
+                              ),
                               padding: const EdgeInsets.only(
                                 bottom: AppSpacing.sm,
                               ),
@@ -186,10 +218,10 @@ class _RecipePageState extends ConsumerState<RecipePage> {
                               ),
                             ),
                           ),
-                          if (filteredMore.isNotEmpty) ...[
+                          if (filteredAdaptable.isNotEmpty) ...[
                             const SizedBox(height: 24),
-                            _MoreRecipesSection(
-                              matches: filteredMore,
+                            _AdaptableRecipesSection(
+                              matches: filteredAdaptable,
                               onOpen: (match) =>
                                   _openRecipeDetail(context, match),
                             ),
@@ -228,135 +260,62 @@ class _RecipePageState extends ConsumerState<RecipePage> {
     BuildContext context,
     WidgetRef ref,
     List<HeroIngredientOption> options,
-    HeroIngredientOption activeHero,
+    HeroIngredientOption? activeHero,
     HeroSelectionMode activeMode,
   ) async {
-    await showModalBottomSheet<void>(
+    final result = await showMainIngredientPickerSheet(
       context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (sheetContext) {
-        final sheetHeight = (MediaQuery.sizeOf(sheetContext).height * 0.72)
-            .clamp(360.0, 640.0)
-            .toDouble();
-
-        return SafeArea(
-          child: SizedBox(
-            height: sheetHeight,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'เลือกวัตถุดิบหลัก',
-                        style: Theme.of(sheetContext).textTheme.titleLarge
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'แตะเพื่อใช้ครั้งนี้ หรือกดหมุดเพื่อจำไว้ครั้งต่อไป',
-                        style: Theme.of(sheetContext).textTheme.bodyMedium
-                            ?.copyWith(
-                              color: Theme.of(
-                                sheetContext,
-                              ).colorScheme.onSurfaceVariant,
-                            ),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
-                    children: [
-                      ListTile(
-                        leading: const CircleAvatar(
-                          child: Icon(Icons.auto_awesome_outlined),
-                        ),
-                        title: const Text('ให้ระบบเลือกอัตโนมัติ'),
-                        subtitle: const Text(
-                          'ดูของใกล้หมดอายุ ความพร้อม และเมนูที่ทำได้',
-                        ),
-                        trailing: activeMode == HeroSelectionMode.automatic
-                            ? const Icon(Icons.check_circle)
-                            : null,
-                        onTap: () async {
-                          await ref
-                              .read(heroSelectionProvider.notifier)
-                              .useAutomatic();
-                          ref
-                              .read(recommendationSessionProvider.notifier)
-                              .reset();
-                          if (sheetContext.mounted) {
-                            Navigator.of(sheetContext).pop();
-                          }
-                        },
-                      ),
-                      const Divider(),
-                      ...options.map(
-                        (option) => ListTile(
-                          leading: CircleAvatar(child: Text(option.emoji)),
-                          title: Text(option.name),
-                          subtitle: Text(_heroOptionSubtitle(option)),
-                          selected:
-                              activeMode != HeroSelectionMode.automatic &&
-                              activeHero.key == option.key,
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (activeMode != HeroSelectionMode.automatic &&
-                                  activeHero.key == option.key)
-                                const Icon(Icons.check_circle_outline),
-                              IconButton(
-                                tooltip: 'ปักหมุดเป็นวัตถุดิบหลัก',
-                                onPressed: () async {
-                                  await ref
-                                      .read(heroSelectionProvider.notifier)
-                                      .pin(option.key);
-                                  ref
-                                      .read(
-                                        recommendationSessionProvider.notifier,
-                                      )
-                                      .reset();
-                                  if (sheetContext.mounted) {
-                                    Navigator.of(sheetContext).pop();
-                                  }
-                                },
-                                icon: Icon(
-                                  activeMode == HeroSelectionMode.pinned &&
-                                          activeHero.key == option.key
-                                      ? Icons.push_pin
-                                      : Icons.push_pin_outlined,
-                                ),
-                              ),
-                            ],
-                          ),
-                          onTap: () async {
-                            await ref
-                                .read(heroSelectionProvider.notifier)
-                                .selectForSession(option.key);
-                            ref
-                                .read(recommendationSessionProvider.notifier)
-                                .reset();
-                            if (sheetContext.mounted) {
-                              Navigator.of(sheetContext).pop();
-                            }
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+      options: options
+          .map(
+            (option) => MainIngredientPickerOption(
+              canonicalId: option.canonicalIngredientId,
+              name: option.name,
+              emoji: option.emoji,
+              categoryLabel: option.categoryLabel,
+              isInPantry: option.isInPantry,
+              supportedRecipeCount: option.supportedRecipeCount,
+              searchTerms: <String>{
+                option.key,
+                option.name,
+                ...option.searchTerms,
+              }.toList(growable: false),
             ),
-          ),
-        );
-      },
+          )
+          .toList(growable: false),
+      initialMode: activeMode == HeroSelectionMode.automatic
+          ? MainIngredientSelectionMode.automatic
+          : MainIngredientSelectionMode.manual,
+      selectedIngredientId: activeMode == HeroSelectionMode.automatic
+          ? null
+          : activeHero?.key,
+      recentIngredientIds: options
+          .where((option) => option.isRecent)
+          .map((option) => option.key)
+          .toList(growable: false),
+      showPinAction: true,
+      pinnedIngredientId: activeMode == HeroSelectionMode.pinned
+          ? activeHero?.key
+          : null,
     );
+
+    if (result == null) {
+      return;
+    }
+
+    final selection = ref.read(heroSelectionProvider.notifier);
+    if (result.mode == MainIngredientSelectionMode.automatic) {
+      await selection.useAutomatic();
+    } else {
+      final ingredientId = result.canonicalIngredientId!;
+      if (result.pinAction == MainIngredientPinAction.pin) {
+        await selection.pin(ingredientId);
+      } else {
+        // A normal selection and an explicit unpin both keep the ingredient
+        // selected for this session without persisting the pin.
+        await selection.selectForSession(ingredientId);
+      }
+    }
+    ref.read(recommendationSessionProvider.notifier).reset();
   }
 }
 

@@ -33,16 +33,17 @@ class RecipeCard extends StatelessWidget {
   final double width;
 
   String get _readinessLabel => switch (readiness) {
-        RecipeReadiness.ready => 'พร้อมทำ',
-        RecipeReadiness.pantryFriendly => 'Pantry',
-        RecipeReadiness.almostReady => 'ใกล้พร้อม',
-      };
+    RecipeReadiness.ready => 'พร้อมทำ',
+    RecipeReadiness.pantryFriendly => 'Pantry',
+    RecipeReadiness.almostReady => 'ใกล้พร้อม',
+  };
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: '$name, พร้อมทำ $pantryMatchPercent เปอร์เซ็นต์, ใช้เวลา $cookingTimeMinutes นาที',
+      label:
+          '$name, พร้อมทำ $pantryMatchPercent เปอร์เซ็นต์, ใช้เวลา $cookingTimeMinutes นาที',
       child: InkWell(
         onTap: onTap,
         borderRadius: AppRadius.largeRadius,
@@ -62,9 +63,18 @@ class RecipeCard extends StatelessWidget {
                           : Container(
                               color: AppColors.primarySoft,
                               alignment: Alignment.center,
-                              child: placeholderEmoji != null && placeholderEmoji!.isNotEmpty
-                                  ? Text(placeholderEmoji!, style: const TextStyle(fontSize: 40))
-                                  : const Icon(Icons.restaurant, color: AppColors.primary, size: 32),
+                              child:
+                                  placeholderEmoji != null &&
+                                      placeholderEmoji!.isNotEmpty
+                                  ? Text(
+                                      placeholderEmoji!,
+                                      style: const TextStyle(fontSize: 40),
+                                    )
+                                  : const Icon(
+                                      Icons.restaurant,
+                                      color: AppColors.primary,
+                                      size: 32,
+                                    ),
                             ),
                     ),
                   ),
@@ -72,7 +82,10 @@ class RecipeCard extends StatelessWidget {
                     left: AppSpacing.sm,
                     bottom: AppSpacing.sm,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.sm,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.surface,
                         borderRadius: AppRadius.pillRadius,
@@ -98,9 +111,16 @@ class RecipeCard extends StatelessWidget {
               const SizedBox(height: 2),
               Row(
                 children: [
-                  const Icon(Icons.schedule, size: 13, color: AppColors.textSecondary),
+                  const Icon(
+                    Icons.schedule,
+                    size: 13,
+                    color: AppColors.textSecondary,
+                  ),
                   const SizedBox(width: 4),
-                  Text('$cookingTimeMinutes นาที', style: AppTypography.caption),
+                  Text(
+                    '$cookingTimeMinutes นาที',
+                    style: AppTypography.caption,
+                  ),
                 ],
               ),
             ],

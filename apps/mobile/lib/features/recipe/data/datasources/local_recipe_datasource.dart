@@ -20,6 +20,7 @@ class LocalRecipeDataSource {
     'assets/recipes/chicken.json',
     'assets/recipes/beef.json',
     'assets/recipes/fish.json',
+    'assets/recipes/mackerel.json',
     'assets/recipes/egg.json',
     'assets/recipes/salted_egg.json',
   ];
