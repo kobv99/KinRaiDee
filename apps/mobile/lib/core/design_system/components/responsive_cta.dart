@@ -24,6 +24,7 @@ class ResponsiveCta extends StatelessWidget {
     if (width < breakpoint) return child;
     return Align(
       alignment: alignment,
+      heightFactor: 1,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxWidth),
         child: child,
