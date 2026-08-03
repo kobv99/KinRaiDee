@@ -36,6 +36,18 @@ void main() {
     );
     expect(find.text('🌶️'), findsOneWidget);
   });
+
+  testWidgets('exposes a semantic label with the recipe name', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    final recipe = _recipe(id: 'som-tam', emoji: '🥗');
+
+    await tester.pumpWidget(MaterialApp(home: RecipeImage(recipe: recipe)));
+
+    expect(find.bySemanticsLabel('รูปภาพเมนู ${recipe.name}'), findsOneWidget);
+    handle.dispose();
+  });
 }
 
 Recipe _recipe({required String id, required String emoji, String? imageUrl}) {
