@@ -26,6 +26,7 @@ flutter:
   assets:
     - assets/recipes/
     - assets/ingredients/
+    - assets/recipe_images/
   fonts:
     # Split into two families, matching how Noto is packaged upstream:
     # NotoSans covers Latin/digits/punctuation, NotoSansThai covers Thai
