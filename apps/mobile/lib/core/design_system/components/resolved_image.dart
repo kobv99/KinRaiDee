@@ -19,6 +19,8 @@ class ResolvedImage extends StatelessWidget {
     required this.semanticLabel,
     super.key,
     this.size = 56,
+    this.width,
+    this.height,
     this.borderRadius = const BorderRadius.all(Radius.circular(12)),
     this.loadedKey,
     this.exhaustedFallbackKey,
@@ -26,7 +28,17 @@ class ResolvedImage extends StatelessWidget {
 
   final ImageResolution resolution;
   final String semanticLabel;
+
+  /// Square footprint used when [width]/[height] are omitted, and always the
+  /// reference size for the fallback glyph's font scale regardless of the
+  /// actual rendered footprint.
   final double size;
+
+  /// Optional non-square footprint override (e.g. a full-width hero banner).
+  /// Falls back to [size] when null, preserving the original square-only
+  /// behavior for every existing caller.
+  final double? width;
+  final double? height;
   final BorderRadius borderRadius;
 
   /// Applied to whichever candidate widget is currently being attempted.
@@ -40,6 +52,8 @@ class ResolvedImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final resolvedWidth = width ?? size;
+    final resolvedHeight = height ?? size;
     return Semantics(
       image: true,
       container: true,
@@ -48,12 +62,14 @@ class ResolvedImage extends StatelessWidget {
       child: ClipRRect(
         borderRadius: borderRadius,
         child: SizedBox(
-          width: size,
-          height: size,
+          width: resolvedWidth,
+          height: resolvedHeight,
           child: _CandidateChain(
             candidates: resolution.candidates,
             fallbackGlyph: resolution.fallbackGlyph,
-            size: size,
+            width: resolvedWidth,
+            height: resolvedHeight,
+            glyphSize: size,
             isPrimary: true,
             loadedKey: loadedKey,
             fallbackKey: resolution.candidates.isEmpty
@@ -70,7 +86,9 @@ class _CandidateChain extends StatelessWidget {
   const _CandidateChain({
     required this.candidates,
     required this.fallbackGlyph,
-    required this.size,
+    required this.width,
+    required this.height,
+    required this.glyphSize,
     required this.isPrimary,
     this.loadedKey,
     this.fallbackKey,
@@ -78,7 +96,13 @@ class _CandidateChain extends StatelessWidget {
 
   final List<ImageCandidate> candidates;
   final String fallbackGlyph;
-  final double size;
+  final double width;
+  final double height;
+
+  /// Reference size for the fallback glyph's font scale — independent of
+  /// [width]/[height] so a wide rectangular hero doesn't render an
+  /// oversized glyph on the rare runtime-failure fallback path.
+  final double glyphSize;
 
   /// True only for the first candidate attempt. [loadedKey] is applied
   /// only when this is true, so a retried candidate never ends up mounted
@@ -90,7 +114,11 @@ class _CandidateChain extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (candidates.isEmpty) {
-      return _FallbackGlyph(key: fallbackKey, glyph: fallbackGlyph, size: size);
+      return _FallbackGlyph(
+        key: fallbackKey,
+        glyph: fallbackGlyph,
+        size: glyphSize,
+      );
     }
 
     final candidate = candidates.first;
@@ -101,7 +129,9 @@ class _CandidateChain extends StatelessWidget {
       return _CandidateChain(
         candidates: remaining,
         fallbackGlyph: fallbackGlyph,
-        size: size,
+        width: width,
+        height: height,
+        glyphSize: glyphSize,
         isPrimary: false,
         loadedKey: loadedKey,
         fallbackKey: fallbackKey,
@@ -113,8 +143,8 @@ class _CandidateChain extends StatelessWidget {
         candidate.path,
         key: key,
         fit: BoxFit.cover,
-        width: size,
-        height: size,
+        width: width,
+        height: height,
         errorBuilder: onError,
       );
     }
@@ -123,13 +153,13 @@ class _CandidateChain extends StatelessWidget {
       candidate.path,
       key: key,
       fit: BoxFit.cover,
-      width: size,
-      height: size,
+      width: width,
+      height: height,
       loadingBuilder: (context, child, progress) {
         if (progress == null) {
           return child;
         }
-        return _FallbackGlyph(glyph: fallbackGlyph, size: size);
+        return _FallbackGlyph(glyph: fallbackGlyph, size: glyphSize);
       },
       errorBuilder: onError,
     );
