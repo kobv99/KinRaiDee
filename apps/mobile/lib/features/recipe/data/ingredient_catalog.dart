@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart';
 
+import '../../../core/domain/images/image_metadata.dart';
 import '../../../core/domain/ingredients/canonical_ingredient.dart';
 import '../../../core/domain/ingredients/canonical_ingredient_registry.dart';
 import '../../../core/domain/ingredients/ingredient_artwork_policy.dart';
@@ -167,8 +168,16 @@ class IngredientCatalog {
         revision: _intValue(json['revision'], fallback: 1),
         source: json['source']?.toString() ?? 'thai_ingredients_v1',
       ),
+      image: _image(json['image']),
     );
   }
+}
+
+ImageMetadata? _image(Object? value) {
+  if (value is! Map) {
+    return null;
+  }
+  return ImageMetadata.fromJson(Map<String, dynamic>.from(value));
 }
 
 CanonicalIngredientNodeType _nodeType(String? value) {

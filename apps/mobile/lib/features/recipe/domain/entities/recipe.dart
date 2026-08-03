@@ -1,3 +1,4 @@
+import '../../../../core/domain/images/image_metadata.dart';
 import 'recipe_ingredient.dart';
 import 'recipe_compatibility.dart';
 
@@ -48,6 +49,27 @@ class Recipe {
   /// Optional remote image for this recipe. Absent or failing to load must
   /// always fall back to [emoji] — never fabricate imagery or rating data.
   final String? imageUrl;
+
+  /// Adapts the legacy [imageUrl] field into the shared image foundation
+  /// model, without changing [imageUrl]'s stored shape or JSON parsing.
+  ///
+  /// A populated [imageUrl] is treated as pre-approved: it was already
+  /// being rendered directly (unconditionally) by earlier code, so marking
+  /// it [ImageReviewStatus.approved] here is what actually preserves that
+  /// existing behavior under the foundation's new approved-only rendering
+  /// policy. Both hero and thumbnail roles resolve from this single
+  /// adapted value today, since Recipe carries only one image field.
+  ImageMetadata get imageMetadata {
+    final url = imageUrl;
+    if (url == null) {
+      return ImageMetadata(locationType: ImageLocationType.none);
+    }
+    return ImageMetadata(
+      locationType: ImageLocationType.network,
+      remoteUrl: url,
+      reviewStatus: ImageReviewStatus.approved,
+    );
+  }
 
   RecipeIngredient? get heroIngredient {
     final explicitId = heroIngredientId?.trim();
