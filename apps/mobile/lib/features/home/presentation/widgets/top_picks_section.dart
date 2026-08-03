@@ -134,6 +134,7 @@ class TopPicksSection extends ConsumerWidget {
             pantryMatchPercent: match.scorePercent,
             readiness: _readinessFor(match),
             cookingTimeMinutes: match.recipe.cookTimeMinutes,
+            imageMetadata: match.recipe.imageMetadata,
             placeholderEmoji: match.recipe.emoji,
             onTap: () => Navigator.of(context).push<void>(
               MaterialPageRoute(
