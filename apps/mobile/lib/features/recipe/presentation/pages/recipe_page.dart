@@ -373,16 +373,18 @@ class _QuickFilterChips extends StatelessWidget {
     return Wrap(
       spacing: AppSpacing.xs,
       runSpacing: AppSpacing.xs,
-      children: _QuickFilter.values.map((filter) {
-        final (label, icon) = labels[filter]!;
-        return FilterChip(
-          key: ValueKey<String>('recipe-quick-filter-${filter.name}'),
-          avatar: Icon(icon, size: 16),
-          label: Text(label),
-          selected: active.contains(filter),
-          onSelected: (_) => onToggle(filter),
-        );
-      }).toList(growable: false),
+      children: _QuickFilter.values
+          .map((filter) {
+            final (label, icon) = labels[filter]!;
+            return FilterChip(
+              key: ValueKey<String>('recipe-quick-filter-${filter.name}'),
+              avatar: Icon(icon, size: 16),
+              label: Text(label),
+              selected: active.contains(filter),
+              onSelected: (_) => onToggle(filter),
+            );
+          })
+          .toList(growable: false),
     );
   }
 }
@@ -440,9 +442,7 @@ class _HeroIngredientCard extends StatelessWidget {
                 ),
               ),
               IconButton(
-                tooltip: isPinned
-                    ? 'กลับไปให้ระบบเลือก'
-                    : 'ปักหมุดวัตถุดิบนี้',
+                tooltip: isPinned ? 'กลับไปให้ระบบเลือก' : 'ปักหมุดวัตถุดิบนี้',
                 onPressed: onTogglePin,
                 icon: Icon(
                   isPinned ? Icons.push_pin : Icons.push_pin_outlined,
@@ -470,10 +470,7 @@ class _HeroIngredientCard extends StatelessWidget {
 }
 
 class _AdaptableRecipesSection extends StatelessWidget {
-  const _AdaptableRecipesSection({
-    required this.matches,
-    required this.onOpen,
-  });
+  const _AdaptableRecipesSection({required this.matches, required this.onOpen});
 
   final List<RecipeMatch> matches;
   final ValueChanged<RecipeMatch> onOpen;
@@ -493,26 +490,25 @@ class _AdaptableRecipesSection extends StatelessWidget {
           '${matches.length} เมนูจากกลุ่มวัตถุดิบเดียวกัน ตรวจสูตรก่อนตัดสินใจ',
         ),
         childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-        children: matches.map((match) {
-          return Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: _RecipeMatchCard(
-              match: match,
-              compact: true,
-              onOpen: () => onOpen(match),
-            ),
-          );
-        }).toList(growable: false),
+        children: matches
+            .map((match) {
+              return Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: _RecipeMatchCard(
+                  match: match,
+                  compact: true,
+                  onOpen: () => onOpen(match),
+                ),
+              );
+            })
+            .toList(growable: false),
       ),
     );
   }
 }
 
 class _MoreRecipesSection extends StatelessWidget {
-  const _MoreRecipesSection({
-    required this.matches,
-    required this.onOpen,
-  });
+  const _MoreRecipesSection({required this.matches, required this.onOpen});
 
   final List<RecipeMatch> matches;
   final ValueChanged<RecipeMatch> onOpen;
@@ -530,16 +526,18 @@ class _MoreRecipesSection extends StatelessWidget {
         ),
         subtitle: Text('${matches.length} เมนู · เรียงตามความพร้อม'),
         childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-        children: matches.map((match) {
-          return Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: _RecipeMatchCard(
-              match: match,
-              compact: true,
-              onOpen: () => onOpen(match),
-            ),
-          );
-        }).toList(growable: false),
+        children: matches
+            .map((match) {
+              return Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: _RecipeMatchCard(
+                  match: match,
+                  compact: true,
+                  onOpen: () => onOpen(match),
+                ),
+              );
+            })
+            .toList(growable: false),
       ),
     );
   }
@@ -651,9 +649,7 @@ class _InfoChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: emphasized
-            ? colors.secondaryContainer
-            : colors.surfaceContainer,
+        color: emphasized ? colors.secondaryContainer : colors.surfaceContainer,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(

@@ -33,9 +33,8 @@ void main() {
       expect(mackerelRecipes, hasLength(7));
       expect(
         mackerelRecipes.every(
-          (recipe) => recipe.compatibility.exactIngredientIds.contains(
-            'mackerel',
-          ),
+          (recipe) =>
+              recipe.compatibility.exactIngredientIds.contains('mackerel'),
         ),
         isTrue,
       );

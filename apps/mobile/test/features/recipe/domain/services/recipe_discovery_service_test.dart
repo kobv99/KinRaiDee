@@ -146,9 +146,7 @@ void main() {
       final options = service.mainIngredients(recipes, registry: registry);
       final results = service.discover(
         recipes: recipes,
-        criteria: const RecipeDiscoveryCriteria(
-          mainIngredientId: 'mackerel',
-        ),
+        criteria: const RecipeDiscoveryCriteria(mainIngredientId: 'mackerel'),
         registry: registry,
       );
 

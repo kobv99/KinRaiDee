@@ -128,8 +128,7 @@ class MainIngredientPickerSheet extends StatefulWidget {
       _MainIngredientPickerSheetState();
 }
 
-class _MainIngredientPickerSheetState
-    extends State<MainIngredientPickerSheet> {
+class _MainIngredientPickerSheetState extends State<MainIngredientPickerSheet> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
 
@@ -179,21 +178,16 @@ class _MainIngredientPickerSheetState
               child: const Icon(Icons.auto_awesome_outlined),
             ),
             title: const Text('ให้ระบบเลือกอัตโนมัติ'),
-            subtitle: const Text(
-              'ดูของในคลัง ความพร้อม และเมนูที่ทำได้',
-            ),
+            subtitle: const Text('ดูของในคลัง ความพร้อม และเมนูที่ทำได้'),
             selected: isAutomatic,
             trailing: isAutomatic
                 ? const Icon(
                     Icons.check_circle,
-                    key: ValueKey<String>(
-                      'main-ingredient-automatic-selected',
-                    ),
+                    key: ValueKey<String>('main-ingredient-automatic-selected'),
                   )
                 : null,
-            onTap: () => widget.onResult(
-              const MainIngredientPickerResult.automatic(),
-            ),
+            onTap: () =>
+                widget.onResult(const MainIngredientPickerResult.automatic()),
           ),
           const Divider(height: 1),
           Padding(
@@ -203,15 +197,13 @@ class _MainIngredientPickerSheetState
               children: [
                 Text(
                   'เลือกวัตถุดิบเอง',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 TextField(
-                  key: const ValueKey<String>(
-                    'main-ingredient-search-field',
-                  ),
+                  key: const ValueKey<String>('main-ingredient-search-field'),
                   controller: _searchController,
                   textInputAction: TextInputAction.search,
                   decoration: InputDecoration(
@@ -259,10 +251,8 @@ class _MainIngredientPickerSheetState
     final scored = widget.options
         .where((option) => !recentIds.contains(option.canonicalId))
         .map(
-          (option) => (
-            option: option,
-            score: _searchScore(option, normalizedQuery),
-          ),
+          (option) =>
+              (option: option, score: _searchScore(option, normalizedQuery)),
         )
         .where((entry) => normalizedQuery.isEmpty || entry.score > 0)
         .toList(growable: false);
@@ -284,10 +274,9 @@ class _MainIngredientPickerSheetState
 
     final pantry = scored.where((entry) => entry.option.isInPantry).toList()
       ..sort(compareEntries);
-    final exploration = scored
-        .where((entry) => !entry.option.isInPantry)
-        .toList()
-      ..sort(compareEntries);
+    final exploration =
+        scored.where((entry) => !entry.option.isInPantry).toList()
+          ..sort(compareEntries);
 
     if (recent.isEmpty && pantry.isEmpty && exploration.isEmpty) {
       return _EmptyOptions(query: _query);
@@ -343,9 +332,7 @@ class _MainIngredientPickerSheetState
     ].join(' · ');
 
     return ListTile(
-      key: ValueKey<String>(
-        'main-ingredient-option-${option.canonicalId}',
-      ),
+      key: ValueKey<String>('main-ingredient-option-${option.canonicalId}'),
       leading: CircleAvatar(child: Text(option.emoji)),
       title: Text(option.name),
       subtitle: Text(subtitle),
@@ -475,10 +462,7 @@ class _EmptyOptions extends StatelessWidget {
   }
 }
 
-int _searchScore(
-  MainIngredientPickerOption option,
-  String normalizedQuery,
-) {
+int _searchScore(MainIngredientPickerOption option, String normalizedQuery) {
   if (normalizedQuery.isEmpty) {
     return 1;
   }
@@ -517,8 +501,5 @@ int _searchScore(
 }
 
 String _normalize(String value) {
-  return value
-      .trim()
-      .toLowerCase()
-      .replaceAll(RegExp(r'[\s\-_.\/]+'), '');
+  return value.trim().toLowerCase().replaceAll(RegExp(r'[\s\-_.\/]+'), '');
 }

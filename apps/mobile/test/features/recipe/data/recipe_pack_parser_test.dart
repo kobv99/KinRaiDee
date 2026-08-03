@@ -87,56 +87,59 @@ void main() {
     expect(ingredient.weight, 10);
   });
 
-  test('recipe row compatibility overrides pack defaults deterministically', () {
-    final parser = RecipePackParser(
-      catalog: RecipeIngredientCatalog.fromJson(<String, dynamic>{
-        'ingredients': <Map<String, dynamic>>[],
-      }),
-    );
+  test(
+    'recipe row compatibility overrides pack defaults deterministically',
+    () {
+      final parser = RecipePackParser(
+        catalog: RecipeIngredientCatalog.fromJson(<String, dynamic>{
+          'ingredients': <Map<String, dynamic>>[],
+        }),
+      );
 
-    final recipes = parser.parse(<String, dynamic>{
-      'version': 2,
-      'hero': <String, dynamic>{
-        'id': 'fish',
-        'name': 'ปลา',
-        'quantity': 1,
-        'unit': 'ตัว',
-      },
-      'exactIngredientIds': <String>['fish'],
-      'excludedIngredientIds': <String>['mackerel'],
-      'requiredIngredientForm': 'boneless_fillet',
-      'requiredTexture': 'firm_white_flesh',
-      'recipes': <Map<String, dynamic>>[
-        <String, dynamic>{
-          'id': 'generic-fillet',
-          'name': 'ปลาเนื้อขาวผัด',
-          'method': 'ผัด',
-          'ingredients': <Object>[],
+      final recipes = parser.parse(<String, dynamic>{
+        'version': 2,
+        'hero': <String, dynamic>{
+          'id': 'fish',
+          'name': 'ปลา',
+          'quantity': 1,
+          'unit': 'ตัว',
         },
-        <String, dynamic>{
-          'id': 'whole-mackerel',
-          'name': 'ปลาทอดทั้งตัว',
-          'method': 'ทอด',
-          'ingredients': <Object>[],
-          'compatibleIngredientIds': <String>['mackerel'],
-          'excludedIngredientIds': <String>[],
-          'requiredIngredientForm': 'whole_cleaned',
-          'requiredTexture': 'oily_tender',
-        },
-      ],
-    });
+        'exactIngredientIds': <String>['fish'],
+        'excludedIngredientIds': <String>['mackerel'],
+        'requiredIngredientForm': 'boneless_fillet',
+        'requiredTexture': 'firm_white_flesh',
+        'recipes': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 'generic-fillet',
+            'name': 'ปลาเนื้อขาวผัด',
+            'method': 'ผัด',
+            'ingredients': <Object>[],
+          },
+          <String, dynamic>{
+            'id': 'whole-mackerel',
+            'name': 'ปลาทอดทั้งตัว',
+            'method': 'ทอด',
+            'ingredients': <Object>[],
+            'compatibleIngredientIds': <String>['mackerel'],
+            'excludedIngredientIds': <String>[],
+            'requiredIngredientForm': 'whole_cleaned',
+            'requiredTexture': 'oily_tender',
+          },
+        ],
+      });
 
-    expect(recipes.first.compatibility.excludedIngredientIds, ['mackerel']);
-    expect(recipes.first.compatibility.requiredIngredientForms, [
-      'boneless_fillet',
-    ]);
-    expect(recipes.last.compatibility.compatibleIngredientIds, ['mackerel']);
-    expect(recipes.last.compatibility.excludedIngredientIds, isEmpty);
-    expect(recipes.last.compatibility.requiredIngredientForms, [
-      'whole_cleaned',
-    ]);
-    expect(recipes.last.compatibility.requiredTexture, 'oily_tender');
-  });
+      expect(recipes.first.compatibility.excludedIngredientIds, ['mackerel']);
+      expect(recipes.first.compatibility.requiredIngredientForms, [
+        'boneless_fillet',
+      ]);
+      expect(recipes.last.compatibility.compatibleIngredientIds, ['mackerel']);
+      expect(recipes.last.compatibility.excludedIngredientIds, isEmpty);
+      expect(recipes.last.compatibility.requiredIngredientForms, [
+        'whole_cleaned',
+      ]);
+      expect(recipes.last.compatibility.requiredTexture, 'oily_tender');
+    },
+  );
 
   group('step count varies with recipe complexity', () {
     RecipePackParser buildParser() {

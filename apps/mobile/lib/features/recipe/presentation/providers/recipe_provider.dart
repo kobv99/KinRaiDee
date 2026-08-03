@@ -153,9 +153,7 @@ final smartRecommendationEngineProvider = Provider<SmartRecommendationEngine>((
   ref,
 ) {
   return SmartRecommendationEngine(
-    compatibilityService: ref.watch(
-      mainIngredientCompatibilityServiceProvider,
-    ),
+    compatibilityService: ref.watch(mainIngredientCompatibilityServiceProvider),
   );
 });
 
@@ -284,10 +282,9 @@ class HeroSelectionNotifier extends Notifier<HeroSelectionState> {
   }
 
   List<String> _withRecent(String key) {
-    return List<String>.unmodifiable(<String>[
-      key,
-      ...state.recentKeys.where((item) => item != key),
-    ].take(6));
+    return List<String>.unmodifiable(
+      <String>[key, ...state.recentKeys.where((item) => item != key)].take(6),
+    );
   }
 }
 

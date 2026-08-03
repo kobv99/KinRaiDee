@@ -39,17 +39,18 @@ class RecipeCandidateService {
     required List<Ingredient> pantry,
     required DateTime evaluatedAt,
   }) {
-    final matches = recipes
-        .map(
-          (recipe) => evaluateReadiness(
-            recipe: recipe,
-            pantry: pantry,
-            servings: recipe.servings > 0 ? recipe.servings : 1,
-            evaluatedAt: evaluatedAt,
-          ),
-        )
-        .toList(growable: false)
-      ..sort(_compare);
+    final matches =
+        recipes
+            .map(
+              (recipe) => evaluateReadiness(
+                recipe: recipe,
+                pantry: pantry,
+                servings: recipe.servings > 0 ? recipe.servings : 1,
+                evaluatedAt: evaluatedAt,
+              ),
+            )
+            .toList(growable: false)
+          ..sort(_compare);
     return List<RecipeMatch>.unmodifiable(matches);
   }
 

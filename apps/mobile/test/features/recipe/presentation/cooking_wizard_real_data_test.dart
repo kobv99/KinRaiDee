@@ -109,9 +109,7 @@ void main() {
       expect(tester.takeException(), isNull, reason: 'All Recipes list');
 
       await tester.enterText(
-        find.byKey(
-          const ValueKey<String>('recipe-discovery-search-field'),
-        ),
+        find.byKey(const ValueKey<String>('recipe-discovery-search-field')),
         'ปลาทู',
       );
       await tester.pumpAndSettle();

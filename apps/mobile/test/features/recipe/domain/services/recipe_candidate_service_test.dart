@@ -27,17 +27,20 @@ void main() {
     expect(candidates, isEmpty);
   });
 
-  test('recipe exploration evaluates recipes whose primary is not in Pantry', () {
-    final matches = service.evaluateAllRecipes(
-      recipes: const <Recipe>[_padKraPao],
-      pantry: const <Ingredient>[],
-      evaluatedAt: now,
-    );
+  test(
+    'recipe exploration evaluates recipes whose primary is not in Pantry',
+    () {
+      final matches = service.evaluateAllRecipes(
+        recipes: const <Recipe>[_padKraPao],
+        pantry: const <Ingredient>[],
+        evaluatedAt: now,
+      );
 
-    expect(matches, hasLength(1));
-    expect(matches.single.recipe.id, _padKraPao.id);
-    expect(matches.single.missingPrimaryIngredients, isNotEmpty);
-  });
+      expect(matches, hasLength(1));
+      expect(matches.single.recipe.id, _padKraPao.id);
+      expect(matches.single.missingPrimaryIngredients, isNotEmpty);
+    },
+  );
 
   test('either declared Primary ingredient makes the recipe a candidate', () {
     final fromPork = service.findCandidates(

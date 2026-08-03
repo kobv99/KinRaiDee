@@ -79,9 +79,12 @@ class SmartRecommendationEngine {
           requestedSelection,
           isInPantry: false,
           categoryLabel:
-              registry?.byId(requestedSelection.canonicalIngredientId)?.category ??
+              registry
+                  ?.byId(requestedSelection.canonicalIngredientId)
+                  ?.category ??
               '',
-          searchTerms: registry
+          searchTerms:
+              registry
                   ?.byId(requestedSelection.canonicalIngredientId)
                   ?.searchableNames
                   .toList(growable: false) ??

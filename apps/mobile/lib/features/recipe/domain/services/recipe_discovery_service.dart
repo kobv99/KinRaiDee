@@ -149,7 +149,9 @@ class RecipeDiscoveryService {
     final sorted = candidates.values.toList(growable: false)
       ..sort((first, second) {
         final nameComparison = first.name.compareTo(second.name);
-        return nameComparison != 0 ? nameComparison : first.id.compareTo(second.id);
+        return nameComparison != 0
+            ? nameComparison
+            : first.id.compareTo(second.id);
       });
     return List<RecipeDiscoveryMainIngredient>.unmodifiable(
       sorted.map(
@@ -210,10 +212,7 @@ class RecipeDiscoveryService {
     return _canonicalId(recipe.resolvedHeroIngredientId, registry);
   }
 
-  String _canonicalId(
-    String value,
-    CanonicalIngredientRegistry? registry,
-  ) {
+  String _canonicalId(String value, CanonicalIngredientRegistry? registry) {
     final canonical = registry?.canonicalIdFor(value);
     return canonical ?? normalizeCanonicalIngredientId(value);
   }
