@@ -346,6 +346,22 @@ class _PantryContent extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (useSoonIngredients.isNotEmpty)
+                  SliverPadding(
+                    padding: EdgeInsets.fromLTRB(
+                      horizontalPadding,
+                      AppSpacing.sm,
+                      horizontalPadding,
+                      AppSpacing.md,
+                    ),
+                    sliver: SliverToBoxAdapter(
+                      child: PantryUseSoonSection(
+                        ingredients: useSoonIngredients,
+                        loadingIngredientId: loadingRecipeIngredientId,
+                        onFindRecipes: onFindRecipes,
+                      ),
+                    ),
+                  ),
                 SliverPadding(
                   padding: EdgeInsets.fromLTRB(
                     horizontalPadding,
@@ -380,22 +396,6 @@ class _PantryContent extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (useSoonIngredients.isNotEmpty)
-                  SliverPadding(
-                    padding: EdgeInsets.fromLTRB(
-                      horizontalPadding,
-                      AppSpacing.sm,
-                      horizontalPadding,
-                      AppSpacing.md,
-                    ),
-                    sliver: SliverToBoxAdapter(
-                      child: PantryUseSoonSection(
-                        ingredients: useSoonIngredients,
-                        loadingIngredientId: loadingRecipeIngredientId,
-                        onFindRecipes: onFindRecipes,
-                      ),
-                    ),
-                  ),
                 if (frequentItems.isNotEmpty)
                   SliverPadding(
                     padding: EdgeInsets.fromLTRB(

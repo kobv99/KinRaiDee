@@ -117,12 +117,11 @@ class IngredientCard extends ConsumerWidget {
                   children: [
                     _IngredientDetail(
                       icon: Icons.inventory_2_outlined,
-                      text: UnitPresentation.quantity(
+                      text: UnitPresentation.cookingQuantity(
                         ingredient.quantity,
                         ingredient.canonicalUnitId.isEmpty
                             ? ingredient.unit
                             : ingredient.canonicalUnitId,
-                        maximumFractionDigits: 1,
                       ),
                     ),
                     if (ingredient.expiryDate != null)

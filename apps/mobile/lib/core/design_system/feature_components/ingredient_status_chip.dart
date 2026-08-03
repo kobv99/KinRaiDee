@@ -32,9 +32,14 @@ class IngredientStatusChip extends StatelessWidget {
     return Semantics(
       label: '$name, ${_statusLabel(status)}',
       child: GestureDetector(
-        onTap: status == IngredientStatus.substitution ? onTapSubstitution : null,
+        onTap: status == IngredientStatus.substitution
+            ? onTapSubstitution
+            : null,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.sm,
+            vertical: AppSpacing.xs,
+          ),
           decoration: BoxDecoration(
             border: Border.all(color: AppColors.border),
             borderRadius: AppRadius.pillRadius,
@@ -44,7 +49,20 @@ class IngredientStatusChip extends StatelessWidget {
             children: [
               Icon(icon, size: 14, color: color),
               const SizedBox(width: AppSpacing.xs),
-              Text(name, style: AppTypography.caption.copyWith(color: AppColors.textPrimary)),
+              Text(
+                name,
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Text(
+                _shortStatusLabel(status),
+                style: AppTypography.caption.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
         ),
@@ -53,10 +71,16 @@ class IngredientStatusChip extends StatelessWidget {
   }
 
   static String _statusLabel(IngredientStatus status) => switch (status) {
-        IngredientStatus.available => 'มีในครัว',
-        IngredientStatus.missing => 'ขาด',
-        IngredientStatus.substitution => 'มีวัตถุดิบทดแทน',
-      };
+    IngredientStatus.available => 'มีในครัว',
+    IngredientStatus.missing => 'ขาด',
+    IngredientStatus.substitution => 'มีวัตถุดิบทดแทน',
+  };
+
+  static String _shortStatusLabel(IngredientStatus status) => switch (status) {
+    IngredientStatus.available => 'มี',
+    IngredientStatus.missing => 'ขาด',
+    IngredientStatus.substitution => 'ทดแทน',
+  };
 }
 
 /// Row for a single missing ingredient with a working "เพิ่มวัตถุดิบ" action.
@@ -78,18 +102,28 @@ class MissingIngredientCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
       child: Row(
         children: [
-          const Icon(Icons.remove_circle_outline, size: 18, color: AppColors.warning),
+          const Icon(
+            Icons.remove_circle_outline,
+            size: 18,
+            color: AppColors.warning,
+          ),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(name, style: AppTypography.body),
-                if (quantityLabel != null) Text(quantityLabel!, style: AppTypography.caption),
+                if (quantityLabel != null)
+                  Text(quantityLabel!, style: AppTypography.caption),
               ],
             ),
           ),
-          AppButton(label: 'เพิ่มวัตถุดิบ', variant: AppButtonVariant.text, expand: false, onPressed: onAdd),
+          AppButton(
+            label: 'เพิ่มวัตถุดิบ',
+            variant: AppButtonVariant.text,
+            expand: false,
+            onPressed: onAdd,
+          ),
         ],
       ),
     );

@@ -41,10 +41,25 @@ class PantryOverviewCard extends ConsumerWidget {
                     color: AppColors.primaryDark,
                   ),
                   const SizedBox(width: AppSpacing.xs),
-                  Text('ภาพรวมคลัง', style: AppTextStyles.titleMedium),
+                  Expanded(
+                    child: Text('ภาพรวมคลัง', style: AppTextStyles.titleMedium),
+                  ),
+                  IconButton(
+                    tooltip: historyCount == 0
+                        ? 'ประวัติการทำอาหาร'
+                        : 'ประวัติการทำอาหาร $historyCount รายการ',
+                    onPressed: () {
+                      Navigator.of(context).push<void>(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const CookingHistoryPage(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.history_rounded),
+                  ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: AppSpacing.sm),
               Row(
                 children: [
                   Expanded(
@@ -74,25 +89,6 @@ class PantryOverviewCard extends ConsumerWidget {
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: AppSpacing.md),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).push<void>(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const CookingHistoryPage(),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.history_rounded),
-                  label: Text(
-                    historyCount == 0
-                        ? 'ประวัติการทำอาหาร'
-                        : 'ประวัติการทำอาหาร $historyCount รายการ',
-                  ),
-                ),
               ),
             ],
           ),

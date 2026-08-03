@@ -1,4 +1,5 @@
 import 'recipe_ingredient.dart';
+import 'recipe_compatibility.dart';
 
 class Recipe {
   const Recipe({
@@ -20,6 +21,8 @@ class Recipe {
     this.popularity = 0,
     this.sourceUrl,
     this.discoveredByAi = false,
+    this.imageUrl,
+    this.compatibility = const RecipeCompatibilityMetadata(),
   });
 
   final int version;
@@ -40,6 +43,11 @@ class Recipe {
   final List<String> steps;
   final String? sourceUrl;
   final bool discoveredByAi;
+  final RecipeCompatibilityMetadata compatibility;
+
+  /// Optional remote image for this recipe. Absent or failing to load must
+  /// always fall back to [emoji] — never fabricate imagery or rating data.
+  final String? imageUrl;
 
   RecipeIngredient? get heroIngredient {
     final explicitId = heroIngredientId?.trim();
@@ -77,6 +85,13 @@ class Recipe {
       : heroIngredient?.name ?? '';
 
   factory Recipe.fromJson(Map<String, dynamic> json) {
+    final nestedCompatibility = json['compatibility'];
+    final compatibilityJson = nestedCompatibility is Map
+        ? <String, dynamic>{
+            ...json,
+            ...Map<String, dynamic>.from(nestedCompatibility),
+          }
+        : json;
     return Recipe(
       version: (json['version'] as num?)?.toInt() ?? 1,
       id: json['id'] as String,
@@ -107,8 +122,18 @@ class Recipe {
       steps: _stringList(json['steps']),
       sourceUrl: json['sourceUrl'] as String?,
       discoveredByAi: json['discoveredByAi'] as bool? ?? false,
+      imageUrl: _nonEmptyString(json['imageUrl']),
+      compatibility: RecipeCompatibilityMetadata.fromJson(compatibilityJson),
     );
   }
+}
+
+String? _nonEmptyString(Object? value) {
+  if (value is! String) {
+    return null;
+  }
+  final trimmed = value.trim();
+  return trimmed.isEmpty ? null : trimmed;
 }
 
 List<String> _stringList(Object? value) {

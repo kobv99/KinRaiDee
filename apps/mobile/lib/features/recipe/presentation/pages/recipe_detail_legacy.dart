@@ -475,91 +475,99 @@ class DeductionConfirmationSheetState
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.only(bottom: mediaQuery.viewInsets.bottom),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: mediaQuery.size.height * 0.82),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'ตรวจปริมาณก่อนหัก Pantry',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${widget.plan.servingPlan.recipe.name} สำหรับ ${widget.plan.servingPlan.servings} คน',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: colors.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Flexible(
-                child: ListView(
-                  shrinkWrap: true,
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                  children: [
-                    ...widget.plan.lines.map(_buildLine),
-                    if (widget.plan.skippedStapleCount > 0) ...[
-                      const SizedBox(height: 8),
-                      _InfoBox(
-                        icon: Icons.info_outline_rounded,
-                        text:
-                            'เครื่องปรุง ${widget.plan.skippedStapleCount} รายการจะไม่ถูกหักอัตโนมัติ',
-                      ),
-                    ],
-                    if (widget.plan.skippedUnavailableCount > 0) ...[
-                      const SizedBox(height: 8),
-                      _InfoBox(
-                        icon: Icons.compare_arrows_rounded,
-                        text:
-                            'มี ${widget.plan.skippedUnavailableCount} รายการที่ไม่มีใน Pantry หรือหน่วยเทียบกันไม่ได้',
-                      ),
-                    ],
-                    if (_errorMessage != null) ...[
-                      const SizedBox(height: 10),
+        child: Center(
+          child: ConstrainedBox(
+            // maxWidth keeps this from stretching edge-to-edge on desktop
+            // (showModalBottomSheet is full viewport width by default);
+            // maxHeight is a last-resort cap — mainAxisSize.min already
+            // sizes the sheet to its actual content below that.
+            constraints: BoxConstraints(
+              maxWidth: 480,
+              maxHeight: mediaQuery.size.height * 0.82,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        _errorMessage!,
-                        style: TextStyle(
-                          color: colors.error,
-                          fontWeight: FontWeight.w600,
+                        'ตรวจปริมาณก่อนหัก Pantry',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${widget.plan.servingPlan.recipe.name} สำหรับ ${widget.plan.servingPlan.servings} คน',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colors.onSurfaceVariant,
                         ),
                       ),
                     ],
-                  ],
+                  ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('ยกเลิก'),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      flex: 2,
-                      child: FilledButton.icon(
-                        onPressed: _confirm,
-                        icon: const Icon(Icons.inventory_2_outlined),
-                        label: const Text('ยืนยันและหักวัตถุดิบ'),
-                      ),
-                    ),
-                  ],
+                Flexible(
+                  child: ListView(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+                    children: [
+                      ...widget.plan.lines.map(_buildLine),
+                      if (widget.plan.skippedStapleCount > 0) ...[
+                        const SizedBox(height: 6),
+                        _InfoBox(
+                          icon: Icons.info_outline_rounded,
+                          text:
+                              'เครื่องปรุง ${widget.plan.skippedStapleCount} รายการจะไม่ถูกหักอัตโนมัติ',
+                        ),
+                      ],
+                      if (widget.plan.skippedUnavailableCount > 0) ...[
+                        const SizedBox(height: 6),
+                        _InfoBox(
+                          icon: Icons.compare_arrows_rounded,
+                          text:
+                              'มี ${widget.plan.skippedUnavailableCount} รายการที่ไม่มีใน Pantry หรือหน่วยเทียบกันไม่ได้',
+                        ),
+                      ],
+                      if (_errorMessage != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          _errorMessage!,
+                          style: TextStyle(
+                            color: colors.error,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('ยกเลิก'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        flex: 2,
+                        child: FilledButton.icon(
+                          onPressed: _confirm,
+                          icon: const Icon(Icons.inventory_2_outlined),
+                          label: const Text('ยืนยันและหักวัตถุดิบ'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -571,13 +579,15 @@ class DeductionConfirmationSheetState
     final colors = Theme.of(context).colorScheme;
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 6),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(4, 4, 12, 12),
+        padding: const EdgeInsets.fromLTRB(4, 0, 12, 8),
         child: Column(
           children: [
             CheckboxListTile(
               value: selected,
+              dense: true,
+              contentPadding: EdgeInsets.zero,
               onChanged: (value) {
                 setState(() {
                   _errorMessage = null;

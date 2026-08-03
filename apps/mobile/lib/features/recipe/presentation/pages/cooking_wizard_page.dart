@@ -1,24 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/navigation/app_navigation_provider.dart';
 import '../../../../app/providers/canonical_ingredient_providers.dart';
 import '../../../../core/design_system/components/app_button.dart';
 import '../../../../core/design_system/components/app_card.dart';
 import '../../../../core/design_system/components/app_icon_button.dart';
 import '../../../../core/design_system/components/responsive_content.dart';
+import '../../../../core/design_system/components/responsive_cta.dart';
 import '../../../../core/design_system/design_tokens/app_colors.dart';
+import '../../../../core/design_system/design_tokens/app_radius.dart';
 import '../../../../core/design_system/design_tokens/app_spacing.dart';
 import '../../../../core/design_system/design_tokens/app_typography.dart';
 import '../../../../core/design_system/feature_components/cooking_step_card.dart';
+import '../../../../core/design_system/feature_components/ingredient_status_chip.dart';
 import '../../../../core/design_system/feature_components/pantry_readiness_card.dart';
 import '../../../../core/design_system/feature_components/serving_selector.dart';
 import '../../../../core/providers/pantry_provider.dart';
+import '../../../profile/presentation/providers/default_servings_provider.dart';
+import '../../../shopping/application/shopping_providers.dart';
 import '../../application/recipe_missing_shopping_controller.dart';
 import '../../domain/entities/recipe.dart';
+import '../../domain/entities/recipe_ingredient.dart';
 import '../../domain/services/pantry_deduction_planner.dart';
 import '../../domain/services/recipe_serving_calculator.dart';
 import '../providers/recipe_shopping_provider.dart';
-import 'recipe_detail_legacy.dart' show DeductionConfirmationSheet, DeductionSelection;
+import '../recipe_difficulty_label.dart';
+import 'recipe_detail_legacy.dart'
+    show DeductionConfirmationSheet, DeductionSelection;
 
 enum _WizardPhase { serving, review, confirm, cooking }
 
@@ -51,170 +60,262 @@ class _CookingWizardPageState extends ConsumerState<CookingWizardPage> {
   @override
   void initState() {
     super.initState();
-    final base = widget.recipe.servings > 0 ? widget.recipe.servings : 2;
+    final preferredDefault = ref.read(defaultServingsProvider);
+    final base =
+        preferredDefault ??
+        (widget.recipe.servings > 0 ? widget.recipe.servings : 2);
     _servings = base.clamp(1, 12);
   }
 
   @override
   Widget build(BuildContext context) {
-    final pantry = ref.watch(pantryProvider);
-    final registry = ref.watch(canonicalIngredientRegistryProvider);
-    final servingPlan = const RecipeServingCalculator().calculate(
-      recipe: widget.recipe,
-      pantry: pantry,
-      servings: _servings,
-      registry: registry,
-    );
+    // Everything below depends on this computation succeeding. If it ever
+    // throws (bad recipe data, a unit-conversion edge case, anything
+    // unanticipated), the wizard must show an explicit error state with
+    // working Retry/Exit actions instead of leaving a blank body behind a
+    // still-enabled Continue button — see the Round 4 "blank screen" fix.
+    RecipeServingPlan? servingPlan;
+    Object? computeError;
+    try {
+      final pantry = ref.watch(pantryProvider);
+      final registry = ref.watch(canonicalIngredientRegistryProvider);
+      servingPlan = const RecipeServingCalculator().calculate(
+        recipe: widget.recipe,
+        pantry: pantry,
+        servings: _servings,
+        registry: registry,
+      );
+    } on Object catch (error, stackTrace) {
+      computeError = error;
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stackTrace,
+          library: 'cooking_wizard_page',
+          context: ErrorDescription(
+            'building the serving plan for recipe ${widget.recipe.id}',
+          ),
+        ),
+      );
+    }
+
+    if (computeError != null || servingPlan == null) {
+      return WizardErrorScaffold(
+        phaseLabel: _phaseLabel(_phase),
+        onRetry: () => setState(() {}),
+        onExit: () => Navigator.of(context).pop(),
+      );
+    }
 
     if (_phase == _WizardPhase.cooking) {
       return _buildCookingMode(context, servingPlan);
     }
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        leading: AppIconButton(
-          icon: Icons.arrow_back,
-          semanticLabel: 'ย้อนกลับ',
-          onPressed: () {
-            if (_phase == _WizardPhase.serving) {
-              Navigator.of(context).pop();
-            } else {
-              setState(() => _phase = _previousPhase(_phase));
-            }
-          },
-        ),
+    final missingInShoppingCount = _missingInShoppingCount(servingPlan);
+
+    return PopScope(
+      canPop: _phase == _WizardPhase.serving,
+      onPopInvokedWithResult: (didPop, _) {
+        // System/hardware back must mean the same thing as the AppBar back
+        // arrow (previous wizard step), not an unconditional pop — only
+        // the serving step (nothing to step back to) allows a real pop.
+        if (!didPop) {
+          setState(() => _phase = _previousPhase(_phase));
+        }
+      },
+      child: Scaffold(
+        key: const ValueKey<String>('wizard-scaffold'),
         backgroundColor: AppColors.background,
-        elevation: 0,
-        title: Text(_phaseLabel(_phase), style: AppTypography.title),
-      ),
-      body: SafeArea(
-        child: ResponsiveContent(
-          maxWidth: 560,
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: switch (_phase) {
-              _WizardPhase.serving => _ServingStep(
+        appBar: AppBar(
+          leading: AppIconButton(
+            icon: Icons.arrow_back,
+            semanticLabel: 'ย้อนกลับ',
+            onPressed: () {
+              if (_phase == _WizardPhase.serving) {
+                Navigator.of(context).pop();
+              } else {
+                setState(() => _phase = _previousPhase(_phase));
+              }
+            },
+          ),
+          backgroundColor: AppColors.background,
+          elevation: 0,
+          title: Text(_phaseLabel(_phase), style: AppTypography.title),
+          actions: [
+            TextButton(
+              key: const ValueKey<String>('wizard-exit-action'),
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('ออก'),
+            ),
+          ],
+        ),
+        body: SafeArea(
+          child: ResponsiveContent(
+            maxWidth: 560,
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: switch (_phase) {
+                _WizardPhase.serving => _ServingStep(
                   recipe: widget.recipe,
                   servings: _servings,
                   onChanged: (value) => setState(() => _servings = value),
                 ),
-              _WizardPhase.review => _ReviewStep(
+                _WizardPhase.review => _ReviewStep(
                   servingPlan: servingPlan,
                   isAddingMissing: _isAddingMissing,
+                  missingInShoppingCount: missingInShoppingCount,
                   onAddMissing: _addMissingIngredients,
+                  onGoToShopping: missingInShoppingCount > 0
+                      ? () => ref
+                            .read(appNavigationProvider.notifier)
+                            .openShopping()
+                      : null,
                 ),
-              _WizardPhase.confirm => _ConfirmStep(servingPlan: servingPlan),
-              _WizardPhase.cooking => const SizedBox.shrink(), // handled above
-            },
+                _WizardPhase.confirm => _ConfirmStep(servingPlan: servingPlan),
+                _WizardPhase.cooking =>
+                  const SizedBox.shrink(), // handled above
+              },
+            ),
           ),
         ),
-      ),
-      bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(
-          AppSpacing.lg,
-          AppSpacing.sm,
-          AppSpacing.lg,
-          AppSpacing.lg,
-        ),
-        child: AppButton(
-          label: _phase == _WizardPhase.confirm ? 'เริ่มทำอาหาร' : 'ต่อไป',
-          onPressed: () => setState(() => _phase = _nextPhase(_phase)),
+        bottomNavigationBar: SafeArea(
+          minimum: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.sm,
+            AppSpacing.lg,
+            AppSpacing.lg,
+          ),
+          child: Align(
+            heightFactor: 1,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 560),
+              child: ResponsiveCta(
+                alignment: Alignment.center,
+                child: AppButton(
+                  key: const ValueKey<String>('wizard-primary-cta'),
+                  label: _phase == _WizardPhase.confirm
+                      ? 'เริ่มทำอาหาร'
+                      : 'ต่อไป',
+                  onPressed: () => setState(() => _phase = _nextPhase(_phase)),
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildCookingMode(BuildContext context, RecipeServingPlan servingPlan) {
+  Widget _buildCookingMode(
+    BuildContext context,
+    RecipeServingPlan servingPlan,
+  ) {
     final steps = widget.recipe.steps;
     final totalSteps = steps.isEmpty ? 1 : steps.length;
     final isLastStep = _cookingStepIndex >= totalSteps - 1;
 
-    return Scaffold(
-      backgroundColor: AppColors.cookingBackground,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.lg,
-                vertical: AppSpacing.sm,
-              ),
-              child: Row(
-                children: [
-                  AppIconButton(
-                    icon: Icons.close,
-                    semanticLabel: 'ปิดโหมดทำอาหาร',
-                    background: AppColors.cookingSurface,
-                    foreground: AppColors.cookingTextPrimary,
-                    onPressed: () => _confirmExitCookingMode(context),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          _confirmExitCookingMode(context);
+        }
+      },
+      child: Scaffold(
+        key: const ValueKey<String>('wizard-cooking-scaffold'),
+        backgroundColor: AppColors.cookingBackground,
+        body: SafeArea(
+          child: ResponsiveContent(
+            maxWidth: 560,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg,
+                    vertical: AppSpacing.sm,
                   ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                child: CookingStepCard(
-                  stepIndex: _cookingStepIndex + 1,
-                  totalSteps: totalSteps,
-                  instruction: steps.isEmpty
-                      ? 'สูตรนี้ยังไม่มีขั้นตอนโดยละเอียด — ทำตามส่วนผสมที่เตรียมไว้ได้เลย'
-                      : steps[_cookingStepIndex],
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg,
-                0,
-                AppSpacing.lg,
-                AppSpacing.sm,
-              ),
-              child: _isFinishing
-                  ? const SizedBox(
-                      height: 56,
-                      child: Center(
-                        child: CircularProgressIndicator(color: AppColors.primary),
+                  child: Row(
+                    children: [
+                      AppIconButton(
+                        icon: Icons.close,
+                        semanticLabel: 'ปิดโหมดทำอาหาร',
+                        background: AppColors.cookingSurface,
+                        foreground: AppColors.cookingTextPrimary,
+                        onPressed: () => _confirmExitCookingMode(context),
                       ),
-                    )
-                  : CookingNavigationBar(
-                      previousLabel: 'ย้อนกลับ',
-                      nextLabel: isLastStep ? 'เสร็จแล้ว' : 'ถัดไป',
-                      onPrevious: _cookingStepIndex > 0
-                          ? () => setState(() => _cookingStepIndex--)
-                          : null,
-                      onNext: () {
-                        if (isLastStep) {
-                          _finishCooking(servingPlan);
-                        } else {
-                          setState(() => _cookingStepIndex++);
-                        }
-                      },
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    child: CookingStepCard(
+                      key: const ValueKey<String>('wizard-cooking-body'),
+                      stepIndex: _cookingStepIndex + 1,
+                      totalSteps: totalSteps,
+                      instruction: steps.isEmpty
+                          ? 'สูตรนี้ยังไม่มีขั้นตอนโดยละเอียด — ทำตามส่วนผสมที่เตรียมไว้ได้เลย'
+                          : steps[_cookingStepIndex],
                     ),
-            ),
-            if (!_isFinishing)
-              Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(totalSteps, (index) {
-                    final isCurrent = index == _cookingStepIndex;
-                    return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 3),
-                      width: isCurrent ? 18 : 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: isCurrent
-                            ? AppColors.primary
-                            : AppColors.cookingTextSecondary.withValues(alpha: 0.4),
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                    );
-                  }),
+                  ),
                 ),
-              ),
-          ],
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.lg,
+                    0,
+                    AppSpacing.lg,
+                    AppSpacing.sm,
+                  ),
+                  child: _isFinishing
+                      ? const SizedBox(
+                          height: 56,
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        )
+                      : CookingNavigationBar(
+                          previousLabel: 'ย้อนกลับ',
+                          nextLabel: isLastStep ? 'เสร็จแล้ว' : 'ถัดไป',
+                          onPrevious: _cookingStepIndex > 0
+                              ? () => setState(() => _cookingStepIndex--)
+                              : null,
+                          onNext: () {
+                            if (isLastStep) {
+                              _finishCooking(servingPlan);
+                            } else {
+                              setState(() => _cookingStepIndex++);
+                            }
+                          },
+                        ),
+                ),
+                if (!_isFinishing)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(totalSteps, (index) {
+                        final isCurrent = index == _cookingStepIndex;
+                        return Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 3),
+                          width: isCurrent ? 18 : 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: isCurrent
+                                ? AppColors.primary
+                                : AppColors.cookingTextSecondary.withValues(
+                                    alpha: 0.4,
+                                  ),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                        );
+                      }),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -225,7 +326,9 @@ class _CookingWizardPageState extends ConsumerState<CookingWizardPage> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('ออกจากโหมดทำอาหาร?'),
-        content: const Text('ความคืบหน้าขั้นตอนจะไม่ถูกบันทึก ยังไม่มีการหักวัตถุดิบใดๆ'),
+        content: const Text(
+          'ความคืบหน้าขั้นตอนจะไม่ถูกบันทึก ยังไม่มีการหักวัตถุดิบใดๆ',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -246,11 +349,40 @@ class _CookingWizardPageState extends ConsumerState<CookingWizardPage> {
     }
   }
 
+  /// Missing ingredients already sent to Shopping for this recipe, so the
+  /// Ingredient Review step can mark them instead of offering to add them
+  /// again — reactive, so it updates immediately after a successful add or
+  /// after returning from Shopping.
+  ///
+  /// Computed from the already-watched [shoppingListsProvider] via a plain
+  /// function rather than a `Provider.family` keyed on the recipe id: this
+  /// page and `RecipeDetailPage` underneath it (the wizard is pushed on
+  /// top, not instead of it) both need this set for the same recipe at the
+  /// same time, and a shared family instance would mean two independently
+  /// paused/resumed widget subscriptions to it across the same Navigator
+  /// transition — see recipe_shopping_provider.dart for the full reasoning.
+  int _missingInShoppingCount(RecipeServingPlan servingPlan) {
+    final lists = ref.watch(shoppingListsProvider).value ?? const [];
+    final idsInShopping = recipeIngredientIdsInShopping(
+      lists,
+      widget.recipe.id,
+    );
+    return servingPlan.ingredients
+        .where(
+          (item) =>
+              !item.isEnough &&
+              idsInShopping.contains(item.ingredient.canonicalIngredientId),
+        )
+        .length;
+  }
+
   Future<void> _addMissingIngredients() async {
     if (_isAddingMissing) return;
     final controller = ref.read(recipeMissingShoppingControllerProvider);
     if (controller == null) {
-      _showMessage('ยังตรวจ Pantry ไม่สำเร็จ คุณยังเริ่มทำอาหารได้และเพิ่มรายการภายหลังได้');
+      _showMessage(
+        'ยังตรวจ Pantry ไม่สำเร็จ คุณยังเริ่มทำอาหารได้และเพิ่มรายการภายหลังได้',
+      );
       return;
     }
     setState(() => _isAddingMissing = true);
@@ -260,14 +392,20 @@ class _CookingWizardPageState extends ConsumerState<CookingWizardPage> {
         servings: _servings,
       );
       if (!mounted) return;
+      if (result.outcome == RecipeMissingShoppingOutcome.committed) {
+        await _showAddedToShoppingConfirmation();
+        return;
+      }
       final message = switch (result.outcome) {
-        RecipeMissingShoppingOutcome.committed =>
-          'เพิ่มวัตถุดิบที่ขาด ${result.changedItemCount} รายการไป Shopping แล้ว',
-        RecipeMissingShoppingOutcome.noMissingIngredients => 'Pantry พร้อมสำหรับสูตรนี้แล้ว',
-        RecipeMissingShoppingOutcome.unchanged => 'วัตถุดิบที่แนะนำมีอยู่ใน Shopping แล้ว',
+        RecipeMissingShoppingOutcome.committed => '',
+        RecipeMissingShoppingOutcome.noMissingIngredients =>
+          'Pantry พร้อมสำหรับสูตรนี้แล้ว',
+        RecipeMissingShoppingOutcome.unchanged =>
+          'วัตถุดิบที่แนะนำมีอยู่ใน Shopping แล้ว',
         RecipeMissingShoppingOutcome.notCandidateRecipe =>
           'ยังไม่พบวัตถุดิบหลักของสูตรนี้ใน Pantry คุณยังเริ่มทำอาหารได้และวางแผนซื้อภายหลังได้',
-        RecipeMissingShoppingOutcome.failed => 'เพิ่มรายการไม่สำเร็จ ข้อมูลเดิมยังคงปลอดภัย',
+        RecipeMissingShoppingOutcome.failed =>
+          'เพิ่มรายการไม่สำเร็จ ข้อมูลเดิมยังคงปลอดภัย',
       };
       _showMessage(message);
     } on Object {
@@ -281,6 +419,63 @@ class _CookingWizardPageState extends ConsumerState<CookingWizardPage> {
     final messenger = ScaffoldMessenger.of(context);
     messenger.clearSnackBars();
     messenger.showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// After missing ingredients are successfully added to Shopping, the
+  /// person must be able to jump there directly instead of backing out
+  /// through wizard steps first. "ทำต่อ" just dismisses and keeps them on
+  /// the current wizard step; "ไปที่ Shopping" switches the main tab and
+  /// unwinds this whole pushed route stack (handled by MainShell).
+  Future<void> _showAddedToShoppingConfirmation() async {
+    final goToShopping = await showModalBottomSheet<bool>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            0,
+            AppSpacing.lg,
+            AppSpacing.lg,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'เพิ่มวัตถุดิบที่ขาดเข้า Shopping แล้ว',
+                style: AppTypography.title,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Row(
+                children: [
+                  Expanded(
+                    child: AppButton(
+                      label: 'ทำต่อ',
+                      variant: AppButtonVariant.secondary,
+                      onPressed: () => Navigator.of(sheetContext).pop(false),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: AppButton(
+                      key: const ValueKey<String>(
+                        'added-to-shopping-confirmation-go-to-shopping',
+                      ),
+                      label: 'ไปที่ Shopping',
+                      onPressed: () => Navigator.of(sheetContext).pop(true),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (goToShopping == true && mounted) {
+      ref.read(appNavigationProvider.notifier).openShopping();
+    }
   }
 
   // -------------------------------------------------------------------
@@ -339,7 +534,9 @@ class _CookingWizardPageState extends ConsumerState<CookingWizardPage> {
 
       if (!transaction.hasChanges) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ไม่มีวัตถุดิบที่เลือกให้หักออกจาก Pantry')),
+          const SnackBar(
+            content: Text('ไม่มีวัตถุดิบที่เลือกให้หักออกจาก Pantry'),
+          ),
         );
         return;
       }
@@ -391,25 +588,111 @@ class _CookingWizardPageState extends ConsumerState<CookingWizardPage> {
 }
 
 _WizardPhase _nextPhase(_WizardPhase phase) => switch (phase) {
-      _WizardPhase.serving => _WizardPhase.review,
-      _WizardPhase.review => _WizardPhase.confirm,
-      _WizardPhase.confirm => _WizardPhase.cooking,
-      _WizardPhase.cooking => _WizardPhase.cooking,
-    };
+  _WizardPhase.serving => _WizardPhase.review,
+  _WizardPhase.review => _WizardPhase.confirm,
+  _WizardPhase.confirm => _WizardPhase.cooking,
+  _WizardPhase.cooking => _WizardPhase.cooking,
+};
 
 _WizardPhase _previousPhase(_WizardPhase phase) => switch (phase) {
-      _WizardPhase.serving => _WizardPhase.serving,
-      _WizardPhase.review => _WizardPhase.serving,
-      _WizardPhase.confirm => _WizardPhase.review,
-      _WizardPhase.cooking => _WizardPhase.confirm,
-    };
+  _WizardPhase.serving => _WizardPhase.serving,
+  _WizardPhase.review => _WizardPhase.serving,
+  _WizardPhase.confirm => _WizardPhase.review,
+  _WizardPhase.cooking => _WizardPhase.confirm,
+};
 
 String _phaseLabel(_WizardPhase phase) => switch (phase) {
-      _WizardPhase.serving => 'เลือกจำนวนคน',
-      _WizardPhase.review => 'ตรวจสอบวัตถุดิบ',
-      _WizardPhase.confirm => 'พร้อมทำอาหาร',
-      _WizardPhase.cooking => 'โหมดทำอาหาร',
-    };
+  _WizardPhase.serving => 'เลือกจำนวนคน',
+  _WizardPhase.review => 'ตรวจสอบวัตถุดิบ',
+  _WizardPhase.confirm => 'พร้อมทำอาหาร',
+  _WizardPhase.cooking => 'โหมดทำอาหาร',
+};
+
+/// Full-scaffold fallback shown when building the serving plan for this
+/// wizard fails for any reason. Keeps its own AppBar (with the exit action
+/// still working) and offers a real Retry, matching the AppBar/CTA-visible
+/// shape that a blank body must never be shown in instead. Not private, so
+/// it can be exercised directly by widget tests.
+class WizardErrorScaffold extends StatelessWidget {
+  const WizardErrorScaffold({
+    super.key,
+    required this.phaseLabel,
+    required this.onRetry,
+    required this.onExit,
+  });
+
+  final String phaseLabel;
+  final VoidCallback onRetry;
+  final VoidCallback onExit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        title: Text(phaseLabel, style: AppTypography.title),
+        actions: [
+          TextButton(
+            key: const ValueKey<String>('wizard-exit-action'),
+            onPressed: onExit,
+            child: const Text('ออก'),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.xxl),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  size: 48,
+                  color: AppColors.warning,
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                Text(
+                  'โหลดข้อมูลสูตรนี้ไม่สำเร็จ',
+                  style: AppTypography.title,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  'ข้อมูล Pantry เดิมของคุณยังปลอดภัย ลองอีกครั้งได้',
+                  style: AppTypography.bodySmall,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AppButton(
+                      key: const ValueKey<String>('wizard-error-exit'),
+                      label: 'ออก',
+                      variant: AppButtonVariant.secondary,
+                      expand: false,
+                      onPressed: onExit,
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    AppButton(
+                      key: const ValueKey<String>('wizard-error-retry'),
+                      label: 'ลองอีกครั้ง',
+                      expand: false,
+                      onPressed: onRetry,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class _ServingStep extends StatelessWidget {
   const _ServingStep({
@@ -425,21 +708,53 @@ class _ServingStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      key: const ValueKey<String>('wizard-serving-body'),
       children: [
-        const SizedBox(height: AppSpacing.xxl),
+        const SizedBox(height: AppSpacing.lg),
         AppCard(
           child: Row(
             children: [
-              Text(recipe.emoji, style: const TextStyle(fontSize: 32)),
+              Container(
+                width: 56,
+                height: 56,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: AppColors.surfaceMuted,
+                  borderRadius: AppRadius.mediumRadius,
+                ),
+                child: Text(recipe.emoji, style: const TextStyle(fontSize: 28)),
+              ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(recipe.name, style: AppTypography.title),
-                    Text(
-                      '${recipe.cookTimeMinutes} นาที · ${recipe.difficulty}',
-                      style: AppTypography.caption,
+                    const SizedBox(height: AppSpacing.xxs),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.schedule,
+                          size: 14,
+                          color: AppColors.textSecondary,
+                        ),
+                        const SizedBox(width: AppSpacing.xxs),
+                        Text(
+                          '${recipe.cookTimeMinutes} นาที',
+                          style: AppTypography.caption,
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        const Icon(
+                          Icons.local_fire_department_outlined,
+                          size: 14,
+                          color: AppColors.textSecondary,
+                        ),
+                        const SizedBox(width: AppSpacing.xxs),
+                        Text(
+                          recipeDifficultyLabel(recipe.difficulty),
+                          style: AppTypography.caption,
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -447,8 +762,12 @@ class _ServingStep extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: AppSpacing.giant),
-        Text('สำหรับกี่คน?', style: AppTypography.title, textAlign: TextAlign.center),
+        const SizedBox(height: AppSpacing.huge),
+        Text(
+          'สำหรับกี่คน?',
+          style: AppTypography.title,
+          textAlign: TextAlign.center,
+        ),
         const SizedBox(height: AppSpacing.lg),
         ServingSelector(value: servings, onChanged: onChanged),
       ],
@@ -460,21 +779,47 @@ class _ReviewStep extends StatelessWidget {
   const _ReviewStep({
     required this.servingPlan,
     required this.isAddingMissing,
+    required this.missingInShoppingCount,
     required this.onAddMissing,
+    required this.onGoToShopping,
   });
 
   final RecipeServingPlan servingPlan;
   final bool isAddingMissing;
+  final int missingInShoppingCount;
   final VoidCallback onAddMissing;
+  final VoidCallback? onGoToShopping;
+
+  static const int _availableCollapseThreshold = 6;
 
   @override
   Widget build(BuildContext context) {
     final total = servingPlan.ingredients.length;
     final haveCount = servingPlan.enoughCount;
-    final missing = servingPlan.ingredients.where((item) => !item.isEnough).toList(growable: false);
+    final missing = servingPlan.ingredients
+        .where(
+          (item) =>
+              !item.isEnough &&
+              item.ingredient.effectiveRole() != RecipeIngredientRole.optional,
+        )
+        .toList(growable: false);
+    final optional = servingPlan.ingredients
+        .where(
+          (item) =>
+              item.ingredient.effectiveRole() == RecipeIngredientRole.optional,
+        )
+        .toList(growable: false);
+    final available = servingPlan.ingredients
+        .where((i) => i.isEnough)
+        .toList(growable: false);
     final readyPercent = total == 0 ? 100 : ((haveCount / total) * 100).round();
+    final visibleAvailable = available.length > _availableCollapseThreshold
+        ? available.sublist(0, _availableCollapseThreshold)
+        : available;
+    final hiddenAvailableCount = available.length - visibleAvailable.length;
 
     return SingleChildScrollView(
+      key: const ValueKey<String>('wizard-review-body'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -485,18 +830,57 @@ class _ReviewStep extends StatelessWidget {
             missingCount: missing.length,
             onAddMissingIngredients: onAddMissing,
             isAddingMissing: isAddingMissing,
+            missingInShoppingCount: missingInShoppingCount,
+            onGoToShopping: onGoToShopping,
           ),
-          const SizedBox(height: AppSpacing.xl),
-          Text('มีครบแล้ว', style: AppTypography.label),
-          const SizedBox(height: AppSpacing.sm),
-          for (final item in servingPlan.ingredients.where((i) => i.isEnough))
-            _ChecklistRow(label: item.ingredient.name, checked: true),
+          if (available.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.xl),
+            Text('มีครบแล้ว', style: AppTypography.label),
+            const SizedBox(height: AppSpacing.sm),
+            for (final item in visibleAvailable)
+              _ChecklistRow(label: item.ingredient.name, checked: true),
+            if (hiddenAvailableCount > 0)
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.xs),
+                child: Text(
+                  '+$hiddenAvailableCount รายการ',
+                  style: AppTypography.caption,
+                ),
+              ),
+          ],
           if (missing.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.lg),
             Text('วัตถุดิบที่ขาด', style: AppTypography.label),
             const SizedBox(height: AppSpacing.sm),
-            for (final item in missing)
-              _ChecklistRow(label: item.ingredient.name, checked: false),
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: [
+                for (final item in missing)
+                  IngredientStatusChip(
+                    name: item.ingredient.name,
+                    status: IngredientStatus.missing,
+                  ),
+              ],
+            ),
+          ],
+          if (optional.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.lg),
+            Text('วัตถุดิบเสริม (ไม่บังคับ)', style: AppTypography.label),
+            const SizedBox(height: AppSpacing.sm),
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: [
+                for (final item in optional)
+                  IngredientStatusChip(
+                    name: item.ingredient.name,
+                    status: item.isEnough
+                        ? IngredientStatus.available
+                        : IngredientStatus.missing,
+                  ),
+              ],
+            ),
           ],
         ],
       ),
@@ -541,15 +925,38 @@ class _ConfirmStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
+      key: const ValueKey<String>('wizard-confirm-body'),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('🍳', style: TextStyle(fontSize: 56)),
+          Container(
+            width: 96,
+            height: 96,
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              color: AppColors.primarySoft,
+              shape: BoxShape.circle,
+            ),
+            child: Text(
+              servingPlan.recipe.emoji,
+              style: const TextStyle(fontSize: 44),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          Text(
+            'พร้อมทำอาหาร!',
+            style: AppTypography.headline,
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: AppSpacing.lg),
-          Text('คุณพร้อมทำ', style: AppTypography.body, textAlign: TextAlign.center),
+          Text(
+            'คุณพร้อมทำ',
+            style: AppTypography.body,
+            textAlign: TextAlign.center,
+          ),
           Text(
             servingPlan.recipe.name,
-            style: AppTypography.headline,
+            style: AppTypography.title,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppSpacing.sm),

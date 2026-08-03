@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/app_text_styles.dart';
+import '../../../../core/presentation/unit_presentation.dart';
 import '../../../../core/providers/pantry_provider.dart';
 import '../../../pantry/application/inventory_transaction_providers.dart';
 import '../../../recipe/domain/entities/recipe.dart';
@@ -15,7 +16,6 @@ import '../../domain/entities/shopping_list.dart';
 import '../../domain/models/shopping_mutation.dart';
 import '../../domain/services/shopping_draft_builder.dart';
 import '../../domain/services/shopping_engine.dart';
-import '../providers/shopping_view_provider.dart';
 
 class ShoppingGenerationSheet extends ConsumerStatefulWidget {
   const ShoppingGenerationSheet({required this.existingList, super.key});
@@ -298,8 +298,10 @@ class _ShoppingGenerationSheetState
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            '${formatShoppingQuantity(item.quantity)} '
-                            '${shoppingUnitLabel(item.unitId)}',
+                            UnitPresentation.cookingQuantity(
+                              item.quantity,
+                              item.unitId,
+                            ),
                             style: AppTextStyles.labelLarge,
                           ),
                           Text(

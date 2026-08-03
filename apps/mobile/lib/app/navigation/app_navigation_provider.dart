@@ -21,6 +21,8 @@ class AppNavigationNotifier extends Notifier<int> {
   void openPantry() => selectTab(pantryTab);
 
   void openRecipes() => selectTab(recipeTab);
+
+  void openShopping() => selectTab(shoppingTab);
 }
 
 final appNavigationProvider = NotifierProvider<AppNavigationNotifier, int>(

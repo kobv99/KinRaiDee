@@ -1,5 +1,7 @@
 enum IngredientStorageType { ambient, refrigerated, frozen, pantry }
 
+enum CanonicalIngredientNodeType { category, family, ingredient }
+
 enum IngredientUnitFamily {
   liquid,
   fish,
@@ -41,6 +43,11 @@ class CanonicalIngredient {
     List<String>? recommendedUnitIds,
     this.unitFamily,
     this.parentId,
+    this.nodeType = CanonicalIngredientNodeType.ingredient,
+    this.selectableAsMainIngredient = true,
+    List<String> ingredientForms = const <String>[],
+    List<String> textures = const <String>[],
+    List<String> supportedCookingMethods = const <String>[],
     this.metadata = const IngredientMetadata(),
   }) : localizedNames = Map<String, String>.unmodifiable(localizedNames),
        aliases = List<String>.unmodifiable(aliases),
@@ -49,6 +56,11 @@ class CanonicalIngredient {
        recommendedUnitIds = List<String>.unmodifiable(
          recommendedUnitIds ??
              <String>[preferredUnitId ?? defaultPurchaseUnitId],
+       ),
+       ingredientForms = List<String>.unmodifiable(ingredientForms),
+       textures = List<String>.unmodifiable(textures),
+       supportedCookingMethods = List<String>.unmodifiable(
+         supportedCookingMethods,
        );
 
   final String id;
@@ -65,7 +77,16 @@ class CanonicalIngredient {
   final List<String> recommendedUnitIds;
   final IngredientUnitFamily? unitFamily;
   final String? parentId;
+  final CanonicalIngredientNodeType nodeType;
+  final bool selectableAsMainIngredient;
+  final List<String> ingredientForms;
+  final List<String> textures;
+  final List<String> supportedCookingMethods;
   final IngredientMetadata metadata;
+
+  bool get canSelectAsMainIngredient =>
+      selectableAsMainIngredient &&
+      nodeType == CanonicalIngredientNodeType.ingredient;
 
   Iterable<String> get searchableNames sync* {
     yield canonicalName;

@@ -72,18 +72,18 @@ class TopPicksSection extends ConsumerWidget {
   }
 
   String get _filteredTitle => switch (filter) {
-        HomeRecipeFilter.readyToCook => 'เมนูที่พร้อมทำได้เลย',
-        HomeRecipeFilter.pantryFriendly => 'เมนู Pantry Friendly',
-        HomeRecipeFilter.quick => 'เมนูด่วน (ไม่เกิน 30 นาที)',
-        HomeRecipeFilter.all => '',
-      };
+    HomeRecipeFilter.readyToCook => 'เมนูที่พร้อมทำได้เลย',
+    HomeRecipeFilter.pantryFriendly => 'เมนู Pantry Friendly',
+    HomeRecipeFilter.quick => 'เมนูด่วน (ไม่เกิน 30 นาที)',
+    HomeRecipeFilter.all => '',
+  };
 
   String get _emptyLabel => switch (filter) {
-        HomeRecipeFilter.readyToCook => 'ยังไม่มีเมนูที่พร้อมทำได้ทันที',
-        HomeRecipeFilter.pantryFriendly => 'ยังไม่มีเมนูที่ตรงกับ Pantry Friendly',
-        HomeRecipeFilter.quick => 'ยังไม่มีเมนูด่วนที่ตรงเงื่อนไข',
-        HomeRecipeFilter.all => '',
-      };
+    HomeRecipeFilter.readyToCook => 'ยังไม่มีเมนูที่พร้อมทำได้ทันที',
+    HomeRecipeFilter.pantryFriendly => 'ยังไม่มีเมนูที่ตรงกับ Pantry Friendly',
+    HomeRecipeFilter.quick => 'ยังไม่มีเมนูด่วนที่ตรงเงื่อนไข',
+    HomeRecipeFilter.all => '',
+  };
 
   Widget _buildHeroRecommendation(BuildContext context, WidgetRef ref) {
     final recommendation = ref.watch(smartRecommendationProvider);
@@ -107,8 +107,8 @@ class TopPicksSection extends ConsumerWidget {
               actionIcon: Icons.refresh,
               onActionTap: rec.canRefresh
                   ? () => ref
-                      .read(recommendationSessionProvider.notifier)
-                      .showNext(rec.totalHeroRecipes)
+                        .read(recommendationSessionProvider.notifier)
+                        .showNext(rec.totalHeroRecipes)
                   : null,
             ),
             const SizedBox(height: AppSpacing.md),
@@ -125,7 +125,8 @@ class TopPicksSection extends ConsumerWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: matches.length,
-        separatorBuilder: (context, index) => const SizedBox(width: AppSpacing.md),
+        separatorBuilder: (context, index) =>
+            const SizedBox(width: AppSpacing.md),
         itemBuilder: (context, index) {
           final match = matches[index];
           return RecipeCard(
@@ -135,7 +136,9 @@ class TopPicksSection extends ConsumerWidget {
             cookingTimeMinutes: match.recipe.cookTimeMinutes,
             placeholderEmoji: match.recipe.emoji,
             onTap: () => Navigator.of(context).push<void>(
-              MaterialPageRoute(builder: (_) => RecipeDetailPage(recipe: match.recipe)),
+              MaterialPageRoute(
+                builder: (_) => RecipeDetailPage(recipe: match.recipe),
+              ),
             ),
           );
         },
@@ -155,7 +158,8 @@ class TopPicksSection extends ConsumerWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: 3,
-        separatorBuilder: (context, index) => const SizedBox(width: AppSpacing.md),
+        separatorBuilder: (context, index) =>
+            const SizedBox(width: AppSpacing.md),
         itemBuilder: (context, index) => const AppRecipeCardSkeleton(),
       ),
     );

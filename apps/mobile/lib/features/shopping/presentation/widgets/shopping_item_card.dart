@@ -4,6 +4,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radius.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/app_text_styles.dart';
+import '../../../../core/presentation/unit_presentation.dart';
 import '../../../../shared/widgets/app_card.dart';
 import '../../domain/entities/shopping_category.dart';
 import '../../domain/entities/shopping_item.dart';
@@ -55,8 +56,7 @@ class ShoppingItemCard extends StatelessWidget {
               ),
               const SizedBox(width: AppSpacing.xs),
               Text(
-                '${formatShoppingQuantity(item.quantity)} '
-                '${shoppingUnitLabel(item.unitId)}',
+                UnitPresentation.cookingQuantity(item.quantity, item.unitId),
                 style: AppTextStyles.labelLarge.copyWith(
                   color: AppColors.shopping,
                 ),
@@ -77,8 +77,8 @@ class ShoppingItemCard extends StatelessWidget {
               _Pill(
                 icon: Icons.kitchen_outlined,
                 label:
-                    'ใน Pantry ${formatShoppingQuantity(pantryAvailability)} '
-                    '${shoppingUnitLabel(item.unitId)}',
+                    'ใน Pantry '
+                    '${UnitPresentation.cookingQuantity(pantryAvailability, item.unitId)}',
                 foreground: AppColors.textSecondary,
                 background: AppColors.surfaceVariant,
               ),

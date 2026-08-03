@@ -77,7 +77,7 @@ void main() {
             .read(pantryProvider)
             .map((item) => item.canonicalIngredientId)
             .toSet(),
-        containsAll(<String>{'duck', 'chicken', 'tilapia'}),
+        containsAll(<String>{'duck', 'chicken_breast', 'tilapia'}),
       );
 
       final persisted = await inventory.loadConsistentSnapshot();

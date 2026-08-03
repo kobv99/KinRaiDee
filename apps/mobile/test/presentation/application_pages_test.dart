@@ -419,7 +419,9 @@ void main() {
         HomePage(onOpenPantry: () => openedPantry = true),
       );
       expect(find.byType(RefreshIndicator), findsOneWidget);
-      await tester.tap(find.byKey(const ValueKey<String>('open-pantry-metric')));
+      await tester.tap(
+        find.byKey(const ValueKey<String>('open-pantry-metric')),
+      );
       expect(openedPantry, isTrue);
 
       await _pumpPage(tester, harness.container, const RecipePage());

@@ -86,7 +86,10 @@ class DailySummaryCard extends StatelessWidget {
     ];
 
     return AppCard(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md, horizontal: AppSpacing.sm),
+      padding: const EdgeInsets.symmetric(
+        vertical: AppSpacing.md,
+        horizontal: AppSpacing.sm,
+      ),
       child: Row(
         children: metrics
             .map(
@@ -110,7 +113,12 @@ class DailySummaryCard extends StatelessWidget {
 }
 
 class _MetricTile extends StatelessWidget {
-  const _MetricTile({super.key, required this.spec, required this.selected, required this.onTap});
+  const _MetricTile({
+    super.key,
+    required this.spec,
+    required this.selected,
+    required this.onTap,
+  });
   final _MetricSpec spec;
   final bool selected;
   final VoidCallback onTap;
@@ -139,7 +147,9 @@ class _MetricTile extends StatelessWidget {
                 child: Icon(
                   spec.icon,
                   size: 16,
-                  color: selected ? AppColors.textOnPrimary : AppColors.textSecondary,
+                  color: selected
+                      ? AppColors.textOnPrimary
+                      : AppColors.textSecondary,
                 ),
               ),
               const SizedBox(height: 6),

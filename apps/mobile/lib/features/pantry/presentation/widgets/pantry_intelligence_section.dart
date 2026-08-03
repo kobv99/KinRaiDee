@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/providers/canonical_ingredient_providers.dart';
 import '../../../../app/theme/app_spacing.dart';
+import '../../../../core/presentation/unit_presentation.dart';
 import '../../../../shared/widgets/app_card.dart';
 import '../../../shopping/application/shopping_recommendation_controller.dart';
 import '../../../shopping/domain/entities/shopping_recommendation.dart';
+import '../../../shopping/presentation/providers/recommendation_ui_provider.dart';
 import '../../../shopping/presentation/providers/shopping_recommendation_provider.dart';
 import '../../domain/entities/pantry_insight.dart';
 import '../providers/pantry_insight_provider.dart';
@@ -20,55 +22,69 @@ class PantryIntelligenceSection extends ConsumerStatefulWidget {
 
 class _PantryIntelligenceSectionState
     extends ConsumerState<PantryIntelligenceSection> {
-  bool _recommendationsDismissed = false;
-  String? _busyIngredientId;
+  // Collapsed by default: Pantry Insights/Recommended Purchases are not
+  // part of the primary "view, add, edit, delete ingredients" task, so
+  // they must not push Search/Filters/the ingredient list further down
+  // the page by default.
+  bool _expanded = false;
 
   @override
   Widget build(BuildContext context) {
     final insight = ref.watch(pantryInsightProvider);
     final recommendations = ref.watch(shoppingRecommendationsProvider);
+    final dismissed = ref.watch(
+      recommendationUiProvider.select((state) => state.dismissed),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _PantryInsightsCard(insight: insight),
-        if (!_recommendationsDismissed) ...[
-          const SizedBox(height: AppSpacing.md),
-          recommendations.when(
-            data: (items) {
-              if (items.isEmpty) {
-                return const SizedBox.shrink();
-              }
-              return _RecommendationPreview(
-                recommendations: items,
-                onDismiss: () {
-                  setState(() => _recommendationsDismissed = true);
-                },
-                onSelect: _showDetails,
-                onViewAll: () => _showAll(items),
-              );
-            },
-            loading: () => const LinearProgressIndicator(
-              key: ValueKey<String>('pantry-recommendations-loading'),
-              minHeight: 2,
-            ),
-            error: (error, stackTrace) => AppCard(
-              child: Row(
-                children: [
-                  const Icon(Icons.info_outline),
-                  const SizedBox(width: AppSpacing.sm),
-                  const Expanded(
-                    child: Text('ยังโหลดคำแนะนำการซื้อไม่ได้ในขณะนี้'),
-                  ),
-                  TextButton(
-                    onPressed: () =>
-                        ref.invalidate(shoppingRecommendationsProvider),
-                    child: const Text('ลองใหม่'),
-                  ),
-                ],
+        _InsightsSummaryToggle(
+          insight: insight,
+          expanded: _expanded,
+          onTap: () => setState(() => _expanded = !_expanded),
+        ),
+        if (_expanded) ...[
+          const SizedBox(height: AppSpacing.sm),
+          _PantryInsightsCard(insight: insight),
+          if (!dismissed) ...[
+            const SizedBox(height: AppSpacing.md),
+            recommendations.when(
+              data: (items) {
+                if (items.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+                return _RecommendationPreview(
+                  recommendations: items,
+                  onDismiss: () {
+                    ref.read(recommendationUiProvider.notifier).dismiss();
+                  },
+                  onSelect: _showDetails,
+                  onViewAll: () => _showAll(items),
+                );
+              },
+              loading: () => const LinearProgressIndicator(
+                key: ValueKey<String>('pantry-recommendations-loading'),
+                minHeight: 2,
+              ),
+              error: (error, stackTrace) => AppCard(
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline),
+                    const SizedBox(width: AppSpacing.sm),
+                    const Expanded(
+                      child: Text('ยังโหลดคำแนะนำการซื้อไม่ได้ในขณะนี้'),
+                    ),
+                    TextButton(
+                      onPressed: () =>
+                          ref.invalidate(shoppingRecommendationsProvider),
+                      child: const Text('ลองใหม่'),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
+          ],
         ],
       ],
     );
@@ -137,7 +153,6 @@ class _PantryIntelligenceSectionState
       showDragHandle: true,
       builder: (sheetContext) {
         final evidence = recommendation.evidence;
-        final unitLabel = _unitLabel(recommendation.recommendedUnitId);
         return SafeArea(
           child: SingleChildScrollView(
             padding: EdgeInsets.fromLTRB(
@@ -157,8 +172,8 @@ class _PantryIntelligenceSectionState
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  'แนะนำให้เพิ่ม ${_quantity(recommendation.recommendedQuantity)} '
-                  '$unitLabel',
+                  'แนะนำให้เพิ่ม '
+                  '${UnitPresentation.cookingQuantity(recommendation.recommendedQuantity, recommendation.recommendedUnitId, unitEngine: ref.read(unitConversionEngineProvider))}',
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 Text(
@@ -217,7 +232,9 @@ class _PantryIntelligenceSectionState
                       'pantry-recommendation-add-'
                       '${recommendation.canonicalIngredientId}',
                     ),
-                    onPressed: _busyIngredientId == null
+                    onPressed:
+                        ref.read(recommendationUiProvider).busyIngredientId ==
+                            null
                         ? () {
                             Navigator.of(sheetContext).pop();
                             _addRecommendation(recommendation);
@@ -236,7 +253,8 @@ class _PantryIntelligenceSectionState
   }
 
   Future<void> _addRecommendation(ShoppingRecommendation recommendation) async {
-    if (_busyIngredientId != null) {
+    final uiNotifier = ref.read(recommendationUiProvider.notifier);
+    if (ref.read(recommendationUiProvider).busyIngredientId != null) {
       return;
     }
     final controller = ref.read(shoppingRecommendationControllerProvider);
@@ -245,7 +263,7 @@ class _PantryIntelligenceSectionState
       return;
     }
 
-    setState(() => _busyIngredientId = recommendation.canonicalIngredientId);
+    uiNotifier.setBusyIngredient(recommendation.canonicalIngredientId);
     try {
       final result = await controller.addToShopping(recommendation);
       if (!mounted) {
@@ -274,17 +292,9 @@ class _PantryIntelligenceSectionState
       }
     } finally {
       if (mounted) {
-        setState(() => _busyIngredientId = null);
+        uiNotifier.setBusyIngredient(null);
       }
     }
-  }
-
-  String _unitLabel(String unitId) {
-    return ref
-            .read(unitConversionEngineProvider)
-            .resolveUnit(unitId)
-            ?.displayName ??
-        unitId;
   }
 
   void _showMessage(String message) {
@@ -295,6 +305,58 @@ class _PantryIntelligenceSectionState
         content: Text(message),
         duration: const Duration(seconds: 4),
         persist: false,
+      ),
+    );
+  }
+}
+
+class _InsightsSummaryToggle extends StatelessWidget {
+  const _InsightsSummaryToggle({
+    required this.insight,
+    required this.expanded,
+    required this.onTap,
+  });
+
+  final AsyncValue<PantryInsight?> insight;
+  final bool expanded;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final summary = insight.when(
+      data: (value) => value == null
+          ? 'ยังสรุปข้อมูลไม่ได้'
+          : 'พร้อมทำ ${value.availableRecipeCount} · ขาด ${value.missingIngredientCount}',
+      loading: () => 'กำลังสรุปข้อมูล…',
+      error: (error, stackTrace) => 'ยังสรุปข้อมูลไม่ได้',
+    );
+
+    return InkWell(
+      key: const ValueKey<String>('pantry-insights-toggle'),
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+        child: Row(
+          children: [
+            const Icon(Icons.insights_outlined, size: 18),
+            const SizedBox(width: AppSpacing.xs),
+            const Text(
+              'Pantry Insights',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            Expanded(
+              child: Text(
+                summary,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+            Icon(expanded ? Icons.expand_less : Icons.expand_more),
+          ],
+        ),
       ),
     );
   }
@@ -563,15 +625,4 @@ class _InsightUnavailable extends StatelessWidget {
       ],
     );
   }
-}
-
-String _quantity(double value) {
-  if (value == value.roundToDouble()) {
-    return value.toInt().toString();
-  }
-
-  return value
-      .toStringAsFixed(2)
-      .replaceFirst(RegExp(r'0+$'), '')
-      .replaceFirst(RegExp(r'\.$'), '');
 }

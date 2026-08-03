@@ -14,11 +14,26 @@ class _ToneColors {
 
 _ToneColors _colorsForTone(AppChipTone tone) {
   return switch (tone) {
-    AppChipTone.neutral => const _ToneColors(AppColors.surfaceMuted, AppColors.textSecondary),
-    AppChipTone.primary => const _ToneColors(AppColors.primarySoft, AppColors.primary),
-    AppChipTone.success => const _ToneColors(AppColors.successSoft, AppColors.success),
-    AppChipTone.warning => const _ToneColors(AppColors.warningSoft, AppColors.warning),
-    AppChipTone.error => const _ToneColors(AppColors.errorSoft, AppColors.error),
+    AppChipTone.neutral => const _ToneColors(
+      AppColors.surfaceMuted,
+      AppColors.textSecondary,
+    ),
+    AppChipTone.primary => const _ToneColors(
+      AppColors.primarySoft,
+      AppColors.primary,
+    ),
+    AppChipTone.success => const _ToneColors(
+      AppColors.successSoft,
+      AppColors.success,
+    ),
+    AppChipTone.warning => const _ToneColors(
+      AppColors.warningSoft,
+      AppColors.warning,
+    ),
+    AppChipTone.error => const _ToneColors(
+      AppColors.errorSoft,
+      AppColors.error,
+    ),
   };
 }
 
@@ -47,7 +62,10 @@ class AppChip extends StatelessWidget {
         : _colorsForTone(tone);
 
     final chip = Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs,
+      ),
       decoration: BoxDecoration(
         color: colors.background,
         borderRadius: AppRadius.pillRadius,
@@ -59,7 +77,13 @@ class AppChip extends StatelessWidget {
             Icon(icon, size: 14, color: colors.foreground),
             const SizedBox(width: AppSpacing.xs),
           ],
-          Text(label, style: AppTypography.caption.copyWith(color: colors.foreground, fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: AppTypography.caption.copyWith(
+              color: colors.foreground,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
@@ -99,7 +123,10 @@ class AppBadge extends StatelessWidget {
             ),
             child: Text(
               '$count',
-              style: AppTypography.caption.copyWith(color: AppColors.textOnPrimary, fontSize: 10),
+              style: AppTypography.caption.copyWith(
+                color: AppColors.textOnPrimary,
+                fontSize: 10,
+              ),
             ),
           ),
         ),

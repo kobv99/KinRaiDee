@@ -31,7 +31,9 @@ class CookingStepCard extends StatelessWidget {
       children: [
         Text(
           'ขั้นตอนที่ $stepIndex / $totalSteps',
-          style: AppTypography.bodySmall.copyWith(color: AppColors.cookingTextSecondary),
+          style: AppTypography.bodySmall.copyWith(
+            color: AppColors.cookingTextSecondary,
+          ),
         ),
         const SizedBox(height: AppSpacing.md),
         if (imageProvider != null) ...[
@@ -46,13 +48,18 @@ class CookingStepCard extends StatelessWidget {
         ],
         Text(
           instruction,
-          style: AppTypography.display.copyWith(color: AppColors.cookingTextPrimary, fontSize: 24),
+          style: AppTypography.display.copyWith(
+            color: AppColors.cookingTextPrimary,
+            fontSize: 24,
+          ),
         ),
         if (supportingDetail != null) ...[
           const SizedBox(height: AppSpacing.sm),
           Text(
             supportingDetail!,
-            style: AppTypography.body.copyWith(color: AppColors.cookingTextSecondary),
+            style: AppTypography.body.copyWith(
+              color: AppColors.cookingTextSecondary,
+            ),
           ),
         ],
       ],
@@ -88,7 +95,9 @@ class CookingNavigationBar extends StatelessWidget {
                 foregroundColor: AppColors.cookingTextPrimary,
                 side: const BorderSide(color: AppColors.cookingTextSecondary),
                 minimumSize: const Size.fromHeight(56),
-                shape: const RoundedRectangleBorder(borderRadius: AppRadius.pillRadius),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: AppRadius.pillRadius,
+                ),
               ),
               child: Text(previousLabel),
             ),
@@ -102,7 +111,9 @@ class CookingNavigationBar extends StatelessWidget {
               backgroundColor: AppColors.primary,
               foregroundColor: AppColors.textOnPrimary,
               minimumSize: const Size.fromHeight(56),
-              shape: const RoundedRectangleBorder(borderRadius: AppRadius.pillRadius),
+              shape: const RoundedRectangleBorder(
+                borderRadius: AppRadius.pillRadius,
+              ),
             ),
             child: Text(nextLabel),
           ),

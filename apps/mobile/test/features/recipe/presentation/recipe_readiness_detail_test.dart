@@ -5,6 +5,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/features/recipe/domain/entities/recipe.dart';
 import 'package:mobile/features/recipe/domain/entities/recipe_ingredient.dart';
 import 'package:mobile/features/recipe/presentation/pages/recipe_detail_page.dart';
+import 'package:mobile/features/shopping/domain/entities/shopping_category.dart';
+import 'package:mobile/features/shopping/domain/entities/shopping_item.dart';
+import 'package:mobile/features/shopping/domain/entities/shopping_list.dart';
+import 'package:mobile/features/shopping/domain/entities/shopping_source.dart';
 
 import '../../../support/shopping_ui_test_support.dart';
 
@@ -17,38 +21,134 @@ import '../../../support/shopping_ui_test_support.dart';
 /// dedup, cooking is never blocked) and drop only the assertions tied to
 /// UI structure that was intentionally removed.
 void main() {
-  testWidgets('Recipe Detail adds only the missing ingredient, with dedup on repeat', (
-    tester,
-  ) async {
-    final harness = await _harness();
-    addTearDown(harness.dispose);
-    await _pumpRecipe(tester, harness);
+  testWidgets(
+    'Recipe Detail adds only the missing ingredient, with dedup on repeat',
+    (tester) async {
+      final harness = await _harness();
+      addTearDown(harness.dispose);
+      await _pumpRecipe(tester, harness);
 
-    // Readiness numbers come from the same underlying provider as before —
-    // still real, still visible, just in the new PantryReadinessCard shape.
-    expect(find.textContaining('ความพร้อมจาก Pantry'), findsOneWidget);
-    expect(find.text('40%'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey<String>('add-missing-to-shopping')),
-      findsOneWidget,
-    );
-    expect(find.byKey(const ValueKey<String>('start-cooking-cta')), findsOneWidget);
+      // Readiness numbers come from the same underlying provider as before —
+      // still real, still visible, just in the new PantryReadinessCard shape.
+      expect(find.textContaining('ความพร้อมจาก Pantry'), findsOneWidget);
+      expect(find.text('40%'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('add-missing-to-shopping')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('start-cooking-cta')),
+        findsOneWidget,
+      );
 
-    await tester.tap(find.byKey(const ValueKey<String>('add-missing-to-shopping')));
-    await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('add-missing-to-shopping')),
+      );
+      await tester.pumpAndSettle();
 
-    final items = (await harness.lists()).single.items;
-    expect(items, hasLength(1));
-    expect(items.single.canonicalIngredientId, 'rice');
-    expect(items.single.quantity, closeTo(0.8, 0.000001));
-    expect(find.textContaining('เพิ่มวัตถุดิบที่ขาด 1 รายการ'), findsOneWidget);
+      final items = (await harness.lists()).single.items;
+      expect(items, hasLength(1));
+      expect(items.single.canonicalIngredientId, 'rice');
+      expect(items.single.quantity, closeTo(0.8, 0.000001));
 
-    await tester.tap(find.byKey(const ValueKey<String>('add-missing-to-shopping')));
-    await tester.pumpAndSettle();
+      // Adding missing ingredients shows a confirmation sheet (matching the
+      // cooking wizard's pattern) rather than a plain SnackBar, with a
+      // direct way to jump to Shopping or stay on Recipe Detail.
+      expect(
+        find.text('เพิ่มวัตถุดิบที่ขาดเข้า Shopping แล้ว'),
+        findsOneWidget,
+      );
+      expect(find.text('ทำต่อ'), findsOneWidget);
+      expect(
+        find.byKey(
+          const ValueKey<String>(
+            'added-to-shopping-confirmation-go-to-shopping',
+          ),
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('ทำต่อ'));
+      await tester.pumpAndSettle();
 
-    expect((await harness.lists()).single.items, hasLength(1));
-    expect(find.text('วัตถุดิบที่แนะนำมีอยู่ใน Shopping แล้ว'), findsOneWidget);
-  });
+      // The card must now reflect that the missing ingredient is already
+      // planned for purchase, offering a direct "go to Shopping" action
+      // instead of "add again".
+      expect(find.textContaining('เพิ่มเข้า Shopping แล้ว'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey<String>('go-to-shopping-action')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('add-missing-to-shopping')),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    'Recipe Detail shows the already-in-Shopping state on load, without any tap',
+    (tester) async {
+      final now = DateTime.utc(2026, 7, 28, 8);
+      final list = ShoppingList(
+        id: 'primary-shopping-list',
+        name: 'รายการซื้อของของฉัน',
+        items: <ShoppingItem>[
+          ShoppingItem(
+            id: 'item-rice',
+            canonicalIngredientId: 'rice',
+            displayName: 'Rice',
+            quantity: 0.8,
+            unitId: 'kilogram',
+            category: ShoppingCategory.grains,
+            source: ShoppingSource.recipe,
+            sourceReferenceIds: const <String>['fried-rice'],
+            createdAt: now,
+            updatedAt: now,
+          ),
+        ],
+        createdAt: now,
+        updatedAt: now,
+      );
+      final harness = await ShoppingUiHarness.create(
+        at: now,
+        list: list,
+        pantry: [
+          testPantryLot(
+            id: 'egg-lot',
+            canonicalId: 'egg',
+            name: 'Egg',
+            quantity: 6,
+            unit: 'piece',
+            now: now,
+          ),
+          testPantryLot(
+            id: 'rice-lot',
+            canonicalId: 'rice',
+            name: 'Rice',
+            quantity: 0.2,
+            unit: 'kilogram',
+            now: now,
+          ),
+        ],
+      );
+      addTearDown(harness.dispose);
+      await _pumpRecipe(tester, harness);
+
+      // Rice is already in Shopping (sourced from this recipe), so the
+      // card must reflect that on first render — not just after tapping
+      // "เพิ่มวัตถุดิบ" — and offer a direct way to see it instead of
+      // an "add again" action.
+      expect(find.textContaining('เพิ่มเข้า Shopping แล้ว'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey<String>('go-to-shopping-action')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('add-missing-to-shopping')),
+        findsNothing,
+      );
+    },
+  );
 
   testWidgets('missing ingredients never block starting the cooking wizard', (
     tester,
@@ -88,8 +188,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    _expectNoOverflow(tester, exception: tester.takeException(), phase: 'initial render');
-    expect(find.byKey(const ValueKey<String>('start-cooking-cta')), findsOneWidget);
+    _expectNoOverflow(
+      tester,
+      exception: tester.takeException(),
+      phase: 'initial render',
+    );
+    expect(
+      find.byKey(const ValueKey<String>('start-cooking-cta')),
+      findsOneWidget,
+    );
   });
 }
 

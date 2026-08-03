@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/design_system/design_tokens/app_colors.dart';
 import '../../../../core/design_system/design_tokens/app_spacing.dart';
 import '../../../../core/design_system/design_tokens/app_typography.dart';
+import '../../../../core/presentation/unit_presentation.dart';
 import '../../domain/services/recipe_serving_calculator.dart';
 
 /// Read-only ingredient list for Recipe Detail. This replaces the old
@@ -30,7 +31,8 @@ class RecipeIngredientList extends StatelessWidget {
             style: AppTypography.label,
           ),
           const SizedBox(height: AppSpacing.sm),
-          for (final item in servingPlan.ingredients) _IngredientRow(item: item),
+          for (final item in servingPlan.ingredients)
+            _IngredientRow(item: item),
         ],
       ),
     );
@@ -43,7 +45,6 @@ class _IngredientRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final quantityLabel = _formatQuantity(item.requiredQuantity);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -58,16 +59,14 @@ class _IngredientRow extends StatelessWidget {
             child: Text(item.ingredient.name, style: AppTypography.body),
           ),
           Text(
-            '$quantityLabel ${item.ingredient.unit}',
+            UnitPresentation.cookingQuantity(
+              item.requiredQuantity,
+              item.ingredient.unit,
+            ),
             style: AppTypography.caption,
           ),
         ],
       ),
     );
-  }
-
-  String _formatQuantity(double value) {
-    if (value == value.roundToDouble()) return value.toStringAsFixed(0);
-    return value.toStringAsFixed(1);
   }
 }

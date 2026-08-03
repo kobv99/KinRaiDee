@@ -94,12 +94,11 @@ class PantryRecentSection extends ConsumerWidget {
                             ),
                             const SizedBox(height: AppSpacing.xxs),
                             Text(
-                              UnitPresentation.quantity(
+                              UnitPresentation.cookingQuantity(
                                 ingredient.quantity,
                                 ingredient.canonicalUnitId.isEmpty
                                     ? ingredient.unit
                                     : ingredient.canonicalUnitId,
-                                maximumFractionDigits: 1,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,

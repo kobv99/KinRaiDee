@@ -11,6 +11,7 @@ import 'package:mobile/features/shopping/application/shopping_providers.dart';
 import 'package:mobile/features/shopping/domain/entities/shopping_list.dart';
 import 'package:mobile/features/shopping/presentation/pages/shopping_page.dart';
 import 'package:mobile/features/shopping/presentation/providers/shopping_view_provider.dart';
+import 'package:mobile/features/shopping/presentation/widgets/recommended_purchases_section.dart';
 
 import '../../support/shopping_ui_test_support.dart';
 
@@ -105,12 +106,26 @@ void main() {
       expect(find.text('ใน Pantry 2 ชิ้น'), findsOneWidget);
       expect(
         find.byKey(const ValueKey<String>('shopping-category-filter')),
+        findsNothing,
+      );
+
+      // Category/sort dropdowns are secondary, tucked behind a filter
+      // sheet so Search and the actual Shopping list stay dominant.
+      await tester.tap(
+        find.byKey(const ValueKey<String>('shopping-open-filters')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey<String>('shopping-category-filter')),
         findsOneWidget,
       );
       expect(
         find.byKey(const ValueKey<String>('shopping-sort-filter')),
         findsOneWidget,
       );
+      await tester.tapAt(const Offset(20, 20));
+      await tester.pumpAndSettle();
+
       expect(find.text('รายการที่เสร็จแล้ว'), findsNothing);
       expect(find.text('เสร็จแล้ว'), findsNothing);
 
@@ -325,6 +340,45 @@ void main() {
         orderedEquals(before.items.map((item) => item.id)),
       );
     });
+
+    testWidgets(
+      'the active Shopping list renders above Recommended Purchases',
+      (tester) async {
+        final harness = await ShoppingUiHarness.create(
+          pantry: [
+            testPantryLot(
+              id: 'egg-lot',
+              canonicalId: 'egg',
+              name: 'Egg',
+              quantity: 2,
+              unit: 'piece',
+              now: now,
+            ),
+          ],
+          recipes: _recipes,
+          list: testShoppingList(now: now),
+        );
+        addTearDown(harness.dispose);
+        await harness.pump(tester);
+
+        final itemListTop = tester
+            .getTopLeft(
+              find.byKey(const ValueKey<String>('shopping-item-egg-item')),
+            )
+            .dy;
+        final recommendationsTop = tester
+            .getTopLeft(find.byType(RecommendedPurchasesSection))
+            .dy;
+
+        expect(
+          itemListTop,
+          lessThan(recommendationsTop),
+          reason:
+              'the active Shopping list is the primary task and must render '
+              'above the secondary Recommended Purchases section',
+        );
+      },
+    );
   });
 }
 
