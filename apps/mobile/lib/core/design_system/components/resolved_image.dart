@@ -56,7 +56,9 @@ class ResolvedImage extends StatelessWidget {
             size: size,
             isPrimary: true,
             loadedKey: loadedKey,
-            fallbackKey: resolution.candidates.isEmpty ? null : exhaustedFallbackKey,
+            fallbackKey: resolution.candidates.isEmpty
+                ? null
+                : exhaustedFallbackKey,
           ),
         ),
       ),

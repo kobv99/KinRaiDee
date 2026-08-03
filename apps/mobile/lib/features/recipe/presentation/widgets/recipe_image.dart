@@ -38,7 +38,9 @@ class RecipeImage extends StatelessWidget {
       size: size,
       borderRadius: borderRadius,
       loadedKey: ValueKey<String>('recipe-image-${recipe.id}'),
-      exhaustedFallbackKey: ValueKey<String>('recipe-image-fallback-${recipe.id}'),
+      exhaustedFallbackKey: ValueKey<String>(
+        'recipe-image-fallback-${recipe.id}',
+      ),
     );
   }
 }

@@ -96,7 +96,7 @@ class ImageMetadata {
           throw const ImageMetadataException(
             'network_with_asset',
             'locationType network must not declare an assetPath; use '
-            'asset instead so precedence stays explicit.',
+                'asset instead so precedence stays explicit.',
           );
         }
     }

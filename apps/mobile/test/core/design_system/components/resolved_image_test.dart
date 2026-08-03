@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -18,8 +17,9 @@ final Uint8List _onePixelPng = base64Decode(
 /// `Image.asset` looks up `AssetManifest.bin` for resolution-aware variants
 /// before loading the asset itself; an empty manifest lets it fall back to
 /// loading the exact requested key.
-final ByteData _emptyAssetManifest =
-    const StandardMessageCodec().encodeMessage(<Object?, Object?>{})!;
+final ByteData _emptyAssetManifest = const StandardMessageCodec().encodeMessage(
+  <Object?, Object?>{},
+)!;
 
 /// Serves [_onePixelPng] for one specific key and throws for everything
 /// else, simulating a present asset versus a missing one without touching
@@ -42,7 +42,10 @@ class _FakeAssetBundle extends CachingAssetBundle {
   }
 }
 
-Widget _wrap(Widget child, {String presentAssetKey = 'assets/images/present.png'}) {
+Widget _wrap(
+  Widget child, {
+  String presentAssetKey = 'assets/images/present.png',
+}) {
   return MaterialApp(
     home: DefaultAssetBundle(
       bundle: _FakeAssetBundle(presentAssetKey),

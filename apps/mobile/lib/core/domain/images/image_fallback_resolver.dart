@@ -21,7 +21,10 @@ class ImageCandidate {
 /// has no way to know whether an asset is actually missing or a network
 /// request actually fails; that is the rendering widget's job.
 class ImageResolution {
-  const ImageResolution({required this.candidates, required this.fallbackGlyph});
+  const ImageResolution({
+    required this.candidates,
+    required this.fallbackGlyph,
+  });
 
   final List<ImageCandidate> candidates;
   final String fallbackGlyph;

@@ -37,7 +37,10 @@ void main() {
       );
 
       expect(resolution.candidates, hasLength(1));
-      expect(resolution.candidates.single.locationType, ImageLocationType.network);
+      expect(
+        resolution.candidates.single.locationType,
+        ImageLocationType.network,
+      );
     });
 
     test('unreviewed metadata produces zero candidates and falls back', () {

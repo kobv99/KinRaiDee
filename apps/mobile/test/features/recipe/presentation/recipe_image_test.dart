@@ -37,9 +37,7 @@ void main() {
     expect(find.text('🌶️'), findsOneWidget);
   });
 
-  testWidgets('exposes a semantic label with the recipe name', (
-    tester,
-  ) async {
+  testWidgets('exposes a semantic label with the recipe name', (tester) async {
     final handle = tester.ensureSemantics();
     final recipe = _recipe(id: 'som-tam', emoji: '🥗');
 

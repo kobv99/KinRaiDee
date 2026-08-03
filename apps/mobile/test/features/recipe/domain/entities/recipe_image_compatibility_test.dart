@@ -32,25 +32,22 @@ void main() {
       expect(recipe.imageUrl, 'https://example.com/pad-krapao.png');
     });
 
-    test(
-      'adapts a populated legacy imageUrl to pre-approved network metadata '
-      'so existing rendering behavior is preserved',
-      () {
-        final recipe = Recipe.fromJson(<String, dynamic>{
-          'id': 'pad-krapao',
-          'name': 'Pad Krapao',
-          'category': 'ทั่วไป',
-          'ingredients': <dynamic>[],
-          'steps': <dynamic>[],
-          'imageUrl': 'https://example.com/pad-krapao.png',
-        });
+    test('adapts a populated legacy imageUrl to pre-approved network metadata '
+        'so existing rendering behavior is preserved', () {
+      final recipe = Recipe.fromJson(<String, dynamic>{
+        'id': 'pad-krapao',
+        'name': 'Pad Krapao',
+        'category': 'ทั่วไป',
+        'ingredients': <dynamic>[],
+        'steps': <dynamic>[],
+        'imageUrl': 'https://example.com/pad-krapao.png',
+      });
 
-        final metadata = recipe.imageMetadata;
-        expect(metadata.locationType, ImageLocationType.network);
-        expect(metadata.remoteUrl, 'https://example.com/pad-krapao.png');
-        expect(metadata.reviewStatus, ImageReviewStatus.approved);
-      },
-    );
+      final metadata = recipe.imageMetadata;
+      expect(metadata.locationType, ImageLocationType.network);
+      expect(metadata.remoteUrl, 'https://example.com/pad-krapao.png');
+      expect(metadata.reviewStatus, ImageReviewStatus.approved);
+    });
 
     test('an empty-string imageUrl is treated the same as absent', () {
       final recipe = Recipe.fromJson(<String, dynamic>{
