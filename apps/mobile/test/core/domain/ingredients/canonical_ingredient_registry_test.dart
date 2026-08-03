@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mobile/core/domain/images/image_metadata.dart';
 import 'package:mobile/core/domain/ingredients/canonical_ingredient.dart';
 import 'package:mobile/core/domain/ingredients/canonical_ingredient_registry.dart';
 
@@ -74,6 +75,33 @@ void main() {
       expect(first, 'unmapped_43a6cdcd93150f86');
       expect(first, matches(RegExp(r'^unmapped_[0-9a-f]{16}$')));
     });
+
+    test('alias resolution surfaces the canonical ingredient image', () {
+      final image = ImageMetadata(
+        locationType: ImageLocationType.network,
+        remoteUrl: 'https://example.com/mackerel.png',
+        reviewStatus: ImageReviewStatus.approved,
+      );
+      final registry = CanonicalIngredientRegistry(
+        ingredients: <CanonicalIngredient>[
+          _ingredient(
+            'mackerel',
+            aliases: const <String>['ปลาทู'],
+            image: image,
+          ),
+          _ingredient('fish', nodeType: CanonicalIngredientNodeType.family),
+        ],
+      );
+
+      final byAlias = registry.resolve('ปลาทู').ingredient;
+      final byId = registry.byId('mackerel');
+
+      expect(byAlias?.image, same(image));
+      expect(byId?.image, same(image));
+      // Aliasing never fabricates or borrows imagery from a sibling
+      // ingredient or a family/category node.
+      expect(registry.byId('fish')?.image, isNull);
+    });
   });
 }
 
@@ -83,6 +111,8 @@ CanonicalIngredient _ingredient(
   String? thaiName,
   List<String> aliases = const <String>[],
   String? parentId,
+  CanonicalIngredientNodeType nodeType = CanonicalIngredientNodeType.ingredient,
+  ImageMetadata? image,
 }) {
   return CanonicalIngredient(
     id: id,
@@ -97,5 +127,7 @@ CanonicalIngredient _ingredient(
     defaultPurchaseUnitId: 'kilogram',
     defaultInventoryUnitId: 'gram',
     parentId: parentId,
+    nodeType: nodeType,
+    image: image,
   );
 }

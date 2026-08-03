@@ -1,3 +1,5 @@
+import '../images/image_metadata.dart';
+
 enum IngredientStorageType { ambient, refrigerated, frozen, pantry }
 
 enum CanonicalIngredientNodeType { category, family, ingredient }
@@ -49,6 +51,7 @@ class CanonicalIngredient {
     List<String> textures = const <String>[],
     List<String> supportedCookingMethods = const <String>[],
     this.metadata = const IngredientMetadata(),
+    this.image,
   }) : localizedNames = Map<String, String>.unmodifiable(localizedNames),
        aliases = List<String>.unmodifiable(aliases),
        searchKeywords = List<String>.unmodifiable(searchKeywords),
@@ -83,6 +86,13 @@ class CanonicalIngredient {
   final List<String> textures;
   final List<String> supportedCookingMethods;
   final IngredientMetadata metadata;
+
+  /// Optional presentation image. Family and category nodes may carry one
+  /// too, since they are [CanonicalIngredient] records with a different
+  /// [nodeType] rather than a separate type — there is exactly one place
+  /// image ownership lives. Absent or unapproved must always fall back to
+  /// [emoji]; see `resolveImageCandidates`.
+  final ImageMetadata? image;
 
   bool get canSelectAsMainIngredient =>
       selectableAsMainIngredient &&
