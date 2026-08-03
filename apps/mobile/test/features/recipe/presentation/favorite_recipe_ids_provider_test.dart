@@ -13,10 +13,10 @@ void main() {
     final container = _containerFor(repository);
     addTearDown(container.dispose);
 
-    expect(
-      container.read(favoriteRecipeIdsProvider),
-      <String>{'som-tam', 'pad-krapao'},
-    );
+    expect(container.read(favoriteRecipeIdsProvider), <String>{
+      'som-tam',
+      'pad-krapao',
+    });
   });
 
   test('toggle adds an id and persists it through the repository', () async {
@@ -24,28 +24,29 @@ void main() {
     final container = _containerFor(repository);
     addTearDown(container.dispose);
 
-    await container
-        .read(favoriteRecipeIdsProvider.notifier)
-        .toggle('som-tam');
+    await container.read(favoriteRecipeIdsProvider.notifier).toggle('som-tam');
 
     expect(container.read(favoriteRecipeIdsProvider), <String>{'som-tam'});
     expect(repository.savedFavorites, <String>{'som-tam'});
   });
 
-  test('toggle removes an already-favorited id and persists the removal', () async {
-    final repository = _FakeRecipeRepository(
-      initialFavorites: <String>{'som-tam'},
-    );
-    final container = _containerFor(repository);
-    addTearDown(container.dispose);
+  test(
+    'toggle removes an already-favorited id and persists the removal',
+    () async {
+      final repository = _FakeRecipeRepository(
+        initialFavorites: <String>{'som-tam'},
+      );
+      final container = _containerFor(repository);
+      addTearDown(container.dispose);
 
-    await container
-        .read(favoriteRecipeIdsProvider.notifier)
-        .toggle('som-tam');
+      await container
+          .read(favoriteRecipeIdsProvider.notifier)
+          .toggle('som-tam');
 
-    expect(container.read(favoriteRecipeIdsProvider), isEmpty);
-    expect(repository.savedFavorites, isEmpty);
-  });
+      expect(container.read(favoriteRecipeIdsProvider), isEmpty);
+      expect(repository.savedFavorites, isEmpty);
+    },
+  );
 
   test('build falls back to an empty set when storage is unavailable', () {
     final container = _containerFor(_ThrowingRecipeRepository());

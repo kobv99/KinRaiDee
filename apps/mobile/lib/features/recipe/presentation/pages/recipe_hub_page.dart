@@ -23,7 +23,7 @@ class RecipeHubPage extends StatelessWidget {
               children: [
                 const Expanded(
                   child: Text(
-                    'ไม่ถูกใจเมนูไหน? เลือกดูสูตรทั้งหมดได้เลย',
+                    'อยากหาเมนูอื่น? ค้นหาหรือใช้ตัวกรองได้เลย',
                     maxLines: 2,
                   ),
                 ),
@@ -35,8 +35,8 @@ class RecipeHubPage extends StatelessWidget {
                       builder: (_) => const AllRecipesPage(),
                     ),
                   ),
-                  icon: const Icon(Icons.menu_book_outlined),
-                  label: const Text('สูตรทั้งหมด'),
+                  icon: const Icon(Icons.search_rounded),
+                  label: const Text('ค้นหาสูตร'),
                 ),
               ],
             ),

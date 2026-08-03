@@ -9,12 +9,13 @@ void main() {
   ) async {
     final recipe = _recipe(id: 'som-tam', emoji: '🥗');
 
-    await tester.pumpWidget(
-      MaterialApp(home: RecipeImage(recipe: recipe)),
-    );
+    await tester.pumpWidget(MaterialApp(home: RecipeImage(recipe: recipe)));
 
     expect(find.text('🥗'), findsOneWidget);
-    expect(find.byKey(ValueKey<String>('recipe-image-${recipe.id}')), findsNothing);
+    expect(
+      find.byKey(ValueKey<String>('recipe-image-${recipe.id}')),
+      findsNothing,
+    );
   });
 
   testWidgets('shows the emoji fallback when the network image fails to load', (
@@ -26,9 +27,7 @@ void main() {
       imageUrl: 'https://example.invalid/does-not-exist.png',
     );
 
-    await tester.pumpWidget(
-      MaterialApp(home: RecipeImage(recipe: recipe)),
-    );
+    await tester.pumpWidget(MaterialApp(home: RecipeImage(recipe: recipe)));
     await tester.pumpAndSettle();
 
     expect(

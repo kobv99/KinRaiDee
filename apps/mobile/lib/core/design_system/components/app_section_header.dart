@@ -30,7 +30,12 @@ class AppSectionHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: AppTypography.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+              Text(
+                title,
+                style: AppTypography.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
               if (subtitle != null) ...[
                 const SizedBox(height: 2),
                 Text(subtitle!, style: AppTypography.caption),

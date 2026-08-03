@@ -33,6 +33,7 @@ class FavoriteRecipeIdsNotifier extends Notifier<Set<String>> {
   }
 }
 
-final favoriteRecipeIdsProvider = NotifierProvider<FavoriteRecipeIdsNotifier, Set<String>>(
-  FavoriteRecipeIdsNotifier.new,
-);
+final favoriteRecipeIdsProvider =
+    NotifierProvider<FavoriteRecipeIdsNotifier, Set<String>>(
+      FavoriteRecipeIdsNotifier.new,
+    );

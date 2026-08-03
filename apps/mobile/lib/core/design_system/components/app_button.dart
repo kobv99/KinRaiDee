@@ -37,36 +37,38 @@ class AppButton extends StatelessWidget {
             child: CircularProgressIndicator(strokeWidth: 2.5),
           )
         : icon == null
-            ? Text(label)
-            : Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icon, size: 18),
-                  const SizedBox(width: AppSpacing.sm),
-                  Text(label),
-                ],
-              );
+        ? Text(label)
+        : Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 18),
+              const SizedBox(width: AppSpacing.sm),
+              Text(label),
+            ],
+          );
 
     final Widget button = switch (variant) {
       AppButtonVariant.primary => ElevatedButton(
-          onPressed: effectiveOnPressed,
-          child: child,
-        ),
+        onPressed: effectiveOnPressed,
+        child: child,
+      ),
       AppButtonVariant.secondary => OutlinedButton(
-          onPressed: effectiveOnPressed,
-          child: child,
-        ),
+        onPressed: effectiveOnPressed,
+        child: child,
+      ),
       AppButtonVariant.text => TextButton(
-          onPressed: effectiveOnPressed,
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.sm,
-            ),
-            shape: const RoundedRectangleBorder(borderRadius: AppRadius.pillRadius),
+        onPressed: effectiveOnPressed,
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm,
           ),
-          child: child,
+          shape: const RoundedRectangleBorder(
+            borderRadius: AppRadius.pillRadius,
+          ),
         ),
+        child: child,
+      ),
     };
 
     if (!expand) return button;

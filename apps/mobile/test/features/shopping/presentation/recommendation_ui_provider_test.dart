@@ -26,9 +26,7 @@ void main() {
     addTearDown(container.dispose);
 
     container.read(recommendationUiProvider.notifier).dismiss();
-    container
-        .read(recommendationUiProvider.notifier)
-        .setBusyIngredient('egg');
+    container.read(recommendationUiProvider.notifier).setBusyIngredient('egg');
 
     final state = container.read(recommendationUiProvider);
     expect(state.busyIngredientId, 'egg');

@@ -80,10 +80,22 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
       warning: Color.lerp(warning, other.warning, t)!,
       warningSoft: Color.lerp(warningSoft, other.warningSoft, t)!,
       border: Color.lerp(border, other.border, t)!,
-      cookingBackground: Color.lerp(cookingBackground, other.cookingBackground, t)!,
+      cookingBackground: Color.lerp(
+        cookingBackground,
+        other.cookingBackground,
+        t,
+      )!,
       cookingSurface: Color.lerp(cookingSurface, other.cookingSurface, t)!,
-      cookingTextPrimary: Color.lerp(cookingTextPrimary, other.cookingTextPrimary, t)!,
-      cookingTextSecondary: Color.lerp(cookingTextSecondary, other.cookingTextSecondary, t)!,
+      cookingTextPrimary: Color.lerp(
+        cookingTextPrimary,
+        other.cookingTextPrimary,
+        t,
+      )!,
+      cookingTextSecondary: Color.lerp(
+        cookingTextSecondary,
+        other.cookingTextSecondary,
+        t,
+      )!,
     );
   }
 }

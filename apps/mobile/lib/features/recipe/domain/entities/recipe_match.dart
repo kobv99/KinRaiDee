@@ -1,4 +1,5 @@
 import 'recipe.dart';
+import 'recipe_compatibility.dart';
 import 'recipe_ingredient.dart';
 
 class RecipeMatch {
@@ -7,12 +8,34 @@ class RecipeMatch {
     required this.matchedIngredients,
     required this.missingIngredients,
     required this.score,
+    this.mainIngredientCompatibility,
   });
 
   final Recipe recipe;
   final List<RecipeIngredient> matchedIngredients;
   final List<RecipeIngredient> missingIngredients;
   final double score;
+  final MainIngredientCompatibilityResult? mainIngredientCompatibility;
+
+  MainIngredientMatchTier? get mainIngredientMatchTier =>
+      mainIngredientCompatibility?.tier;
+
+  String get matchReason => mainIngredientCompatibility?.reason ?? '';
+
+  bool get hasVerifiedMainIngredientMatch =>
+      mainIngredientCompatibility?.isEligible == true;
+
+  RecipeMatch withMainIngredientCompatibility(
+    MainIngredientCompatibilityResult compatibility,
+  ) {
+    return RecipeMatch(
+      recipe: recipe,
+      matchedIngredients: matchedIngredients,
+      missingIngredients: missingIngredients,
+      score: score,
+      mainIngredientCompatibility: compatibility,
+    );
+  }
 
   List<RecipeIngredient> get matchedPrimaryIngredients =>
       _withRole(matchedIngredients, RecipeIngredientRole.primary);

@@ -21,12 +21,23 @@ void main() {
       final saltedEggRecipes = recipes
           .where((recipe) => recipe.resolvedHeroIngredientId == 'salted_egg')
           .toList(growable: false);
+      final mackerelRecipes = recipes
+          .where((recipe) => recipe.resolvedHeroIngredientId == 'mackerel')
+          .toList(growable: false);
 
       expect(recipes.length, greaterThanOrEqualTo(158));
       expect(ids.length, recipes.length);
       expect(shrimpRecipes, hasLength(20));
       expect(beefRecipes, hasLength(20));
       expect(fishRecipes, hasLength(20));
+      expect(mackerelRecipes, hasLength(7));
+      expect(
+        mackerelRecipes.every(
+          (recipe) =>
+              recipe.compatibility.exactIngredientIds.contains('mackerel'),
+        ),
+        isTrue,
+      );
       expect(saltedEggRecipes, hasLength(12));
     },
   );

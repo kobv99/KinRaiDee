@@ -31,6 +31,29 @@ class RecipeCandidateService {
     return List<RecipeMatch>.unmodifiable(matches);
   }
 
+  /// Evaluates readiness for every recipe without requiring its primary
+  /// ingredient to already be in Pantry. This powers intentional recipe
+  /// exploration; shopping/home candidate flows keep using [findCandidates].
+  List<RecipeMatch> evaluateAllRecipes({
+    required List<Recipe> recipes,
+    required List<Ingredient> pantry,
+    required DateTime evaluatedAt,
+  }) {
+    final matches =
+        recipes
+            .map(
+              (recipe) => evaluateReadiness(
+                recipe: recipe,
+                pantry: pantry,
+                servings: recipe.servings > 0 ? recipe.servings : 1,
+                evaluatedAt: evaluatedAt,
+              ),
+            )
+            .toList(growable: false)
+          ..sort(_compare);
+    return List<RecipeMatch>.unmodifiable(matches);
+  }
+
   bool isCandidate({
     required Recipe recipe,
     required List<Ingredient> pantry,
@@ -61,6 +84,26 @@ class RecipeCandidateService {
     if (!_hasPrimaryIngredientInPantry(readiness)) {
       return null;
     }
+    return _toMatch(readiness);
+  }
+
+  RecipeMatch evaluateReadiness({
+    required Recipe recipe,
+    required List<Ingredient> pantry,
+    required int servings,
+    required DateTime evaluatedAt,
+  }) {
+    return _toMatch(
+      readinessService.evaluate(
+        recipe: recipe,
+        pantry: pantry,
+        servings: servings,
+        evaluatedAt: evaluatedAt,
+      ),
+    );
+  }
+
+  RecipeMatch _toMatch(RecipeReadiness readiness) {
     final matched = <RecipeIngredient>[];
     final missing = <RecipeIngredient>[];
     for (final item in readiness.ingredients) {
@@ -71,7 +114,7 @@ class RecipeCandidateService {
       }
     }
     return RecipeMatch(
-      recipe: recipe,
+      recipe: readiness.recipe,
       matchedIngredients: List<RecipeIngredient>.unmodifiable(matched),
       missingIngredients: List<RecipeIngredient>.unmodifiable(missing),
       score: readiness.score,

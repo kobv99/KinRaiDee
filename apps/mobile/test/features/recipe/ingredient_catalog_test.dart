@@ -46,6 +46,9 @@ void main() {
             'category': 'seafood',
             'defaultUnit': 'กรัม',
             'aliases': <String>['หมึกกล้วย'],
+            'ingredientForms': <String>['whole_cleaned', 'sliced'],
+            'textures': <String>['tender'],
+            'supportedCookingMethods': <String>['ย่าง', 'ผัด'],
           },
         ]),
       );
@@ -56,6 +59,9 @@ void main() {
 
       expect(ingredients, hasLength(1));
       expect(result?.id, 'squid');
+      expect(result?.ingredientForms, <String>['whole_cleaned', 'sliced']);
+      expect(result?.textures, <String>['tender']);
+      expect(result?.supportedCookingMethods, <String>['ย่าง', 'ผัด']);
     });
 
     test(
@@ -102,6 +108,13 @@ void main() {
           }
         }
         expect(registry.byId('fish')?.preferredUnitId, 'whole');
+        expect(registry.byId('fish')?.canSelectAsMainIngredient, isFalse);
+        expect(registry.byId('mackerel')?.canSelectAsMainIngredient, isTrue);
+        expect(
+          registry.byId('mackerel')?.ingredientForms,
+          contains('whole_cleaned'),
+        );
+        expect(registry.canonicalIdFor('chicken_breast'), 'chicken_breast');
         expect(registry.byId('pork')?.preferredUnitId, 'kilogram');
         expect(registry.byId('egg')?.preferredUnitId, 'egg');
         expect(registry.byId('cooking_oil')?.preferredUnitId, 'bottle');

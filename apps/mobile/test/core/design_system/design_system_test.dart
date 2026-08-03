@@ -261,5 +261,31 @@ void main() {
       final size = tester.getSize(find.byKey(const ValueKey('cta')));
       expect(size.width, 360);
     });
+
+    testWidgets('shrink-wraps its height in a desktop bottom bar', (
+      tester,
+    ) async {
+      await setViewportWidth(tester, 1280);
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: SizedBox.expand(key: ValueKey('body')),
+            bottomNavigationBar: ResponsiveCta(
+              child: SizedBox(
+                width: double.infinity,
+                height: 48,
+                key: ValueKey('cta'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(tester.getSize(find.byKey(const ValueKey('cta'))).height, 48);
+      expect(
+        tester.getSize(find.byKey(const ValueKey('body'))).height,
+        greaterThan(0),
+      );
+    });
   });
 }
