@@ -18,11 +18,15 @@ class RecipeImage extends StatelessWidget {
     required this.recipe,
     super.key,
     this.size = 56,
+    this.width,
+    this.height,
     this.borderRadius = AppRadius.largeRadius,
   });
 
   final Recipe recipe;
   final double size;
+  final double? width;
+  final double? height;
   final BorderRadius borderRadius;
 
   @override
@@ -36,6 +40,8 @@ class RecipeImage extends StatelessWidget {
       resolution: resolution,
       semanticLabel: 'รูปภาพเมนู ${recipe.name}',
       size: size,
+      width: width,
+      height: height,
       borderRadius: borderRadius,
       loadedKey: ValueKey<String>('recipe-image-${recipe.id}'),
       exhaustedFallbackKey: ValueKey<String>(

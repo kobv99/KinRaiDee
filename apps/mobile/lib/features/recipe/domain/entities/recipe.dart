@@ -23,6 +23,7 @@ class Recipe {
     this.sourceUrl,
     this.discoveredByAi = false,
     this.imageUrl,
+    this.image,
     this.compatibility = const RecipeCompatibilityMetadata(),
   });
 
@@ -50,16 +51,30 @@ class Recipe {
   /// always fall back to [emoji] — never fabricate imagery or rating data.
   final String? imageUrl;
 
-  /// Adapts the legacy [imageUrl] field into the shared image foundation
-  /// model, without changing [imageUrl]'s stored shape or JSON parsing.
+  /// Structured image foundation metadata. This is the source of truth for
+  /// all new image data — unlike [imageUrl], its [ImageMetadata.reviewStatus]
+  /// and [ImageMetadata.provenance] come entirely from the content itself
+  /// rather than being assumed by an adapter.
+  final ImageMetadata? image;
+
+  /// Resolves this recipe's image, preferring the structured [image] field
+  /// over the legacy [imageUrl] adapter, without changing [imageUrl]'s
+  /// stored shape or JSON parsing.
   ///
-  /// A populated [imageUrl] is treated as pre-approved: it was already
-  /// being rendered directly (unconditionally) by earlier code, so marking
-  /// it [ImageReviewStatus.approved] here is what actually preserves that
-  /// existing behavior under the foundation's new approved-only rendering
-  /// policy. Both hero and thumbnail roles resolve from this single
-  /// adapted value today, since Recipe carries only one image field.
+  /// Precedence:
+  /// 1. [image], when present — used verbatim, including whatever
+  ///    [ImageMetadata.reviewStatus]/[ImageMetadata.provenance] it declares.
+  /// 2. Otherwise, a populated [imageUrl] is treated as pre-approved: it was
+  ///    already being rendered directly (unconditionally) by earlier code, so
+  ///    marking it [ImageReviewStatus.approved] here is what actually
+  ///    preserves that existing behavior under the foundation's new
+  ///    approved-only rendering policy.
+  /// 3. Otherwise, [ImageLocationType.none].
   ImageMetadata get imageMetadata {
+    final structured = image;
+    if (structured != null) {
+      return structured;
+    }
     final url = imageUrl;
     if (url == null) {
       return ImageMetadata(locationType: ImageLocationType.none);
@@ -145,6 +160,11 @@ class Recipe {
       sourceUrl: json['sourceUrl'] as String?,
       discoveredByAi: json['discoveredByAi'] as bool? ?? false,
       imageUrl: _nonEmptyString(json['imageUrl']),
+      image: json['image'] is Map
+          ? ImageMetadata.fromJson(
+              Map<String, dynamic>.from(json['image'] as Map),
+            )
+          : null,
       compatibility: RecipeCompatibilityMetadata.fromJson(compatibilityJson),
     );
   }

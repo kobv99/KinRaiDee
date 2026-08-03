@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import '../../../../core/design_system/components/app_button.dart';
 import '../../../../core/design_system/components/app_chip.dart';
 import '../../../../core/design_system/components/app_icon_button.dart';
+import '../../../../core/design_system/components/resolved_image.dart';
 import '../../../../core/design_system/components/responsive_cta.dart';
 import '../../../../core/design_system/design_tokens/app_colors.dart';
 import '../../../../core/design_system/design_tokens/app_spacing.dart';
 import '../../../../core/design_system/design_tokens/app_typography.dart';
 import '../../../../core/design_system/feature_components/ingredient_status_chip.dart';
 import '../../../../core/design_system/feature_components/pantry_readiness_card.dart';
+import '../../../../core/domain/images/image_fallback_resolver.dart';
 import '../../domain/entities/recipe.dart';
 import '../../domain/entities/recipe_ingredient.dart';
 import '../../domain/services/recipe_serving_calculator.dart';
@@ -63,7 +65,7 @@ class RecipeDetailHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _HeroImagePlaceholder(
-          emoji: recipe.emoji,
+          recipe: recipe,
           onBack: onBack,
           isFavorite: isFavorite,
           onToggleFavorite: onToggleFavorite,
@@ -188,46 +190,61 @@ int _weightedReadyPercent(List<ScaledRecipeIngredient> ingredients) {
 
 class _HeroImagePlaceholder extends StatelessWidget {
   const _HeroImagePlaceholder({
-    required this.emoji,
+    required this.recipe,
     required this.onBack,
     required this.isFavorite,
     required this.onToggleFavorite,
   });
 
-  final String emoji;
+  final Recipe recipe;
   final VoidCallback onBack;
   final bool isFavorite;
   final VoidCallback? onToggleFavorite;
 
   @override
   Widget build(BuildContext context) {
-    // NOTE: the recipe data model has no real photo field (only an
-    // `emoji` and an optional `sourceUrl`, which is a source link, not an
-    // image). Rather than faking a photo, this uses a styled gradient +
-    // large emoji placeholder. Wiring real photos would need a new
-    // `imageUrl` field on Recipe plus an actual image asset/CDN — out of
-    // scope here.
     // Fixed height, not viewport-driven aspect ratio: an AspectRatio-based
     // hero grows in lockstep with the (ResponsiveContent-capped) width,
     // ballooning to ~600px tall on desktop for what is only an emoji
     // placeholder. A fixed height keeps the hero compact everywhere.
+    final resolution = resolveImageCandidates(
+      metadata: recipe.imageMetadata,
+      fallbackGlyph: recipe.emoji,
+    );
     return SizedBox(
       height: 148,
       child: Stack(
         children: [
           Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [AppColors.primarySoft, AppColors.surfaceMuted],
-                ),
-              ),
-              child: Center(
-                child: Text(emoji, style: const TextStyle(fontSize: 56)),
-              ),
-            ),
+            child: resolution.candidates.isEmpty
+                ? DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [AppColors.primarySoft, AppColors.surfaceMuted],
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        recipe.emoji,
+                        style: const TextStyle(fontSize: 56),
+                      ),
+                    ),
+                  )
+                : ResolvedImage(
+                    resolution: resolution,
+                    semanticLabel: 'รูปภาพเมนู ${recipe.name}',
+                    width: double.infinity,
+                    height: 148,
+                    borderRadius: BorderRadius.zero,
+                    loadedKey: ValueKey<String>(
+                      'recipe-detail-hero-image-${recipe.id}',
+                    ),
+                    exhaustedFallbackKey: ValueKey<String>(
+                      'recipe-detail-hero-fallback-${recipe.id}',
+                    ),
+                  ),
           ),
           Positioned(
             top: AppSpacing.md,

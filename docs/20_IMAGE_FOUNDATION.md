@@ -4,11 +4,12 @@
 
 A shared, deterministic model for presentation imagery — location,
 provenance, editorial approval — plus one resolver and one runtime widget
-that every image-bearing entity uses. This branch ships the foundation
-only: the domain model, the resolver, and two reusable widgets. No product
-screen renders a real photo as a result of this work; `RecipeCard`,
-`RecipeDetailHeader`, `CookingStepCard`, `top_picks_section.dart`, and
-`cooking_wizard_page.dart` are unchanged.
+that every image-bearing entity uses. The original foundation branch shipped
+the domain model, the resolver, and two reusable widgets only, with no
+product screen wired up. The Recipe Image Integration sprint (see below)
+wired `RecipeCard` (Home top-picks) and `RecipeDetailHeader`'s hero into the
+foundation; `CookingStepCard` and `cooking_wizard_page.dart` remain
+unchanged and out of scope.
 
 ## Ownership
 
@@ -145,3 +146,42 @@ A future branch wiring step visuals needs, at minimum:
   none exist yet, and none are required by any test in this branch (tests
   that need image bytes use an in-memory fake `AssetBundle`, never a file
   checked into the repository).
+
+## Recipe Model Integration (Recipe Image Integration Sprint)
+
+`Recipe` gained a structured `final ImageMetadata? image;` field — the source
+of truth for all new recipe image data, parsed from a nested `"image"` JSON
+object (`locationType`, `assetPath`/`remoteUrl`, `provenance`, `attribution`,
+`reviewStatus`). `Recipe.imageMetadata`'s precedence is:
+
+1. `Recipe.image`, when present, used verbatim — its `reviewStatus` and
+   `provenance` are never overridden or assumed by the adapter.
+2. Otherwise, legacy `Recipe.imageUrl` adapted to `network` +
+   `ImageReviewStatus.approved` (unchanged from the original foundation work).
+3. Otherwise, `ImageLocationType.none`.
+
+`Recipe.imageUrl` and its JSON parsing remain completely untouched.
+
+This sprint also wired `RecipeCard` (Home top-picks) and the Recipe Detail
+hero (`RecipeDetailHeader`) to consume `resolveImageCandidates`/`ResolvedImage`
+directly, and extended `ResolvedImage`/`RecipeImage` with optional
+`width`/`height` (defaulting to the existing square `size`) so the hero's
+148px-tall rectangular banner could reuse the same resolver/widget instead of
+recreating fallback logic. `RecipeCard` gained this as an additive
+`imageMetadata` property alongside its existing `imageProvider`, which is
+untouched for backward compatibility.
+
+## Sample Recipe Images (Integration Sprint)
+
+Three seed recipes in `assets/recipes/thai.json` (`thai_omelette`,
+`pork_basil`, `pork_fried_rice`) carry a structured `image` field pointing at
+`assets/recipe_images/{thai_omelette,pork_basil,pork_fried_rice}.png`. These
+are small, self-generated gradient placeholder graphics created specifically
+for KinRaiDee (not stock photography, not AI-generated, not fetched from any
+third party) — `provenance: firstParty`, `attribution: "KinRaiDee
+self-generated placeholder artwork"`, `reviewStatus: approved`.
+
+Their sole purpose is to prove the local-asset rendering path, `RecipeCard`
+integration, Recipe Detail hero integration, and fallback behavior end-to-end
+in this sprint. They are not final content and are expected to be replaced by
+a real content pipeline later.

@@ -11,7 +11,14 @@
       {"id": "fish_sauce", "name": "น้ำปลา", "quantity": 1, "unit": "ช้อนชา", "required": true},
       {"id": "cooking_oil", "name": "น้ำมันพืช", "quantity": 2, "unit": "ช้อนโต๊ะ", "required": true, "aliases": ["น้ำมัน"]}
     ],
-    "steps": ["ตอกไข่ใส่ชาม", "ใส่น้ำปลาแล้วตีให้เข้ากัน", "ตั้งน้ำมันให้ร้อน", "เทไข่ลงทอดจนเหลืองแล้วตักขึ้น"]
+    "steps": ["ตอกไข่ใส่ชาม", "ใส่น้ำปลาแล้วตีให้เข้ากัน", "ตั้งน้ำมันให้ร้อน", "เทไข่ลงทอดจนเหลืองแล้วตักขึ้น"],
+    "image": {
+      "locationType": "asset",
+      "assetPath": "assets/recipe_images/thai_omelette.png",
+      "provenance": "firstParty",
+      "attribution": "KinRaiDee self-generated placeholder artwork",
+      "reviewStatus": "approved"
+    }
   },
   {
     "id": "pork_basil",
@@ -27,7 +34,14 @@
       {"id": "chili", "name": "พริก", "quantity": 4, "unit": "เม็ด", "required": false},
       {"id": "fish_sauce", "name": "น้ำปลา", "quantity": 1, "unit": "ช้อนโต๊ะ", "required": true}
     ],
-    "steps": ["โขลกพริกกับกระเทียมให้พอหยาบ", "ตั้งกระทะใส่น้ำมัน", "ผัดพริกกระเทียมให้หอม", "ใส่หมูสับผัดจนสุก", "ปรุงรสด้วยน้ำปลาและซอสปรุงรส", "ใส่ใบกะเพราผัดให้เข้ากันแล้วตักเสิร์ฟ"]
+    "steps": ["โขลกพริกกับกระเทียมให้พอหยาบ", "ตั้งกระทะใส่น้ำมัน", "ผัดพริกกระเทียมให้หอม", "ใส่หมูสับผัดจนสุก", "ปรุงรสด้วยน้ำปลาและซอสปรุงรส", "ใส่ใบกะเพราผัดให้เข้ากันแล้วตักเสิร์ฟ"],
+    "image": {
+      "locationType": "asset",
+      "assetPath": "assets/recipe_images/pork_basil.png",
+      "provenance": "firstParty",
+      "attribution": "KinRaiDee self-generated placeholder artwork",
+      "reviewStatus": "approved"
+    }
   },
   {
     "id": "pork_fried_rice",
@@ -43,7 +57,14 @@
       {"id": "soy_sauce", "name": "ซีอิ๊วขาว", "quantity": 1, "unit": "ช้อนโต๊ะ", "required": true, "aliases": ["ซีอิ๊ว", "โชยุ"]},
       {"id": "spring_onion", "name": "ต้นหอม", "quantity": 1, "unit": "ต้น", "required": false}
     ],
-    "steps": ["ตั้งกระทะใส่น้ำมัน", "ใส่หมูผัดให้สุก", "ตอกไข่ลงผัดให้กระจายตัว", "ใส่ข้าวสวยผัดให้เข้ากันแล้วปรุงรส", "โรยต้นหอมแล้วตักเสิร์ฟ"]
+    "steps": ["ตั้งกระทะใส่น้ำมัน", "ใส่หมูผัดให้สุก", "ตอกไข่ลงผัดให้กระจายตัว", "ใส่ข้าวสวยผัดให้เข้ากันแล้วปรุงรส", "โรยต้นหอมแล้วตักเสิร์ฟ"],
+    "image": {
+      "locationType": "asset",
+      "assetPath": "assets/recipe_images/pork_fried_rice.png",
+      "provenance": "firstParty",
+      "attribution": "KinRaiDee self-generated placeholder artwork",
+      "reviewStatus": "approved"
+    }
   },
   {
     "id": "tofu_seaweed_soup",

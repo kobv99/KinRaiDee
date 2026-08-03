@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../domain/images/image_fallback_resolver.dart';
+import '../../domain/images/image_metadata.dart';
+import '../components/resolved_image.dart';
 import '../design_tokens/app_colors.dart';
 import '../design_tokens/app_radius.dart';
 import '../design_tokens/app_spacing.dart';
@@ -19,6 +22,7 @@ class RecipeCard extends StatelessWidget {
     required this.cookingTimeMinutes,
     required this.onTap,
     this.imageProvider,
+    this.imageMetadata,
     this.placeholderEmoji,
     this.width = 144,
   });
@@ -29,6 +33,11 @@ class RecipeCard extends StatelessWidget {
   final int cookingTimeMinutes;
   final VoidCallback onTap;
   final ImageProvider? imageProvider;
+
+  /// Foundation-backed image source. Additive: when present, this takes
+  /// precedence over [imageProvider], which stays as the untouched legacy
+  /// path for any other caller. Never both used at once in practice.
+  final ImageMetadata? imageMetadata;
   final String? placeholderEmoji;
   final double width;
 
@@ -58,7 +67,17 @@ class RecipeCard extends StatelessWidget {
                     borderRadius: AppRadius.largeRadius,
                     child: AspectRatio(
                       aspectRatio: 1,
-                      child: imageProvider != null
+                      child: imageMetadata != null
+                          ? ResolvedImage(
+                              resolution: resolveImageCandidates(
+                                metadata: imageMetadata!,
+                                fallbackGlyph: placeholderEmoji ?? '',
+                              ),
+                              semanticLabel: name,
+                              size: width,
+                              borderRadius: BorderRadius.zero,
+                            )
+                          : imageProvider != null
                           ? Image(image: imageProvider!, fit: BoxFit.cover)
                           : Container(
                               color: AppColors.primarySoft,

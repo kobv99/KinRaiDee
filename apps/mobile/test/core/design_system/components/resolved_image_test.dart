@@ -208,5 +208,62 @@ void main() {
 
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets(
+      'omitting width/height still yields the original square-via-size box',
+      (tester) async {
+        await tester.pumpWidget(
+          _wrap(
+            Center(
+              child: const ResolvedImage(
+                resolution: ImageResolution(
+                  candidates: [],
+                  fallbackGlyph: '🍜',
+                ),
+                semanticLabel: 'test image',
+                size: 80,
+              ),
+            ),
+          ),
+        );
+
+        final size = tester.getSize(find.byType(ResolvedImage));
+        expect(size, const Size(80, 80));
+      },
+    );
+
+    testWidgets(
+      'an explicit width/height renders a non-square rectangular box',
+      (tester) async {
+        const key = ValueKey<String>('resolved-image-hero');
+        await tester.pumpWidget(
+          _wrap(
+            Center(
+              child: ResolvedImage(
+                resolution: const ImageResolution(
+                  candidates: [
+                    ImageCandidate(
+                      ImageLocationType.asset,
+                      'assets/images/present.png',
+                    ),
+                  ],
+                  fallbackGlyph: '🍜',
+                ),
+                semanticLabel: 'test image',
+                width: 300,
+                height: 148,
+                loadedKey: key,
+              ),
+            ),
+            presentAssetKey: 'assets/images/present.png',
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final size = tester.getSize(find.byType(ResolvedImage));
+        expect(size, const Size(300, 148));
+        expect(find.byKey(key), findsOneWidget);
+      },
+    );
   });
 }
