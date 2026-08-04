@@ -52,6 +52,7 @@ class CanonicalIngredientRegistry {
     }
     _registerRedirects(redirects);
     _validateParents();
+    _validateNoParentCycles();
     _buildSearchIndex(supplementalAliases);
   }
 
@@ -98,12 +99,22 @@ class CanonicalIngredientRegistry {
     return current;
   }
 
+  /// Family/category nodes are navigation-only and must never be surfaced as
+  /// a resolved ingredient — only [CanonicalIngredientNodeType.ingredient]
+  /// nodes are selectable resolution results. They remain reachable via
+  /// [byId] and hierarchy traversal ([ancestorIdsFor], [ancestorChainFor]).
+  bool _isSelectableForResolution(CanonicalIngredient? ingredient) {
+    return ingredient != null &&
+        ingredient.nodeType == CanonicalIngredientNodeType.ingredient;
+  }
+
   CanonicalIngredientResolution resolve(String value, {String? preferredId}) {
     final normalized = normalizeIngredientKey(value);
     final preferredCanonicalId = preferredId == null
         ? null
         : canonicalIdFor(preferredId);
-    if (preferredCanonicalId != null) {
+    if (preferredCanonicalId != null &&
+        _isSelectableForResolution(_byId[preferredCanonicalId])) {
       final direct = _byId[preferredCanonicalId]!;
       return CanonicalIngredientResolution(
         input: value,
@@ -116,7 +127,7 @@ class CanonicalIngredientRegistry {
     }
 
     final directId = canonicalIdFor(normalized);
-    if (directId != null) {
+    if (directId != null && _isSelectableForResolution(_byId[directId])) {
       return CanonicalIngredientResolution(
         input: value,
         normalizedInput: normalized,
@@ -139,8 +150,16 @@ class CanonicalIngredientRegistry {
         continue;
       }
       final canonicalMatches =
-          matches.map(canonicalIdFor).whereType<String>().toSet().toList()
+          matches
+              .map(canonicalIdFor)
+              .whereType<String>()
+              .where((id) => _isSelectableForResolution(_byId[id]))
+              .toSet()
+              .toList()
             ..sort();
+      if (canonicalMatches.isEmpty) {
+        continue;
+      }
       if (canonicalMatches.length == 1) {
         return CanonicalIngredientResolution(
           input: value,
@@ -186,6 +205,31 @@ class CanonicalIngredientRegistry {
       return const <String>{};
     }
     return Set<String>.unmodifiable(_ancestorIds(canonicalId));
+  }
+
+  /// Root-first ancestor chain above [id], for breadcrumb rendering.
+  ///
+  /// For `mackerel` parented under `sea_fish_family` parented under
+  /// `fish_family`, returns `[fish_family, sea_fish_family]` — root first,
+  /// immediate parent last. Supports arbitrary nesting depth. Unlike
+  /// [ancestorIdsFor] this makes no compatibility claim; it is presentation
+  /// data only.
+  List<String> ancestorChainFor(String id) {
+    final canonicalId = canonicalIdFor(id);
+    if (canonicalId == null) {
+      return const <String>[];
+    }
+    final chain = <String>[];
+    var current = _byId[canonicalId];
+    while (current?.parentId != null) {
+      final parentId = canonicalIdFor(current!.parentId!);
+      if (parentId == null || chain.contains(parentId)) {
+        break;
+      }
+      chain.add(parentId);
+      current = _byId[parentId];
+    }
+    return List<String>.unmodifiable(chain.reversed);
   }
 
   List<String> missingMappings(Iterable<String> values) {
@@ -263,8 +307,39 @@ class CanonicalIngredientRegistry {
     }
   }
 
+  /// Rejects cyclic parentId chains at construction time. Runs after
+  /// [_validateParents] has already confirmed every parentId resolves to a
+  /// real id, so a dangling reference here would indicate a bug in that
+  /// ordering rather than a real cycle.
+  void _validateNoParentCycles() {
+    for (final ingredient in _byId.values) {
+      final visited = <String>{ingredient.id};
+      var current = ingredient;
+      while (current.parentId != null) {
+        final parentId = canonicalIdFor(current.parentId!);
+        if (parentId == null) {
+          break;
+        }
+        if (!visited.add(parentId)) {
+          throw CanonicalRegistryException(
+            'circular_ingredient_parent',
+            'Ingredient ${ingredient.id} has a circular parent chain '
+                'through $parentId.',
+          );
+        }
+        current = _byId[parentId]!;
+      }
+    }
+  }
+
   void _buildSearchIndex(Map<String, List<String>> supplementalAliases) {
     for (final ingredient in _byId.values) {
+      // Family/category nodes are navigation-only and must never surface as
+      // a selectable search result — see resolve()'s _isSelectableForResolution
+      // guard, which this keeps consistent by simply never indexing them.
+      if (ingredient.nodeType != CanonicalIngredientNodeType.ingredient) {
+        continue;
+      }
       _add(_canonicalNames, ingredient.canonicalName, ingredient.id);
       for (final value in ingredient.localizedNames.values) {
         _add(_localizedNames, value, ingredient.id);

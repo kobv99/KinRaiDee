@@ -123,6 +123,89 @@ void main() {
     );
   });
 
+  group('IngredientCatalog taxonomyType/defaultPantryQuantity parsing', () {
+    Map<String, dynamic> entry(
+      String id, {
+      Object? taxonomyType,
+      Object? defaultPantryQuantity,
+    }) {
+      final json = <String, dynamic>{
+        'id': id,
+        'name': id,
+        'category': 'protein',
+        'defaultUnit': 'กรัม',
+      };
+      if (taxonomyType != null) {
+        json['taxonomyType'] = taxonomyType;
+      }
+      if (defaultPantryQuantity != null) {
+        json['defaultPantryQuantity'] = defaultPantryQuantity;
+      }
+      return json;
+    }
+
+    test('parses all seven IngredientTaxonomyType enum values', () async {
+      final bundle = _MemoryAssetBundle(
+        jsonEncode(<Map<String, dynamic>>[
+          entry('t_generic', taxonomyType: 'generic'),
+          entry('t_whole', taxonomyType: 'whole'),
+          entry('t_species', taxonomyType: 'species'),
+          entry('t_cut', taxonomyType: 'cut'),
+          entry('t_organ', taxonomyType: 'organ'),
+          entry('t_form', taxonomyType: 'form'),
+          entry('t_product', taxonomyType: 'product'),
+        ]),
+      );
+      final ingredients = await IngredientCatalog(bundle: bundle).load();
+      final byId = {for (final i in ingredients) i.id: i};
+
+      expect(byId['t_generic']?.taxonomyType, IngredientTaxonomyType.generic);
+      expect(byId['t_whole']?.taxonomyType, IngredientTaxonomyType.whole);
+      expect(byId['t_species']?.taxonomyType, IngredientTaxonomyType.species);
+      expect(byId['t_cut']?.taxonomyType, IngredientTaxonomyType.cut);
+      expect(byId['t_organ']?.taxonomyType, IngredientTaxonomyType.organ);
+      expect(byId['t_form']?.taxonomyType, IngredientTaxonomyType.form);
+      expect(byId['t_product']?.taxonomyType, IngredientTaxonomyType.product);
+    });
+
+    test('leaves taxonomyType and defaultPantryQuantity null for legacy '
+        'definitions that omit both fields', () async {
+      final bundle = _MemoryAssetBundle(
+        jsonEncode(<Map<String, dynamic>>[entry('legacy_item')]),
+      );
+      final ingredients = await IngredientCatalog(bundle: bundle).load();
+
+      expect(ingredients.single.taxonomyType, isNull);
+      expect(ingredients.single.defaultPantryQuantity, isNull);
+    });
+
+    test(
+      'preserves decimal defaultPantryQuantity values such as 0.5',
+      () async {
+        final bundle = _MemoryAssetBundle(
+          jsonEncode(<Map<String, dynamic>>[
+            entry('half_unit', defaultPantryQuantity: 0.5),
+          ]),
+        );
+        final ingredients = await IngredientCatalog(bundle: bundle).load();
+
+        expect(ingredients.single.defaultPantryQuantity, 0.5);
+      },
+    );
+
+    test('throws clearly on an unrecognized taxonomyType instead of '
+        'inferring one from parentId', () async {
+      final bundle = _MemoryAssetBundle(
+        jsonEncode(<Map<String, dynamic>>[
+          entry('bad_type', taxonomyType: 'not_a_real_type'),
+        ]),
+      );
+      final catalog = IngredientCatalog(bundle: bundle);
+
+      expect(catalog.load(), throwsA(isA<FormatException>()));
+    });
+  });
+
   group('Recipe metadata', () {
     test('parses new fields while remaining backward compatible', () {
       final recipe = Recipe.fromJson(const <String, dynamic>{

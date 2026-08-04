@@ -158,6 +158,7 @@ class IngredientCatalog {
       unitFamily: unitFamily,
       parentId: json['parentId']?.toString(),
       nodeType: _nodeType(json['nodeType']?.toString()),
+      taxonomyType: _taxonomyType(json['taxonomyType']?.toString(), id: id),
       selectableAsMainIngredient:
           json['selectableAsMainIngredient'] as bool? ?? true,
       ingredientForms: _stringList(json['ingredientForms']),
@@ -169,6 +170,7 @@ class IngredientCatalog {
         source: json['source']?.toString() ?? 'thai_ingredients_v1',
       ),
       image: _image(json['image']),
+      defaultPantryQuantity: _doubleOrNull(json['defaultPantryQuantity']),
     );
   }
 }
@@ -187,6 +189,34 @@ CanonicalIngredientNodeType _nodeType(String? value) {
     }
   }
   return CanonicalIngredientNodeType.ingredient;
+}
+
+/// Unlike [_nodeType], an absent value is left as `null` (legacy,
+/// not-yet-migrated definitions) rather than defaulted, and a present but
+/// unrecognized value fails loudly instead of being inferred from
+/// [CanonicalIngredient.parentId] or silently coerced.
+IngredientTaxonomyType? _taxonomyType(String? value, {required String id}) {
+  if (value == null) {
+    return null;
+  }
+  for (final type in IngredientTaxonomyType.values) {
+    if (type.name == value) {
+      return type;
+    }
+  }
+  throw FormatException(
+    'Canonical ingredient $id has unknown taxonomyType "$value".',
+  );
+}
+
+double? _doubleOrNull(Object? value) {
+  if (value == null) {
+    return null;
+  }
+  if (value is num) {
+    return value.toDouble();
+  }
+  return double.tryParse(value.toString());
 }
 
 IngredientUnitFamily? _unitFamily(String? value) {

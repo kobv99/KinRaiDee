@@ -4,6 +4,20 @@ enum IngredientStorageType { ambient, refrigerated, frozen, pantry }
 
 enum CanonicalIngredientNodeType { category, family, ingredient }
 
+/// Culinary classification of a selectable ingredient, independent of
+/// [CanonicalIngredientNodeType]. Only meaningful on `ingredient` nodes —
+/// `family`/`category` nodes must never carry one, see the
+/// [CanonicalIngredient] constructor.
+enum IngredientTaxonomyType {
+  generic,
+  whole,
+  species,
+  cut,
+  organ,
+  form,
+  product,
+}
+
 enum IngredientUnitFamily {
   liquid,
   fish,
@@ -46,12 +60,14 @@ class CanonicalIngredient {
     this.unitFamily,
     this.parentId,
     this.nodeType = CanonicalIngredientNodeType.ingredient,
+    this.taxonomyType,
     this.selectableAsMainIngredient = true,
     List<String> ingredientForms = const <String>[],
     List<String> textures = const <String>[],
     List<String> supportedCookingMethods = const <String>[],
     this.metadata = const IngredientMetadata(),
     this.image,
+    this.defaultPantryQuantity,
   }) : localizedNames = Map<String, String>.unmodifiable(localizedNames),
        aliases = List<String>.unmodifiable(aliases),
        searchKeywords = List<String>.unmodifiable(searchKeywords),
@@ -64,7 +80,17 @@ class CanonicalIngredient {
        textures = List<String>.unmodifiable(textures),
        supportedCookingMethods = List<String>.unmodifiable(
          supportedCookingMethods,
-       );
+       ) {
+    if (nodeType != CanonicalIngredientNodeType.ingredient &&
+        taxonomyType != null) {
+      throw ArgumentError.value(
+        taxonomyType,
+        'taxonomyType',
+        'Ingredient "$id" has nodeType $nodeType and must not carry a '
+            'taxonomyType — only nodeType == ingredient may.',
+      );
+    }
+  }
 
   final String id;
   final String canonicalName;
@@ -81,11 +107,19 @@ class CanonicalIngredient {
   final IngredientUnitFamily? unitFamily;
   final String? parentId;
   final CanonicalIngredientNodeType nodeType;
+
+  /// Culinary classification; null for `family`/`category` nodes and for
+  /// `ingredient` nodes that have not yet been migrated to the taxonomy.
+  final IngredientTaxonomyType? taxonomyType;
   final bool selectableAsMainIngredient;
   final List<String> ingredientForms;
   final List<String> textures;
   final List<String> supportedCookingMethods;
   final IngredientMetadata metadata;
+
+  /// Suggested quantity to prefill when adding this ingredient to a pantry.
+  /// Always shown and editable — never committed silently.
+  final double? defaultPantryQuantity;
 
   /// Optional presentation image. Family and category nodes may carry one
   /// too, since they are [CanonicalIngredient] records with a different
@@ -97,6 +131,11 @@ class CanonicalIngredient {
   bool get canSelectAsMainIngredient =>
       selectableAsMainIngredient &&
       nodeType == CanonicalIngredientNodeType.ingredient;
+
+  /// Suggested unit to prefill when adding this ingredient to a pantry.
+  /// Computed from [preferredUnitId] rather than stored separately, so it
+  /// can never drift out of sync with it.
+  String get defaultPantryUnitId => preferredUnitId;
 
   Iterable<String> get searchableNames sync* {
     yield canonicalName;
