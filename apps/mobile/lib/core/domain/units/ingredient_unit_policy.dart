@@ -17,13 +17,17 @@ class IngredientUnitRecommendation {
 class IngredientUnitPolicy {
   const IngredientUnitPolicy();
 
-  static const Set<String> _fishIds = <String>{
-    'fish',
-    'mackerel',
-    'catfish',
-    'tilapia',
-    'sea_bass',
+  /// Family/navigation container ids under which a `species` or `generic`
+  /// node is a whole animal sold by the piece. Grows only when a new
+  /// fish sub-family is introduced (a rare structural event), not per
+  /// species (a frequent content event) — the distinction the old
+  /// `_fishIds` id-per-species set didn't make.
+  static const Set<String> _fishFamilyContainerIds = <String>{
+    'fish_family',
+    'freshwater_fish_family',
+    'sea_fish_family',
   };
+
   static const Set<String> _eggIds = <String>{'egg', 'duck_egg', 'salted_egg'};
   static const Set<String> _liquidIds = <String>{
     'cooking_oil',
@@ -56,8 +60,14 @@ class IngredientUnitPolicy {
     required String defaultInventoryUnitId,
     required String defaultPurchaseUnitId,
     String? parentId,
+    IngredientTaxonomyType? taxonomyType,
+    List<String> ingredientForms = const <String>[],
   }) {
-    if (_fishIds.contains(canonicalId) || parentId == 'fish') {
+    if (_isWholeFish(
+      parentId: parentId,
+      taxonomyType: taxonomyType,
+      ingredientForms: ingredientForms,
+    )) {
       return _recommend(
         preferred: 'whole',
         units: const <String>['whole', 'piece', 'gram', 'kilogram'],
@@ -152,6 +162,34 @@ class IngredientUnitPolicy {
       );
     }
     return fallback;
+  }
+
+  /// A whole animal sold by the piece. Three conditions must all hold —
+  /// taxonomy ancestry alone is not enough, since a `form` node like
+  /// `fish_fillet` shares the same parentage as real whole animals but is
+  /// sold by weight, not by the animal:
+  ///  1. ancestry: parented under a fish family container;
+  ///  2. taxonomyType: `species` or `generic` (never `form`/`organ`/`cut`/
+  ///     `product`, which are never whole regardless of forms);
+  ///  3. authored form: `ingredientForms` explicitly declares
+  ///     `whole_cleaned`. Without this, a `species`/`generic` node (e.g. an
+  ///     unauthored fish still sold by weight) correctly falls back to
+  ///     mass-based units instead of being assumed whole.
+  bool _isWholeFish({
+    required String? parentId,
+    required IngredientTaxonomyType? taxonomyType,
+    required List<String> ingredientForms,
+  }) {
+    if (parentId == null || !_fishFamilyContainerIds.contains(parentId)) {
+      return false;
+    }
+    final isWholeEligibleType =
+        taxonomyType == IngredientTaxonomyType.species ||
+        taxonomyType == IngredientTaxonomyType.generic;
+    if (!isWholeEligibleType) {
+      return false;
+    }
+    return ingredientForms.contains('whole_cleaned');
   }
 
   IngredientUnitRecommendation get fallback {

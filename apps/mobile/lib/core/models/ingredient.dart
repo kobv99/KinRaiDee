@@ -1,6 +1,6 @@
 import '../time/app_clock.dart';
 
-const int currentPantryIngredientSchemaVersion = 2;
+const int currentPantryIngredientSchemaVersion = 3;
 
 enum CanonicalMappingStatus { mapped, unmapped, legacy }
 

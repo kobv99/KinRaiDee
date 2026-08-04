@@ -133,9 +133,12 @@ class CanonicalIngredient {
       nodeType == CanonicalIngredientNodeType.ingredient;
 
   /// Suggested unit to prefill when adding this ingredient to a pantry.
-  /// Computed from [preferredUnitId] rather than stored separately, so it
-  /// can never drift out of sync with it.
-  String get defaultPantryUnitId => preferredUnitId;
+  /// Computed from [defaultInventoryUnitId] — the unit pantry *quantities*
+  /// are actually tracked in — rather than [preferredUnitId], which is a
+  /// purchase/recommendation unit (e.g. `kilogram` for something tracked in
+  /// `gram`) and would otherwise pair a gram-scale [defaultPantryQuantity]
+  /// with a kilogram-scale unit, e.g. "300 kilogram".
+  String get defaultPantryUnitId => defaultInventoryUnitId;
 
   Iterable<String> get searchableNames sync* {
     yield canonicalName;
