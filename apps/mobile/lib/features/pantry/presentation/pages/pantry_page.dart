@@ -13,16 +13,18 @@ import '../../../recipe/domain/services/main_ingredient_resolver.dart';
 import '../../../recipe/presentation/providers/recipe_provider.dart';
 import '../../domain/models/food_category.dart';
 import '../../domain/services/pantry_expiry_priority.dart';
-import '../../domain/services/pantry_search_engine.dart';
+import '../providers/ingredient_picker_providers.dart';
 import '../providers/pantry_filter_provider.dart';
 import '../widgets/add_ingredient_dialog.dart';
 import '../widgets/ingredient_card.dart';
-import '../widgets/pantry_catalog_panel.dart';
 import '../widgets/pantry_filter_bar.dart';
 import '../widgets/pantry_frequent_section.dart';
+import '../widgets/pantry_ingredient_search_panel.dart';
 import '../widgets/pantry_overview_card.dart';
 import '../widgets/pantry_search_field.dart';
 import '../widgets/pantry_use_soon_section.dart';
+import 'ingredient_picker_entry_page.dart';
+import 'ingredient_quick_add_page.dart';
 
 class PantryPage extends ConsumerStatefulWidget {
   const PantryPage({super.key});
@@ -42,20 +44,34 @@ class _PantryPageState extends ConsumerState<PantryPage> {
     super.dispose();
   }
 
-  Future<void> _addIngredient([String? initialSearchQuery]) async {
-    final ingredient = await showDialog<Ingredient>(
-      context: context,
-      builder: (context) {
-        return AddIngredientDialog(initialSearchQuery: initialSearchQuery);
-      },
+  /// The direct search-to-pantry path from Pantry's own inline search field:
+  /// tapping a canonical result opens the same single-item quick-add editor
+  /// the full picker's search uses, never the legacy `AddIngredientDialog`.
+  Future<void> _openIngredientQuickAdd(String canonicalId) async {
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (_) => IngredientQuickAddPage(canonicalId: canonicalId),
+      ),
     );
-
-    if (ingredient == null || !mounted) {
-      return;
+    if (result == true && mounted) {
+      _clearFilters();
     }
+  }
 
-    await ref.read(pantryProvider.notifier).addIngredient(ingredient);
-    _clearFilters();
+  /// Opens the taxonomy-driven multi-select picker. The session provider is
+  /// always invalidated once the whole flow is left — whether the user
+  /// completed a batch commit or backed out without one — so no draft
+  /// selection can leak into the next time the picker is opened.
+  Future<void> _openIngredientPicker() async {
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (_) => const IngredientPickerEntryPage(),
+      ),
+    );
+    ref.invalidate(ingredientPickerSelectionProvider);
+    if (result == true && mounted) {
+      _clearFilters();
+    }
   }
 
   Future<void> _addFrequentIngredient(FoodCatalogItem entry) async {
@@ -180,7 +196,17 @@ class _PantryPageState extends ConsumerState<PantryPage> {
         .toList(growable: false);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('คลังวัตถุดิบ')),
+      appBar: AppBar(
+        title: const Text('คลังวัตถุดิบ'),
+        actions: [
+          IconButton(
+            key: const ValueKey<String>('pantry-open-ingredient-picker'),
+            onPressed: _openIngredientPicker,
+            icon: const Icon(Icons.category_outlined),
+            tooltip: 'เลือกวัตถุดิบตามหมวดหมู่',
+          ),
+        ],
+      ),
       body: SafeArea(
         child: _PantryContent(
           allIngredients: allIngredients,
@@ -191,8 +217,8 @@ class _PantryPageState extends ConsumerState<PantryPage> {
           searchController: _searchController,
           loadingRecipeIngredientId: _loadingRecipeIngredientId,
           onFindRecipes: _findRecipesForIngredient,
-          onAddIngredient: () => _addIngredient(),
-          onAddIngredientFromSearch: _addIngredient,
+          onAddIngredient: _openIngredientPicker,
+          onSelectSearchResult: _openIngredientQuickAdd,
           onAddFrequentIngredient: _addFrequentIngredient,
           onEdit: _editIngredient,
           onSearchChanged: (value) {
@@ -225,7 +251,8 @@ class _PantryPageState extends ConsumerState<PantryPage> {
       ),
       floatingActionButton: allIngredients.isNotEmpty
           ? FloatingActionButton.extended(
-              onPressed: () => _addIngredient(),
+              key: const ValueKey<String>('pantry-primary-add-button'),
+              onPressed: _openIngredientPicker,
               icon: const Icon(Icons.add_rounded),
               label: const Text('เพิ่มวัตถุดิบ'),
             )
@@ -234,7 +261,7 @@ class _PantryPageState extends ConsumerState<PantryPage> {
   }
 }
 
-class _PantryContent extends StatelessWidget {
+class _PantryContent extends ConsumerWidget {
   const _PantryContent({
     required this.allIngredients,
     required this.visibleIngredients,
@@ -245,7 +272,7 @@ class _PantryContent extends StatelessWidget {
     required this.loadingRecipeIngredientId,
     required this.onFindRecipes,
     required this.onAddIngredient,
-    required this.onAddIngredientFromSearch,
+    required this.onSelectSearchResult,
     required this.onAddFrequentIngredient,
     required this.onSearchChanged,
     required this.onCategoryChanged,
@@ -267,7 +294,7 @@ class _PantryContent extends StatelessWidget {
   final String? loadingRecipeIngredientId;
   final ValueChanged<Ingredient> onFindRecipes;
   final VoidCallback onAddIngredient;
-  final ValueChanged<String?> onAddIngredientFromSearch;
+  final ValueChanged<String> onSelectSearchResult;
   final ValueChanged<FoodCatalogItem> onAddFrequentIngredient;
   final ValueChanged<String> onSearchChanged;
   final ValueChanged<String?> onCategoryChanged;
@@ -279,24 +306,23 @@ class _PantryContent extends StatelessWidget {
   final ValueChanged<Ingredient> onFavoriteToggle;
   final ValueChanged<FoodCatalogItem> onRemoveFrequentIngredient;
 
-  List<FoodCatalogItem> get _catalogSuggestions {
-    return PantrySearchEngine.rankCatalogItems(
-      allFoodCatalogItems,
-      filter.searchQuery,
-    ).take(8).toList(growable: false);
-  }
-
   List<Ingredient> get _useSoonIngredients {
     return PantryExpiryPriority.useSoonItems(allIngredients, limit: 3);
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final expiringCount = PantryExpiryPriority.useSoonItems(
       allIngredients,
     ).length;
     final searchQuery = filter.searchQuery.trim();
-    final suggestions = _catalogSuggestions;
+    // Pantry's add-suggestion search reads the exact same canonical
+    // registry + search provider as IngredientPickerEntryPage — one search
+    // implementation, not a second legacy one.
+    final canonicalResults = ref.watch(
+      ingredientSearchResultsProvider(searchQuery),
+    );
+    final ownedCanonicalIds = ref.watch(pantryCanonicalIngredientIdsProvider);
     final useSoonIngredients = _useSoonIngredients;
 
     return LayoutBuilder(
@@ -381,14 +407,14 @@ class _PantryContent extends StatelessWidget {
                           },
                         ),
                         if (searchQuery.isNotEmpty &&
-                            suggestions.isNotEmpty) ...[
+                            canonicalResults.isNotEmpty) ...[
                           const SizedBox(height: AppSpacing.xs),
-                          PantryCatalogPanel(
-                            suggestions: suggestions,
-                            searchQuery: searchQuery,
-                            onSelected: (entry) {
+                          PantryIngredientSearchPanel(
+                            results: canonicalResults,
+                            ownedIds: ownedCanonicalIds,
+                            onSelected: (canonicalId) {
                               FocusScope.of(context).unfocus();
-                              onAddIngredientFromSearch(entry.item.name);
+                              onSelectSearchResult(canonicalId);
                             },
                           ),
                         ],
@@ -447,13 +473,11 @@ class _PantryContent extends StatelessWidget {
                     child: EmptyState(
                       icon: Icons.add_circle_outline_rounded,
                       title: 'ยังไม่มี "$searchQuery" ในคลัง',
-                      description: suggestions.isEmpty
+                      description: canonicalResults.isEmpty
                           ? 'ไม่พบคำนี้หรือคำใกล้เคียงในรายการวัตถุดิบ ลองใช้คำค้นหาอื่น'
                           : 'เลือกรายการแนะนำด้านบนเพื่อเพิ่มวัตถุดิบเข้าคลัง',
                       actionLabel: 'เปิดหน้ารวมวัตถุดิบ',
-                      onActionPressed: () {
-                        onAddIngredientFromSearch(searchQuery);
-                      },
+                      onActionPressed: onAddIngredient,
                     ),
                   )
                 else if (allIngredients.isEmpty)
@@ -477,7 +501,7 @@ class _PantryContent extends StatelessWidget {
                       title: 'ไม่พบวัตถุดิบในคลัง',
                       description: searchQuery.isEmpty
                           ? 'ลองเปลี่ยนหมวดอาหารหรือตัวกรองที่เลือก'
-                          : suggestions.isEmpty
+                          : canonicalResults.isEmpty
                           ? 'ไม่พบคำนี้หรือคำใกล้เคียง ลองใช้คำค้นหาอื่น'
                           : 'เลือกรายการแนะนำด้านบนเพื่อเพิ่มเข้าคลัง',
                       actionLabel: searchQuery.isEmpty
@@ -485,7 +509,7 @@ class _PantryContent extends StatelessWidget {
                           : 'เปิดหน้ารวมวัตถุดิบ',
                       onActionPressed: searchQuery.isEmpty
                           ? onClearFilters
-                          : () => onAddIngredientFromSearch(searchQuery),
+                          : onAddIngredient,
                     ),
                   )
                 else
