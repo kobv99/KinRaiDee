@@ -11,6 +11,7 @@ import 'package:mobile/features/pantry/domain/models/cooking_history_entry.dart'
 import 'package:mobile/features/pantry/domain/models/food_category.dart';
 import 'package:mobile/features/pantry/domain/repositories/pantry_repository.dart';
 import 'package:mobile/features/pantry/presentation/pages/cooking_history_page.dart';
+import 'package:mobile/features/pantry/presentation/pages/ingredient_picker_entry_page.dart';
 import 'package:mobile/features/pantry/presentation/pages/pantry_page.dart';
 import 'package:mobile/features/pantry/presentation/providers/cooking_history_provider.dart';
 import 'package:mobile/features/pantry/presentation/providers/pantry_filter_provider.dart';
@@ -325,13 +326,14 @@ void main() {
         isTrue,
       );
 
+      // Primary add action opens the canonical ingredient picker, not the
+      // legacy AddIngredientDialog — see pantry_page_test.dart for the
+      // focused regression test.
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
-      expect(find.byType(AlertDialog), findsOneWidget);
-      await tester.tap(find.byType(ElevatedButton).last);
-      await tester.pump();
-      expect(find.byType(AlertDialog), findsOneWidget);
-      await tester.tap(find.byType(TextButton).last);
+      expect(find.byType(IngredientPickerEntryPage), findsOneWidget);
+      expect(find.byType(AlertDialog), findsNothing);
+      await tester.pageBack();
       await tester.pumpAndSettle();
 
       await harness.container

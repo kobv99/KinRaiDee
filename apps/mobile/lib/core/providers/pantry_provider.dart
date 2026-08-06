@@ -155,6 +155,39 @@ class PantryNotifier extends Notifier<List<Ingredient>> {
     await _commitPantryMutation(updatedIngredients, source: 'addIngredient');
   }
 
+  /// Adds a whole picker batch in exactly one inventory transaction and one
+  /// state publication — folds every incoming ingredient through the
+  /// canonical merge service in memory first (each call is pure/synchronous,
+  /// no I/O), then commits the single resulting pantry list once, the same
+  /// way [addIngredient] commits a single item. A merge failure on any row
+  /// throws before any commit happens, so a bad row can never produce a
+  /// partial write.
+  Future<void> addIngredientsBatch(List<Ingredient> ingredients) async {
+    if (ingredients.isEmpty) {
+      return;
+    }
+    final now = ref.read(appClockProvider).now();
+    final service = _canonicalMergeService;
+    var pantry = state;
+    for (final raw in ingredients) {
+      final normalizedName = normalizePantryIngredientName(raw.name);
+      final toAdd = _canonicalize(
+        raw.copyWith(isFavorite: _favoriteNames.contains(normalizedName)),
+      );
+      pantry = service == null
+          ? <Ingredient>[...pantry, toAdd]
+          : _mergeOrThrow(
+              service.merge(
+                current: pantry,
+                incoming: toAdd,
+                mode: PantryCanonicalMergeMode.add,
+                at: now,
+              ),
+            );
+    }
+    await _commitPantryMutation(pantry, source: 'addIngredientsBatch');
+  }
+
   Future<void> updateIngredient(Ingredient ingredient) async {
     final originalIngredient = _findIngredientById(ingredient.id);
     final wasFavorite = originalIngredient?.isFavorite ?? ingredient.isFavorite;

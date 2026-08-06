@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/app.dart';
+import 'app/bootstrap/canonical_ingredient_bootstrap.dart';
 import 'app/providers/canonical_ingredient_providers.dart';
 import 'core/domain/units/unit_contract.dart';
 import 'core/services/storage_service.dart';
@@ -13,7 +14,6 @@ import 'features/pantry/application/inventory_transaction_coordinator.dart';
 import 'features/pantry/application/inventory_transaction_providers.dart';
 import 'features/pantry/data/repositories/hive_inventory_commit_repository.dart';
 import 'features/pantry/domain/repositories/inventory_commit_repository.dart';
-import 'features/recipe/data/ingredient_catalog.dart';
 
 void main() {
   // Runs the whole app inside a guarded zone so that errors from
@@ -51,9 +51,9 @@ Future<void> _bootstrap() async {
   final inventoryRepository = HiveInventoryCommitRepository();
   var recovery = await inventoryRepository.recoverPendingTransactions();
   final unitEngine = UnitConversionEngine.standard();
-  final registry = await IngredientCatalog(
+  final registry = await bootstrapCanonicalIngredientRegistry(
     unitConversionEngine: unitEngine,
-  ).loadRegistry();
+  );
   CanonicalIngredientMigrationResult? migration;
 
   if (recovery.allowsMutation) {
