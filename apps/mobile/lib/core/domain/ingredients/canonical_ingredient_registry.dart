@@ -377,11 +377,21 @@ class CanonicalIngredientRegistry {
   }
 }
 
+/// Keeps letters, numbers, and combining marks (`\p{M}`); strips everything
+/// else (whitespace/punctuation) to a single collapsed space. Marks were
+/// added by the Full Animal & Seafood Taxonomy expansion: Thai combining
+/// vowel/tone signs (e.g. ั/ุ/่/้) are Unicode category Mn, not L, so the
+/// previous `[^\p{L}\p{N}]+` pattern silently discarded them — collapsing
+/// otherwise-distinct words like "กั้ง" (mantis shrimp) and "กุ้ง" (shrimp)
+/// to the identical key and making `resolve()` ambiguous between them.
+/// Keeping marks is strictly additive (more distinguishing information
+/// survives normalization, never less), so no query/name pair that matched
+/// before can stop matching now.
 String normalizeIngredientKey(String value) {
   return value
       .trim()
       .toLowerCase()
-      .replaceAll(RegExp(r'[^\p{L}\p{N}]+', unicode: true), ' ')
+      .replaceAll(RegExp(r'[^\p{L}\p{N}\p{M}]+', unicode: true), ' ')
       .replaceAll(RegExp(r'\s+'), ' ')
       .trim();
 }

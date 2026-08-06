@@ -11,7 +11,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('taxonomy navigation (real registry)', () {
-    test('exactly 8 root family cards, in registry-derived order', () async {
+    test('exactly 9 root family cards, in registry-derived order', () async {
       final registry = await IngredientCatalog().loadRegistry();
       final container = ProviderContainer(
         overrides: [
@@ -22,7 +22,7 @@ void main() {
 
       final roots = container.read(rootIngredientFamiliesProvider);
 
-      expect(roots, hasLength(8));
+      expect(roots, hasLength(9));
       expect(roots.map((r) => r.id).toSet(), <String>{
         'pork_family',
         'chicken_family',
@@ -32,6 +32,7 @@ void main() {
         'crab_family',
         'squid_family',
         'shellfish_family',
+        'other_seafood_family',
       });
       expect(
         roots.every((r) => r.nodeType == CanonicalIngredientNodeType.family),

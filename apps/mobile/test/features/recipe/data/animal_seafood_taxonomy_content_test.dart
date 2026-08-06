@@ -24,9 +24,10 @@ void main() {
     'crab_family',
     'squid_family',
     'shellfish_family',
+    'other_seafood_family',
   };
 
-  test('exactly 8 root family cards exist', () {
+  test('exactly 9 root family cards exist', () {
     final roots = registry.ingredients.where(
       (ingredient) =>
           ingredient.nodeType == CanonicalIngredientNodeType.family &&

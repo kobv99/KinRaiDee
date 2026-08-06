@@ -49,7 +49,7 @@ void main() {
     return container;
   }
 
-  testWidgets('root screen shows exactly 8 family cards', (tester) async {
+  testWidgets('root screen shows exactly 9 family cards', (tester) async {
     await pumpEntryPage(tester);
 
     for (final id in <String>[
@@ -61,6 +61,7 @@ void main() {
       'crab_family',
       'squid_family',
       'shellfish_family',
+      'other_seafood_family',
     ]) {
       expect(
         find.byKey(ValueKey<String>('ingredient-picker-family-card-$id')),
@@ -74,7 +75,7 @@ void main() {
   });
 
   testWidgets(
-    'root screen also shows all 6 browse facet cards (14 tiles total)',
+    'root screen also shows all 6 browse facet cards (15 tiles total)',
     (tester) async {
       await pumpEntryPage(tester);
 
