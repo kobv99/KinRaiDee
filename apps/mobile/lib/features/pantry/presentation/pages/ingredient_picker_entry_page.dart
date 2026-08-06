@@ -13,8 +13,10 @@ import 'ingredient_family_page.dart';
 import 'ingredient_quick_add_page.dart';
 
 /// Entry point of the multi-select ingredient picker: a global search field
-/// plus 14 root browse categories (8 real taxonomy families + 6 browse
-/// facets, both rendered through the same unchanged card component).
+/// plus 15 root browse categories (9 real taxonomy families + 6 browse
+/// facets, both rendered through the same unchanged card component). The
+/// family count is read from the registry at runtime, never hardcoded —
+/// adding a 9th (or Nth) taxonomy root requires no change here.
 /// Contains no recipe/compatibility logic. Browse-mode taps only toggle
 /// the shared session state (committed later from batch review); search
 /// results instead open a direct single-item quick-add — the two flows
@@ -144,8 +146,10 @@ class _CategoryGrid extends ConsumerWidget {
     }
     // Same approved grid: unchanged column count, spacing, card size,
     // typography. The only change is the number of tiles it renders — the
-    // 8 real taxonomy families (dynamic, from the registry) followed by
-    // the 6 approved browse facets (static, from the domain layer).
+    // real taxonomy families (dynamic, from the registry — currently 9,
+    // but this reads registry.length so it never needs a code change)
+    // followed by the 6 approved browse facets (static, from the domain
+    // layer).
     final tileCount = families.length + ingredientBrowseFacets.length;
     return GridView.builder(
       key: const ValueKey<String>('ingredient-picker-family-grid'),

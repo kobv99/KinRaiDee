@@ -241,6 +241,404 @@ void main() {
     });
   });
 
+  group('D. Full Animal & Seafood Taxonomy expansion: species names promoted '
+      'from generic aliases to their own canonical ids', () {
+    test('an old shrimp/กุ้งขาว record migrates to whiteleg_shrimp', () {
+      final result = migration.migrate(
+        pantry: <Ingredient>[
+          _pantry(
+            id: 'lot-1',
+            name: 'กุ้งขาว',
+            canonicalId: 'shrimp',
+            schemaVersion: 3,
+            now: now,
+          ),
+        ],
+        history: const <CookingHistoryEntry>[],
+      );
+
+      expect(result.changed, isTrue);
+      expect(result.pantry.single.canonicalIngredientId, 'whiteleg_shrimp');
+    });
+
+    test('an old shrimp/กุ้งแชบ๊วย record migrates to banana_shrimp', () {
+      final result = migration.migrate(
+        pantry: <Ingredient>[
+          _pantry(
+            id: 'lot-1',
+            name: 'กุ้งแชบ๊วย',
+            canonicalId: 'shrimp',
+            schemaVersion: 3,
+            now: now,
+          ),
+        ],
+        history: const <CookingHistoryEntry>[],
+      );
+
+      expect(result.pantry.single.canonicalIngredientId, 'banana_shrimp');
+    });
+
+    test('an old shrimp/กุ้งสด (generic) record stays on shrimp', () {
+      final result = migration.migrate(
+        pantry: <Ingredient>[
+          _pantry(
+            id: 'lot-1',
+            name: 'กุ้งสด',
+            canonicalId: 'shrimp',
+            schemaVersion: 3,
+            now: now,
+          ),
+        ],
+        history: const <CookingHistoryEntry>[],
+      );
+
+      expect(result.changed, isFalse);
+      expect(result.pantry.single.canonicalIngredientId, 'shrimp');
+    });
+
+    test('an old squid/หมึกกล้วย record migrates to needle_squid', () {
+      final result = migration.migrate(
+        pantry: <Ingredient>[
+          _pantry(
+            id: 'lot-1',
+            name: 'หมึกกล้วย',
+            canonicalId: 'squid',
+            schemaVersion: 3,
+            now: now,
+          ),
+        ],
+        history: const <CookingHistoryEntry>[],
+      );
+
+      expect(result.pantry.single.canonicalIngredientId, 'needle_squid');
+    });
+
+    test('an old squid/หมึกหอม record migrates to bigfin_reef_squid', () {
+      final result = migration.migrate(
+        pantry: <Ingredient>[
+          _pantry(
+            id: 'lot-1',
+            name: 'หมึกหอม',
+            canonicalId: 'squid',
+            schemaVersion: 3,
+            now: now,
+          ),
+        ],
+        history: const <CookingHistoryEntry>[],
+      );
+
+      expect(result.pantry.single.canonicalIngredientId, 'bigfin_reef_squid');
+    });
+
+    test('an old shellfish/หอยแมลงภู่ record migrates to green_mussel', () {
+      final result = migration.migrate(
+        pantry: <Ingredient>[
+          _pantry(
+            id: 'lot-1',
+            name: 'หอยแมลงภู่',
+            canonicalId: 'shellfish',
+            schemaVersion: 3,
+            now: now,
+          ),
+        ],
+        history: const <CookingHistoryEntry>[],
+      );
+
+      expect(result.pantry.single.canonicalIngredientId, 'green_mussel');
+    });
+
+    test('an old shellfish/หอยลาย record migrates to carpet_clam', () {
+      final result = migration.migrate(
+        pantry: <Ingredient>[
+          _pantry(
+            id: 'lot-1',
+            name: 'หอยลาย',
+            canonicalId: 'shellfish',
+            schemaVersion: 3,
+            now: now,
+          ),
+        ],
+        history: const <CookingHistoryEntry>[],
+      );
+
+      expect(result.pantry.single.canonicalIngredientId, 'carpet_clam');
+    });
+
+    test('an old tilapia/ปลาทับทิม record migrates to red_tilapia (the '
+        'code-seeded alias in pantry_catalog_canonical_definitions.dart '
+        'was removed in favor of its own manifest id)', () {
+      final result = migration.migrate(
+        pantry: <Ingredient>[
+          _pantry(
+            id: 'lot-1',
+            name: 'ปลาทับทิม',
+            canonicalId: 'tilapia',
+            schemaVersion: 3,
+            now: now,
+          ),
+        ],
+        history: const <CookingHistoryEntry>[],
+      );
+
+      expect(result.pantry.single.canonicalIngredientId, 'red_tilapia');
+    });
+
+    test('an old tilapia/ปลานิลสด (generic) record stays on tilapia', () {
+      final result = migration.migrate(
+        pantry: <Ingredient>[
+          _pantry(
+            id: 'lot-1',
+            name: 'ปลานิลสด',
+            canonicalId: 'tilapia',
+            schemaVersion: 3,
+            now: now,
+          ),
+        ],
+        history: const <CookingHistoryEntry>[],
+      );
+
+      expect(result.changed, isFalse);
+      expect(result.pantry.single.canonicalIngredientId, 'tilapia');
+    });
+
+    test('a record already stamped at the current migration version is '
+        'never re-touched, even if its name matches a migrated pattern', () {
+      final result = migration.migrate(
+        pantry: <Ingredient>[
+          _pantry(
+            id: 'lot-1',
+            name: 'กุ้งขาว',
+            canonicalId: 'shrimp',
+            schemaVersion: canonicalIngredientMigrationVersion,
+            now: now,
+          ),
+        ],
+        history: const <CookingHistoryEntry>[],
+      );
+
+      expect(result.changed, isFalse);
+      expect(result.pantry.single.canonicalIngredientId, 'shrimp');
+    });
+  });
+
+  group('E. Product Acceptance audit: generic-to-piece/meat promotions', () {
+    test('an old pork/หมูชิ้น record migrates to pork_piece', () {
+      final result = migration.migrate(
+        pantry: <Ingredient>[
+          _pantry(
+            id: 'lot-1',
+            name: 'หมูชิ้น',
+            canonicalId: 'pork',
+            schemaVersion: 4,
+            now: now,
+          ),
+        ],
+        history: const <CookingHistoryEntry>[],
+      );
+
+      expect(result.changed, isTrue);
+      expect(result.pantry.single.canonicalIngredientId, 'pork_piece');
+    });
+
+    test('an old pork/หมูสด (genuinely generic) record stays on pork', () {
+      final result = migration.migrate(
+        pantry: <Ingredient>[
+          _pantry(
+            id: 'lot-1',
+            name: 'หมูสด',
+            canonicalId: 'pork',
+            schemaVersion: 4,
+            now: now,
+          ),
+        ],
+        history: const <CookingHistoryEntry>[],
+      );
+
+      expect(result.changed, isFalse);
+      expect(result.pantry.single.canonicalIngredientId, 'pork');
+    });
+
+    test('an old chicken/เนื้อไก่ชิ้น record migrates to chicken_piece', () {
+      final result = migration.migrate(
+        pantry: <Ingredient>[
+          _pantry(
+            id: 'lot-1',
+            name: 'เนื้อไก่ชิ้น',
+            canonicalId: 'chicken',
+            schemaVersion: 4,
+            now: now,
+          ),
+        ],
+        history: const <CookingHistoryEntry>[],
+      );
+
+      expect(result.pantry.single.canonicalIngredientId, 'chicken_piece');
+    });
+
+    test(
+      'an old chicken/ไก่สด (genuinely generic) record stays on chicken',
+      () {
+        final result = migration.migrate(
+          pantry: <Ingredient>[
+            _pantry(
+              id: 'lot-1',
+              name: 'ไก่สด',
+              canonicalId: 'chicken',
+              schemaVersion: 4,
+              now: now,
+            ),
+          ],
+          history: const <CookingHistoryEntry>[],
+        );
+
+        expect(result.changed, isFalse);
+        expect(result.pantry.single.canonicalIngredientId, 'chicken');
+      },
+    );
+
+    test('an old beef/เนื้อวัวชิ้น record migrates to beef_piece', () {
+      final result = migration.migrate(
+        pantry: <Ingredient>[
+          _pantry(
+            id: 'lot-1',
+            name: 'เนื้อวัวชิ้น',
+            canonicalId: 'beef',
+            schemaVersion: 4,
+            now: now,
+          ),
+        ],
+        history: const <CookingHistoryEntry>[],
+      );
+
+      expect(result.pantry.single.canonicalIngredientId, 'beef_piece');
+    });
+
+    test('an old beef/เนื้อวัวสด (genuinely generic) record stays on beef', () {
+      final result = migration.migrate(
+        pantry: <Ingredient>[
+          _pantry(
+            id: 'lot-1',
+            name: 'เนื้อวัวสด',
+            canonicalId: 'beef',
+            schemaVersion: 4,
+            now: now,
+          ),
+        ],
+        history: const <CookingHistoryEntry>[],
+      );
+
+      expect(result.changed, isFalse);
+      expect(result.pantry.single.canonicalIngredientId, 'beef');
+    });
+
+    test('an old crab/เนื้อปู record migrates to crab_meat', () {
+      final result = migration.migrate(
+        pantry: <Ingredient>[
+          _pantry(
+            id: 'lot-1',
+            name: 'เนื้อปู',
+            canonicalId: 'crab',
+            schemaVersion: 4,
+            now: now,
+          ),
+        ],
+        history: const <CookingHistoryEntry>[],
+      );
+
+      expect(result.pantry.single.canonicalIngredientId, 'crab_meat');
+    });
+
+    test('an old crab/crab (English generic) record stays on crab', () {
+      final result = migration.migrate(
+        pantry: <Ingredient>[
+          _pantry(
+            id: 'lot-1',
+            name: 'crab',
+            canonicalId: 'crab',
+            schemaVersion: 4,
+            now: now,
+          ),
+        ],
+        history: const <CookingHistoryEntry>[],
+      );
+
+      expect(result.changed, isFalse);
+      expect(result.pantry.single.canonicalIngredientId, 'crab');
+    });
+
+    test('cooking history changes for these promotions are corrected '
+        'consistently with their originating lot', () {
+      final result = migration.migrate(
+        pantry: <Ingredient>[
+          _pantry(
+            id: 'lot-1',
+            name: 'หมูชิ้น',
+            canonicalId: 'pork',
+            schemaVersion: 4,
+            now: now,
+          ),
+        ],
+        history: <CookingHistoryEntry>[
+          _history(
+            id: 'history-1',
+            ingredientId: 'lot-1',
+            ingredientName: 'หมูชิ้น',
+            canonicalId: 'pork',
+            schemaVersion: 4,
+            now: now,
+          ),
+        ],
+      );
+
+      expect(result.pantry.single.canonicalIngredientId, 'pork_piece');
+      expect(
+        result.history.single.changes.single.canonicalIngredientId,
+        'pork_piece',
+      );
+    });
+
+    test('a history entry with no matching pantry lot is corrected '
+        'independently, by its own stored name', () {
+      final result = migration.migrate(
+        pantry: const <Ingredient>[],
+        history: <CookingHistoryEntry>[
+          _history(
+            id: 'history-1',
+            ingredientId: 'missing-lot',
+            ingredientName: 'เนื้อปู',
+            canonicalId: 'crab',
+            schemaVersion: 4,
+            now: now,
+          ),
+        ],
+      );
+
+      expect(
+        result.history.single.changes.single.canonicalIngredientId,
+        'crab_meat',
+      );
+    });
+
+    test('a record already stamped at the current migration version is '
+        'never re-touched, even for these promotions', () {
+      final result = migration.migrate(
+        pantry: <Ingredient>[
+          _pantry(
+            id: 'lot-1',
+            name: 'หมูชิ้น',
+            canonicalId: 'pork',
+            schemaVersion: canonicalIngredientMigrationVersion,
+            now: now,
+          ),
+        ],
+        history: const <CookingHistoryEntry>[],
+      );
+
+      expect(result.changed, isFalse);
+      expect(result.pantry.single.canonicalIngredientId, 'pork');
+    });
+  });
+
   test('unrelated pantry records are unaffected', () {
     final result = migration.migrate(
       pantry: <Ingredient>[
@@ -440,5 +838,36 @@ Ingredient _pantry({
     canonicalIngredientId: canonicalId,
     canonicalUnitId: 'gram',
     canonicalMappingStatus: CanonicalMappingStatus.mapped,
+  );
+}
+
+CookingHistoryEntry _history({
+  required String id,
+  required String ingredientId,
+  required String ingredientName,
+  required String canonicalId,
+  required int schemaVersion,
+  required DateTime now,
+}) {
+  return CookingHistoryEntry(
+    schemaVersion: schemaVersion,
+    id: id,
+    recipeId: 'recipe',
+    recipeName: 'Recipe',
+    servings: 2,
+    changes: <CookingHistoryChange>[
+      CookingHistoryChange(
+        ingredientId: ingredientId,
+        ingredientName: ingredientName,
+        unit: 'กรัม',
+        beforeQuantity: 500,
+        originalAfterQuantity: 300,
+        afterQuantity: 300,
+        canonicalIngredientId: canonicalId,
+      ),
+    ],
+    createdAt: now,
+    updatedAt: now,
+    status: CookingHistoryStatus.completed,
   );
 }

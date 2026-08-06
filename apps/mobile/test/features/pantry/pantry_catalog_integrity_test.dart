@@ -29,7 +29,9 @@ void main() {
       );
       expect(registry.resolve('Duck').ingredient?.id, 'duck');
       expect(registry.resolve('Tilapia').ingredient?.id, 'tilapia');
-      expect(registry.resolve('ปลาทับทิม').ingredient?.id, 'tilapia');
+      // 'ปลาทับทิม' (red tilapia) moved from a tilapia alias to its own
+      // manifest id, red_tilapia — see the semantic migration rule.
+      expect(registry.resolve('ปลาทับทิม').ingredient?.id, 'red_tilapia');
     },
   );
 }

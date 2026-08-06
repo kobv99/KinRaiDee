@@ -38,7 +38,12 @@ List<CanonicalIngredient> applyPantryCatalogCanonicalCoverage(
     );
   }
 
-  addAliases('tilapia', const <String>['Tilapia', 'tilapia', 'ปลาทับทิม']);
+  // 'ปลาทับทิม' (red tilapia) is deliberately not an alias here — the Full
+  // Animal & Seafood Taxonomy manifest gives it its own canonical id,
+  // red_tilapia, under freshwater_fish_family (see
+  // assets/ingredients/thai_ingredients.json). See the matching semantic
+  // migration rule for records that predate this split.
+  addAliases('tilapia', const <String>['Tilapia', 'tilapia']);
   addAliases('corn', const <String>['ข้าวโพดอ่อน']);
   addAliases('tamarind_sauce', const <String>['มะขามเปียก']);
 

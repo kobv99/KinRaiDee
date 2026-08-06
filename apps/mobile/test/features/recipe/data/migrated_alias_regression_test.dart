@@ -29,7 +29,12 @@ void main() {
       'แซลมอน': 'salmon',
       // crab
       'crab': 'crab',
-      'เนื้อปู': 'crab',
+      // เนื้อปู was an alias of crab at the time this id-continuity check
+      // was written; the Full Animal & Seafood Taxonomy manifest later
+      // named it as its own of the 114 specific approved entries, so it
+      // now has its own id, crab_meat (see the semantic migration rule
+      // that moves any pre-existing crab/เนื้อปู record along with it).
+      'เนื้อปู': 'crab_meat',
       // meatball / sausage / ham / bacon
       'meatball': 'meatball',
       'meatballs': 'meatball',

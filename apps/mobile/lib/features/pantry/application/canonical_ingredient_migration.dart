@@ -3,7 +3,7 @@ import '../../../core/domain/units/unit_contract.dart';
 import '../../../core/models/ingredient.dart';
 import '../domain/models/cooking_history_entry.dart';
 
-const int canonicalIngredientMigrationVersion = 3;
+const int canonicalIngredientMigrationVersion = 5;
 
 enum IngredientMigrationIssueType {
   unknownIngredient,
