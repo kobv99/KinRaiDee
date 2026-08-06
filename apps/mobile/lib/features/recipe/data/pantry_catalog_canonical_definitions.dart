@@ -28,11 +28,13 @@ List<CanonicalIngredient> applyPantryCatalogCanonicalCoverage(
       unitFamily: current.unitFamily,
       parentId: current.parentId,
       nodeType: current.nodeType,
+      taxonomyType: current.taxonomyType,
       selectableAsMainIngredient: current.selectableAsMainIngredient,
       ingredientForms: current.ingredientForms,
       textures: current.textures,
       supportedCookingMethods: current.supportedCookingMethods,
       metadata: current.metadata,
+      defaultPantryQuantity: current.defaultPantryQuantity,
     );
   }
 
