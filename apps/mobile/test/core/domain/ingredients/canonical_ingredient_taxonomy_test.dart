@@ -353,23 +353,35 @@ void main() {
   });
 
   group('defaultPantryUnitId', () {
-    test('is computed from preferredUnitId', () {
-      final ingredient = CanonicalIngredient(
-        id: 'garlic',
-        canonicalName: 'Garlic',
-        localizedNames: const <String, String>{'th': 'กระเทียม'},
-        aliases: const <String>[],
-        searchKeywords: const <String>[],
-        category: 'herb',
-        defaultStorageType: IngredientStorageType.refrigerated,
-        defaultPurchaseUnitId: 'kilogram',
-        defaultInventoryUnitId: 'gram',
-        preferredUnitId: 'clove',
-        recommendedUnitIds: const <String>['clove', 'kilogram'],
-      );
-      expect(ingredient.defaultPantryUnitId, 'clove');
-      expect(ingredient.defaultPantryUnitId, ingredient.preferredUnitId);
-    });
+    test(
+      'is computed from defaultInventoryUnitId, not preferredUnitId — '
+      'pairing a pantry quantity with a purchase unit like kilogram would '
+      'produce nonsense like "300 kilogram" for something tracked in grams',
+      () {
+        final ingredient = CanonicalIngredient(
+          id: 'garlic',
+          canonicalName: 'Garlic',
+          localizedNames: const <String, String>{'th': 'กระเทียม'},
+          aliases: const <String>[],
+          searchKeywords: const <String>[],
+          category: 'herb',
+          defaultStorageType: IngredientStorageType.refrigerated,
+          defaultPurchaseUnitId: 'kilogram',
+          defaultInventoryUnitId: 'gram',
+          preferredUnitId: 'clove',
+          recommendedUnitIds: const <String>['clove', 'kilogram'],
+        );
+        expect(ingredient.defaultPantryUnitId, 'gram');
+        expect(
+          ingredient.defaultPantryUnitId,
+          ingredient.defaultInventoryUnitId,
+        );
+        expect(
+          ingredient.defaultPantryUnitId,
+          isNot(ingredient.preferredUnitId),
+        );
+      },
+    );
   });
 
   group('existing behavior unchanged when new fields are absent', () {
@@ -389,7 +401,7 @@ void main() {
       final squid = registry.byId('squid')!;
       expect(squid.taxonomyType, isNull);
       expect(squid.defaultPantryQuantity, isNull);
-      expect(squid.defaultPantryUnitId, squid.preferredUnitId);
+      expect(squid.defaultPantryUnitId, squid.defaultInventoryUnitId);
       expect(squid.canSelectAsMainIngredient, isTrue);
       expect(registry.resolve('ปลาหมึก').ingredient?.id, 'squid');
       expect(registry.resolve('หมึก').ingredient?.id, 'squid');

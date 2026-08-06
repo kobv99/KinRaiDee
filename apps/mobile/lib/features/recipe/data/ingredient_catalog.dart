@@ -90,12 +90,20 @@ class IngredientCatalog {
       );
     }
     final category = json['category']?.toString() ?? 'other';
+    final parentId = json['parentId']?.toString();
+    final taxonomyType = _taxonomyType(
+      json['taxonomyType']?.toString(),
+      id: id,
+    );
+    final ingredientForms = _stringList(json['ingredientForms']);
     final policyRecommendation = _ingredientUnitPolicy.forDefinition(
       canonicalId: id,
       category: category,
       defaultInventoryUnitId: inventoryUnitId,
       defaultPurchaseUnitId: purchaseUnitId,
-      parentId: json['parentId']?.toString(),
+      parentId: parentId,
+      taxonomyType: taxonomyType,
+      ingredientForms: ingredientForms,
     );
     final configuredRecommendedUnitIds = _stringList(
       json['recommendedUnitIds'],
@@ -156,12 +164,12 @@ class IngredientCatalog {
       preferredUnitId: preferredUnitId,
       recommendedUnitIds: recommendedUnitIds,
       unitFamily: unitFamily,
-      parentId: json['parentId']?.toString(),
+      parentId: parentId,
       nodeType: _nodeType(json['nodeType']?.toString()),
-      taxonomyType: _taxonomyType(json['taxonomyType']?.toString(), id: id),
+      taxonomyType: taxonomyType,
       selectableAsMainIngredient:
           json['selectableAsMainIngredient'] as bool? ?? true,
-      ingredientForms: _stringList(json['ingredientForms']),
+      ingredientForms: ingredientForms,
       textures: _stringList(json['textures']),
       supportedCookingMethods: _stringList(json['supportedCookingMethods']),
       metadata: IngredientMetadata(
@@ -170,7 +178,10 @@ class IngredientCatalog {
         source: json['source']?.toString() ?? 'thai_ingredients_v1',
       ),
       image: _image(json['image']),
-      defaultPantryQuantity: _doubleOrNull(json['defaultPantryQuantity']),
+      defaultPantryQuantity: _doubleOrNull(
+        json['defaultPantryQuantity'],
+        id: id,
+      ),
     );
   }
 }
@@ -209,14 +220,25 @@ IngredientTaxonomyType? _taxonomyType(String? value, {required String id}) {
   );
 }
 
-double? _doubleOrNull(Object? value) {
+/// Absent (`null`) stays `null` — legacy definitions haven't been authored
+/// with a suggested quantity yet. A present-but-unparseable value (e.g.
+/// `"300g"`) fails loudly instead of silently collapsing to `null`, which
+/// would be indistinguishable from "not yet authored".
+double? _doubleOrNull(Object? value, {required String id}) {
   if (value == null) {
     return null;
   }
   if (value is num) {
     return value.toDouble();
   }
-  return double.tryParse(value.toString());
+  final parsed = double.tryParse(value.toString());
+  if (parsed == null) {
+    throw FormatException(
+      'Canonical ingredient $id has a malformed defaultPantryQuantity '
+      '"$value".',
+    );
+  }
+  return parsed;
 }
 
 IngredientUnitFamily? _unitFamily(String? value) {

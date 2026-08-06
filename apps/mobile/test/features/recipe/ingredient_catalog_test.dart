@@ -107,13 +107,38 @@ void main() {
             );
           }
         }
-        expect(registry.byId('fish')?.preferredUnitId, 'whole');
-        expect(registry.byId('fish')?.canSelectAsMainIngredient, isFalse);
+        expect(registry.byId('fish')?.preferredUnitId, 'kilogram');
+        expect(registry.byId('fish')?.ingredientForms, isEmpty);
+        expect(registry.byId('fish')?.canSelectAsMainIngredient, isTrue);
         expect(registry.byId('mackerel')?.canSelectAsMainIngredient, isTrue);
         expect(
           registry.byId('mackerel')?.ingredientForms,
           contains('whole_cleaned'),
         );
+        // Whole-animal treatment requires ancestry + taxonomyType + an
+        // authored whole_cleaned form — species that have it recommend
+        // 'whole'; generic fish, fish_fillet, and salmon (not authored with
+        // whole_cleaned) stay mass-based rather than being assumed whole.
+        for (final id in <String>[
+          'tilapia',
+          'catfish',
+          'snakehead',
+          'sea_bass',
+          'mackerel',
+        ]) {
+          expect(
+            registry.byId(id)?.preferredUnitId,
+            'whole',
+            reason: '$id should recommend the whole-animal unit',
+          );
+        }
+        for (final id in <String>['fish', 'fish_fillet', 'salmon']) {
+          expect(
+            registry.byId(id)?.preferredUnitId,
+            'kilogram',
+            reason: '$id should remain mass-based, not assumed whole',
+          );
+        }
         expect(registry.canonicalIdFor('chicken_breast'), 'chicken_breast');
         expect(registry.byId('pork')?.preferredUnitId, 'kilogram');
         expect(registry.byId('egg')?.preferredUnitId, 'egg');
@@ -198,6 +223,18 @@ void main() {
       final bundle = _MemoryAssetBundle(
         jsonEncode(<Map<String, dynamic>>[
           entry('bad_type', taxonomyType: 'not_a_real_type'),
+        ]),
+      );
+      final catalog = IngredientCatalog(bundle: bundle);
+
+      expect(catalog.load(), throwsA(isA<FormatException>()));
+    });
+
+    test('a malformed non-null defaultPantryQuantity such as "300g" fails '
+        'clearly instead of silently becoming null', () async {
+      final bundle = _MemoryAssetBundle(
+        jsonEncode(<Map<String, dynamic>>[
+          entry('bad_quantity', defaultPantryQuantity: '300g'),
         ]),
       );
       final catalog = IngredientCatalog(bundle: bundle);
